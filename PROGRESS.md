@@ -1,29 +1,33 @@
 # PROGRESS
 
-## Phase 1 — Rebuild the prototype in Next.js · BUILT, waiting for your confirmation
+## Phase 1 — Rebuild the prototype in Next.js · DONE
+Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:logic`) matches the prototype on 2,000 synthetic faces.
 
+## Update 1 (requested changes; covers most of phase 2) · BUILT, waiting for phone test
 **Done**
-- Next.js 16 + TypeScript app. Same screens, copy, look and logic as `face-scan.html` (kept as the reference).
-- Face-shape logic ported to `lib/faceShape.ts`; all tunable numbers (NORM, shape offsets, thresholds) in `lib/faceShape.config.ts`.
-- `npm run test:logic` runs the prototype's own code and the new code on 2,000 synthetic faces → identical results (shape, %, lean, cuts, avoid, beard tweaks).
-- Content (shapes, cuts, beard, skin areas, routines) in `lib/content.ts` for barber/derm review.
-- face-api 68-point model served from `/public/models` (extracted from the HTML by `npm run models`), runs on device.
-- Photo quality checks + blocking rules (head turned / mouth open) unchanged.
-- Story card (1080×1920) and PDF work; on phones they open the share sheet, on desktop they download.
-- `?ref=CODE` is captured and stored in localStorage (not sent anywhere yet).
-- `.gitignore` covers `.env.local`; `.env.example` lists future keys.
-- Small fix: compare bars never say "top 0%" (now min 1%).
+- **Capture has two options:** "Take a photo" (live front camera in the page) and "Upload a photo" (gallery).
+  - Live camera: mirrored preview, oval guide, one instruction at a time (section 3 order), oval turns green, countdown, auto-capture after holding still, manual shutter, 9 frames averaged, "turn left… now right" sweep, un-mirrored frame saved, camera stopped right after.
+  - Fallbacks: permission denied / no camera / unsupported / http (insecure) / Instagram & Facebook in-app browser → message + upload.
+- **Men-only gate:** on-device face-structure gender model (face-api age/gender net; age output ignored). Blocks when female probability ≥ `FEMALE_BLOCK_P` (0.8, in `lib/capture.config.ts`). Applies to camera and upload. Test set: women 0.89–0.98, men 0.02–0.13. Never shown, stored or sent.
+- **Beard advice depends on current beard:** clean-shaven → which beards would suit; stubble/full → how to shape it + best styles (`keep` text per shape in `lib/content.ts`).
+- **Visual haircuts and beards:** line-art illustrations for every cut and beard (`lib/illustrations.ts`), used in the app, story card and PDF.
+- **AI try-on on his own photo:** `app/api/tryon/route.ts` (OpenAI image edit, `gpt-image-2`). Opt-in tick box + button; photo held in memory for that one call, never logged or stored. Off until `OPENAI_API_KEY` is set in `.env.local`. Rate limit 6/hour per IP (in-memory).
+- **Story card redesigned:** his photo with brass jawline scan, face shape, match %, cut + beard panels with illustrations, code. Toggles: "Hide my photo", "Use my new-look preview".
+- **Unlock form:** first name + Indian WhatsApp mobile (required; 10 digits starting 6–9, +91/0 allowed; rejects fakes like 9999999999 / 9876543210) + optional email.
+- **PDF redesigned:** branded header with name + mobile, photo, shape, compare bars, illustrated cut/avoid/beard cards, try-on image, routine, invite code. Clear "saved to Downloads/Files" message after saving.
+- **Bug fixes:** `img.decode()` could hang in some browsers → replaced with onload loader; compare bars never "top 0%".
+- **HTTPS tunnel for phone testing:** `npm run tunnel` (cloudflared quick tunnel; the URL changes every run).
 
 **Placeholders**
-- Waitlist position (random 400–489), referral count (0), reward text, Nordman product slots.
-- Unlock form validates but saves/sends nothing.
-- Skin read shows "Coming soon" (phase 4).
-- Capture is a single "Open camera" button using the phone's camera/file picker (phase 2 adds live camera + upload).
+- Waitlist position, referral count, reward, Nordman product slots; unlock form saves nothing.
+- Skin read "coming soon" (phase 4). Illustrations are placeholder art (barber to review).
+- AI try-on needs `OPENAI_API_KEY`; the rate limit isn't shared across servers yet.
 
-**Known issues / notes**
-- Google renamed "Big Shoulders Display" to "Big Shoulders"; we use the new family (same design).
-- First face detection after load takes a few seconds (WebGL warm-up).
-- `next dev` appends a Next.js notes block to the end of AGENTS.md; harmless.
+**Known issues / decisions to confirm**
+- AGENTS.md says photos are never uploaded except for the skin read. The try-on is a second, opt-in upload that the owner requested; update AGENTS.md section 7 and the privacy policy.
+- Gender detection can misread some men (soft features, long hair) and has only been tested on 14 faces; tune `FEMALE_BLOCK_P` with real Indian selfies during calibration.
+- Chin-up/down and smile thresholds are rough; calibrate in phase 7.
+- Head-turn sweep doesn't feed jaw confidence yet.
 
 ## Next
-Phase 2 — Camera capture with two options (live camera + upload), HTTPS tunnel for phone testing.
+Phone test of the live camera via the tunnel → then phase 3 (MediaPipe + `?debug` view).

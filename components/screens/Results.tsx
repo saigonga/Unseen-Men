@@ -9,6 +9,8 @@ import CompareBars from "../results/CompareBars";
 import { BestCuts, PairList } from "../results/CutList";
 import UnlockForm from "../results/UnlockForm";
 import type { Lead } from "../results/UnlockForm";
+import BeardSection from "../results/BeardSection";
+import TryOn from "../results/TryOn";
 import SkinRead from "../results/SkinRead";
 import ShareSection from "../results/ShareSection";
 import Rewards from "../results/Rewards";
@@ -20,9 +22,11 @@ interface Unlocked extends Lead { code: string; position: number }
 export default function Results({ answers, photo, result, onRestart }: { answers: Answers; photo: Photo; result: FaceResult; onRestart: () => void }) {
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const [unlocked, setUnlocked] = useState<Unlocked | null>(null);
+  const [tryOn, setTryOn] = useState<string | null>(null);
   const fullRef = useRef<HTMLDivElement>(null);
   const sh = SHAPES[result.key];
   const p1 = result.ranked[0][1];
+  const beardStyle = sh.beard.styles[0][0];
 
   useEffect(() => { if (canvas) drawOverlay(canvas, photo.img, photo.det, true); }, [canvas, photo]);
   useEffect(() => { if (unlocked) fullRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }, [unlocked]);
@@ -60,15 +64,14 @@ export default function Results({ answers, photo, result, onRestart }: { answers
 
       {unlocked && (
         <div className="stack" ref={fullRef}>
+          <TryOn photo={photo} cut={result.cuts[0].n} beard={beardStyle} onImage={setTryOn} />
+          <hr />
           <div className="stack">
             <h3>Cuts to avoid</h3>
-            <PairList items={result.avoid} avoid />
+            <PairList items={result.avoid} avoid art="cut" />
           </div>
-          <div className="stack">
-            <div className="row"><h3>Beard verdict</h3><span className={`pill ${sh.beard.cls}`}>{sh.beard.v}</span></div>
-            <p>{sh.beard.text}{result.beardTweaks.length ? " For your face specifically: " + result.beardTweaks.join(" ") : ""}</p>
-            <PairList items={sh.beard.styles} />
-          </div>
+          <hr />
+          <BeardSection shape={result.key} beard={answers.beard} tweaks={result.beardTweaks} />
           <hr />
           <SkinRead data={null} />
           <hr />
@@ -77,7 +80,11 @@ export default function Results({ answers, photo, result, onRestart }: { answers
             <ol className="routine">{ROUTINES[answers.age].map(r => <li key={r}><span>{r}</span></li>)}</ol>
           </div>
           <hr />
-          <ShareSection pdf={{ name: unlocked.name, age: answers.age, result, skin: null, code: unlocked.code, faceImage: canvas }} />
+          <ShareSection
+            photo={photo}
+            beardStyle={beardStyle}
+            pdf={{ name: unlocked.name, mobile: unlocked.mobile, email: unlocked.email, age: answers.age, beard: answers.beard, result, skin: null, code: unlocked.code, faceImage: canvas, tryOn }}
+          />
           <Rewards code={unlocked.code} position={unlocked.position} referrals={0} />
           <button className="ghost" onClick={onRestart}>Scan another face</button>
         </div>

@@ -18,6 +18,13 @@ for (const [name, m] of Object.entries(models)) {
   console.log(`models/${name}.bin + .json`);
 }
 
+// Gender model (men-only gate). Same manifest format as the bundled ones.
+const ag = path.join(root, "node_modules/@vladmandic/face-api/model");
+fs.copyFileSync(path.join(ag, "age_gender_model.bin"), path.join(outDir, "gender.bin"));
+fs.writeFileSync(path.join(outDir, "gender.json"),
+  JSON.stringify(JSON.parse(fs.readFileSync(path.join(ag, "age_gender_model-weights_manifest.json"), "utf8"))));
+console.log("models/gender.bin + .json");
+
 const vendorDir = path.join(root, "public", "vendor");
 fs.mkdirSync(vendorDir, { recursive: true });
 fs.copyFileSync(path.join(root, "node_modules/@vladmandic/face-api/dist/face-api.js"), path.join(vendorDir, "face-api.js"));

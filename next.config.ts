@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // Lets a phone on the same Wi-Fi load the dev server (e.g. http://192.168.1.112:3000).
-  allowedDevOrigins: ["192.168.*.*", "10.*.*.*"],
+  // Phone testing: same Wi-Fi (http://192.168.x.x:3000) or the HTTPS tunnel (npm run tunnel).
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", "*.trycloudflare.com"],
   async headers() {
     return [
       {
