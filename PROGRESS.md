@@ -29,5 +29,12 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 - Chin-up/down and smile thresholds are rough; calibrate in phase 7.
 - Head-turn sweep doesn't feed jaw confidence yet.
 
+## Update 2 — stable face shape + try-on per suggestion · BUILT
+- **Bug: the same face gave different shapes.** Cause: one landmark pass is about as noisy as the real difference between faces (jaw width varies ~2% between people). Fix: `lib/robust.ts` measures each photo 8 times (4 detector sizes × mirrored) and, for the camera, also every captured frame, then uses the median.
+- Stability lab (dev only): `/dev/stability` re-scans test photos in `/public/_test` with 6 framings. Result on 12 test photos: old method changed shape on 5/12 (one flipped oval → diamond → rectangle); new method on 2/12 (borderline faces).
+- Different photos of the same person can still give different shapes → the 68-point model is the limit. Phase 3 (MediaPipe, 478 points) + phase 7 calibration are the real fix.
+- "Leaning X" now reads "85% Square match · with some Rectangle features".
+- **AI try-on per suggestion:** each top cut and beard style has "See it on me" (hair only / beard only), plus "Show my full new look" (both). One consent tick box. The best available preview feeds the story card and PDF. Needs `OPENAI_API_KEY` in `.env.local` (file created, empty).
+
 ## Next
 Phone test of the live camera via the tunnel → then phase 3 (MediaPipe + `?debug` view).
