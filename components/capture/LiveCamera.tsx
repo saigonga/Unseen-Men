@@ -5,9 +5,11 @@ import { detectFast, averageDetections } from "@/lib/detector";
 import type { Detection } from "@/lib/detector";
 import { liveInstruction, metrics, isFemale } from "@/lib/quality";
 import { LIVE } from "@/lib/capture.config";
+import { measure } from "@/lib/faceShape";
+import type { Measures } from "@/lib/faceShape";
 
 export type CameraProblem = "denied" | "nocamera" | "unsupported" | "insecure" | "inapp" | "female";
-export interface LiveShot { canvas: HTMLCanvasElement; det: Detection }
+export interface LiveShot { canvas: HTMLCanvasElement; det: Detection; frames: Measures[] }
 
 type Phase = "intro" | "starting" | "tracking" | "capturing" | "sweep";
 
@@ -65,7 +67,7 @@ export default function LiveCamera({ onShot, onProblem }: { onShot: (s: LiveShot
     }
     if (shots.length < Math.ceil(LIVE.frames / 2)) return null;
     const best = shots.reduce((a, b) => (b.score < a.score ? b : a));
-    return { canvas: best.c, det: averageDetections(shots.map(s => s.d)) };
+    return { canvas: best.c, det: averageDetections(shots.map(s => s.d)), frames: shots.map(s => measure(s.d.P)) };
   }
 
   async function run() {

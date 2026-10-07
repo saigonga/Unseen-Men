@@ -11,14 +11,15 @@ import Scanning from "./screens/Scanning";
 import Results from "./screens/Results";
 import { loadDetector } from "@/lib/detector";
 import type { Detection } from "@/lib/detector";
-import { analyse } from "@/lib/faceShape";
-import type { FaceResult } from "@/lib/faceShape";
+import { analyse, analyseMeasures } from "@/lib/faceShape";
+import type { FaceResult, Measures } from "@/lib/faceShape";
 import { captureReferral } from "@/lib/referral";
 
 export type ScreenId = "start" | "inputs" | "tips" | "capture" | "scan" | "results";
 export const ORDER: ScreenId[] = ["start", "inputs", "tips", "capture", "scan", "results"];
 
-export interface Photo { img: HTMLImageElement; url: string; det: Detection }
+/** `m` = robust (median) measurements; falls back to the single detection if missing. */
+export interface Photo { img: HTMLImageElement; url: string; det: Detection; m?: Measures }
 export type ModelState = "loading" | "ready" | "error";
 
 export default function FaceScanApp() {
@@ -40,7 +41,7 @@ export default function FaceScanApp() {
     if (!answers) return;
     setPhoto(prev => { if (prev && prev.url !== p.url) URL.revokeObjectURL(prev.url); return p; });
     go("scan");
-    const r = analyse(p.det.P, answers.beard);
+    const r = p.m ? analyseMeasures(p.m, answers.beard) : analyse(p.det.P, answers.beard);
     await new Promise(res => setTimeout(res, 2700));
     setResult(r);
     go("results");

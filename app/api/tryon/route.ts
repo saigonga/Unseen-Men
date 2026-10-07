@@ -31,18 +31,24 @@ export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "local";
   if (limited(ip)) return Response.json({ error: "rate_limited" }, { status: 429 });
 
-  let body: { image?: string; cut?: string; beard?: string };
+  let body: { image?: string; mode?: string; cut?: string; beard?: string };
   try { body = await req.json(); } catch { return Response.json({ error: "bad_request" }, { status: 400 }); }
   const { image, cut, beard } = body;
+  const mode = body.mode === "hair" || body.mode === "beard" ? body.mode : "both";
   if (typeof image !== "string" || !/^data:image\/(jpeg|png|webp);base64,/.test(image) || image.length > MAX_BYTES * 1.37)
     return Response.json({ error: "bad_image" }, { status: 400 });
-  if (!cut || !ALLOWED_CUTS.has(cut) || !beard || !ALLOWED_BEARDS.has(beard))
+  const needCut = mode !== "beard", needBeard = mode !== "hair";
+  if ((needCut && (!cut || !ALLOWED_CUTS.has(cut))) || (needBeard && (!beard || !ALLOWED_BEARDS.has(beard))))
     return Response.json({ error: "bad_style" }, { status: 400 });
 
   const beardLine = beard === "Clean shave" ? "Make him clean-shaven." : `Give him a neatly groomed "${beard}" beard style.`;
+  const change =
+    mode === "hair" ? `Change ONLY his hair to a "${cut}" haircut. Keep his facial hair (beard, stubble or clean shave) exactly as it is.`
+    : mode === "beard" ? `Change ONLY his facial hair. ${beardLine} Keep his hair and hairstyle exactly as they are.`
+    : `Change his hair to a "${cut}" haircut. ${beardLine}`;
   const prompt = [
-    "Edit this selfie of an adult man to preview a new haircut and beard, like a barber's reference photo.",
-    `Change his hair to a "${cut}" haircut. ${beardLine}`,
+    "Edit this selfie of an adult man to preview a grooming change, like a barber's reference photo.",
+    change,
     "Keep everything else exactly the same: his face, identity, facial features, skin tone and skin colour, expression, eyes, clothes, background, lighting and camera angle.",
     "Do not lighten or change his skin, do not beautify or slim the face. Photorealistic, natural hair texture, front view.",
   ].join(" ");

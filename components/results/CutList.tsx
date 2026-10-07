@@ -2,8 +2,9 @@ import type { Pair } from "@/lib/content";
 import type { RankedCut } from "@/lib/faceShape";
 import { TRAIT_LABEL } from "@/lib/faceShape";
 import StyleArt from "./StyleArt";
+import { SeeOnMe } from "./TryOnContext";
 
-export function PairList({ items, avoid = false, art }: { items: Pair[]; avoid?: boolean; art?: "cut" | "beard" }) {
+export function PairList({ items, avoid = false, art, tryOn = false }: { items: Pair[]; avoid?: boolean; art?: "cut" | "beard"; tryOn?: boolean }) {
   return (
     <div className={`cuts${avoid ? " avoid" : ""}`}>
       {items.map(([n, w], i) => (
@@ -12,6 +13,7 @@ export function PairList({ items, avoid = false, art }: { items: Pair[]; avoid?:
           <div>
             {art && <span className={`n-small${avoid ? " bad" : ""}`}>{avoid ? "Avoid" : `0${i + 1}`}</span>}
             <strong>{n}</strong><p>{w}</p>
+            {tryOn && art && <SeeOnMe mode={art === "cut" ? "hair" : "beard"} cut={art === "cut" ? n : undefined} beard={art === "beard" ? n : undefined} />}
           </div>
         </div>
       ))}
@@ -19,7 +21,7 @@ export function PairList({ items, avoid = false, art }: { items: Pair[]; avoid?:
   );
 }
 
-export function BestCuts({ cuts }: { cuts: RankedCut[] }) {
+export function BestCuts({ cuts, tryOn = false }: { cuts: RankedCut[]; tryOn?: boolean }) {
   return (
     <div className="cuts">
       {cuts.map((c, i) => (
@@ -34,6 +36,7 @@ export function BestCuts({ cuts }: { cuts: RankedCut[] }) {
                 {c.hits.map(h => <span key={h}>Suits your {TRAIT_LABEL[h].toLowerCase()}</span>)}
               </div>
             )}
+            {tryOn && <SeeOnMe mode="hair" cut={c.n} />}
           </div>
         </div>
       ))}

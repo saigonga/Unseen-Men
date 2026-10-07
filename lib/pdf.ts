@@ -94,7 +94,7 @@ export async function buildPdf(d: PdfData): Promise<Blob> {
   font(8, "bold", K.muted); doc.text("YOUR FACE SHAPE", vx, y + 14);
   font(44, "bold", K.brass); doc.text(sh.name.toUpperCase(), vx, y + 56);
   const p1 = Math.round(r.ranked[0][1] * 100);
-  font(9.5, "bold", K.ink); doc.text(`${p1}% MATCH${r.lean ? `  ·  LEANING ${SHAPES[r.lean].name.toUpperCase()}` : ""}`, vx, y + 76);
+  font(9.5, "bold", K.ink); doc.text(`${p1}% ${sh.name.toUpperCase()} MATCH${r.lean ? `  ·  SOME ${SHAPES[r.lean].name.toUpperCase()} FEATURES` : ""}`, vx, y + 76);
   font(10, "normal", K.ink);
   let vy = y + 96 + text(sh.desc, vx, y + 96, vw, 13.5);
   const apart = r.traits.length ? `What sets your face apart: ${r.traits.slice(0, 3).map(t => t.label.toLowerCase()).join(", ")}.` : "Balanced proportions: nothing stands out strongly.";

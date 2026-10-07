@@ -10,7 +10,7 @@ import { BestCuts, PairList } from "../results/CutList";
 import UnlockForm from "../results/UnlockForm";
 import type { Lead } from "../results/UnlockForm";
 import BeardSection from "../results/BeardSection";
-import TryOn from "../results/TryOn";
+import { TryOnProvider, TryOnConsent, SeeOnMe } from "../results/TryOnContext";
 import SkinRead from "../results/SkinRead";
 import ShareSection from "../results/ShareSection";
 import Rewards from "../results/Rewards";
@@ -22,7 +22,6 @@ interface Unlocked extends Lead { code: string; position: number }
 export default function Results({ answers, photo, result, onRestart }: { answers: Answers; photo: Photo; result: FaceResult; onRestart: () => void }) {
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const [unlocked, setUnlocked] = useState<Unlocked | null>(null);
-  const [tryOn, setTryOn] = useState<string | null>(null);
   const fullRef = useRef<HTMLDivElement>(null);
   const sh = SHAPES[result.key];
   const p1 = result.ranked[0][1];
@@ -42,13 +41,14 @@ export default function Results({ answers, photo, result, onRestart }: { answers
   }
 
   return (
+    <TryOnProvider photo={photo}>
     <section className="stack">
       <span className="eyebrow">Your result</span>
       <div className="verdict">
         <span className="muted small">Your face shape</span>
         <span className="shape">{sh.name}</span>
         <span className="lean">
-          {result.lean ? `Leaning ${SHAPES[result.lean].name} · ` : ""}{Math.round(p1 * 100)}% match
+          {Math.round(p1 * 100)}% {sh.name} match{result.lean ? ` · with some ${SHAPES[result.lean].name} features` : ""}
         </span>
         <p>{sh.desc} {why}{beardNote}</p>
       </div>
@@ -57,14 +57,20 @@ export default function Results({ answers, photo, result, onRestart }: { answers
       <CompareBars z={result.z} />
       <div className="stack">
         <h3>Top 3 cuts for you</h3>
-        <BestCuts cuts={result.cuts} />
+        {unlocked && <TryOnConsent />}
+        <BestCuts cuts={result.cuts} tryOn={Boolean(unlocked)} />
       </div>
 
       {!unlocked && <UnlockForm onUnlock={unlock} />}
 
       {unlocked && (
         <div className="stack" ref={fullRef}>
-          <TryOn photo={photo} cut={result.cuts[0].n} beard={beardStyle} onImage={setTryOn} />
+          <div className="stack tryon">
+            <span className="eyebrow">Your full new look</span>
+            <h3>{result.cuts[0].n} + {beardStyle.toLowerCase()}</h3>
+            <p className="small muted">Your best haircut and best beard together, on your own photo.</p>
+            <SeeOnMe mode="both" cut={result.cuts[0].n} beard={beardStyle} label="Show my full new look" />
+          </div>
           <hr />
           <div className="stack">
             <h3>Cuts to avoid</h3>
@@ -83,7 +89,7 @@ export default function Results({ answers, photo, result, onRestart }: { answers
           <ShareSection
             photo={photo}
             beardStyle={beardStyle}
-            pdf={{ name: unlocked.name, mobile: unlocked.mobile, email: unlocked.email, age: answers.age, beard: answers.beard, result, skin: null, code: unlocked.code, faceImage: canvas, tryOn }}
+            pdf={{ name: unlocked.name, mobile: unlocked.mobile, email: unlocked.email, age: answers.age, beard: answers.beard, result, skin: null, code: unlocked.code, faceImage: canvas, tryOn: null }}
           />
           <Rewards code={unlocked.code} position={unlocked.position} referrals={0} />
           <button className="ghost" onClick={onRestart}>Scan another face</button>
@@ -93,5 +99,6 @@ export default function Results({ answers, photo, result, onRestart }: { answers
         Prototype note: faces are compared against norms from 28 sample portraits. Replace them with norms from 50+ Indian male selfies, checked by a barber, before launch. Product slots show where Nordman SKUs plug in.
       </p>
     </section>
+    </TryOnProvider>
   );
 }

@@ -8,11 +8,13 @@ import type { QualityReport } from "@/lib/quality";
 import { drawOverlay } from "@/lib/overlay";
 import { canvasToBlob } from "@/lib/download";
 import { loadImage } from "@/lib/image";
+import { robustMeasures } from "@/lib/robust";
+import type { Measures } from "@/lib/faceShape";
 import LiveCamera, { cameraSupport } from "../capture/LiveCamera";
 import type { CameraProblem, LiveShot } from "../capture/LiveCamera";
 import type { ModelState, Photo } from "../FaceScanApp";
 
-interface Pending { img: HTMLImageElement; url: string; source: "camera" | "upload"; det?: Detection }
+interface Pending { img: HTMLImageElement; url: string; source: "camera" | "upload"; det?: Detection; frames?: Measures[] }
 type Msg = { text: string; bad: boolean } | null;
 type Mode = "choose" | "live" | "preview";
 
@@ -35,6 +37,7 @@ export default function Capture({ model, onAnalyse }: { model: ModelState; onAna
   const [report, setReport] = useState<QualityReport | null>(null);
   const [msg, setMsg] = useState<Msg>(null);
   const [busy, setBusy] = useState(false);
+  const [measures, setMeasures] = useState<Measures | null>(null);
   const [camHint, setCamHint] = useState<string | null>(null);
   const handedOff = useRef(false);
 
@@ -44,11 +47,13 @@ export default function Capture({ model, onAnalyse }: { model: ModelState; onAna
   useEffect(() => { const p = cameraSupport(); if (p === "inapp" || p === "insecure") setCamHint(PROBLEM_TEXT[p]); }, []);
 
   const inspect = useCallback(async (p: Pending) => {
-    setBusy(true); setMsg(null); setReport(null); setDet(null);
+    setBusy(true); setMsg(null); setReport(null); setDet(null); setMeasures(null);
     try {
       const d = p.det ?? await detect(p.img);
       if (!d) { setMsg({ text: "No face found. Hold the phone at arm's length, face the camera, and try again.", bad: true }); return; }
       const q = checkQuality(p.img, d);
+      // Measure the face many times and keep the median, so a rescan gives the same shape.
+      if (!q.blocking) setMeasures((await robustMeasures(p.img, d, p.frames ?? []))?.m ?? null);
       setDet(d); setReport(q);
       if (q.blocking) setMsg({ text: q.blocking, bad: true });
       else if (q.failed) setMsg({ text: `${q.failed} check${q.failed > 1 ? "s" : ""} need attention. Retake for the most accurate result, or continue anyway.`, bad: false });
@@ -84,7 +89,7 @@ export default function Capture({ model, onAnalyse }: { model: ModelState; onAna
 
   async function onShot(s: LiveShot) {
     const url = URL.createObjectURL(await canvasToBlob(s.canvas, "image/jpeg", 0.92));
-    setNew({ img: await loadImage(url), url, source: "camera", det: s.det });
+    setNew({ img: await loadImage(url), url, source: "camera", det: s.det, frames: s.frames });
   }
 
   function onProblem(p: CameraProblem) {
@@ -137,7 +142,7 @@ export default function Capture({ model, onAnalyse }: { model: ModelState; onAna
         )}
         {mode === "live" && <button className="ghost" onClick={reset}>Cancel · upload a photo instead</button>}
         {mode === "preview" && canAnalyse && (
-          <button className="primary" onClick={() => { handedOff.current = true; onAnalyse({ img: pending!.img, url: pending!.url, det: det! }); }}>
+          <button className="primary" onClick={() => { handedOff.current = true; onAnalyse({ img: pending!.img, url: pending!.url, det: det!, m: measures ?? undefined }); }}>
             {report!.failed ? "Analyse anyway" : "Analyse my face"}
           </button>
         )}

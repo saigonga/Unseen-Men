@@ -91,6 +91,17 @@ export async function detectFast(input: FaceInput, withGender = false): Promise<
   return { box: toBox(r.detection.box), P: toPts(r), femaleP: withGender ? femaleOf(r) : 0 };
 }
 
+/** One pass at a given detector input size (used by the robust multi-pass measurement). */
+export async function detectAt(input: FaceInput, inputSize: number): Promise<Detection | null> {
+  await loadDetector();
+  const faceapi = window.faceapi;
+  const r = await faceapi
+    .detectSingleFace(input, new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold: 0.3 }))
+    .withFaceLandmarks();
+  if (!r) return null;
+  return { box: toBox(r.detection.box), P: toPts(r), femaleP: 0 };
+}
+
 /** Average several detections of the same face (multi-frame capture). */
 export function averageDetections(list: Detection[]): Detection {
   const P = list[0].P.map((_, i) => avgPts(list.map(d => d.P[i])));

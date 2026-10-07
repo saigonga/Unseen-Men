@@ -13,7 +13,7 @@ export default function BeardSection({ shape, beard, tweaks }: { shape: ShapeKey
         <div className="row"><h3>Beard verdict</h3><span className={`pill ${b.cls}`}>{b.v === "Yes" ? "A beard would help" : "Optional"}</span></div>
         <p className="small muted">You&apos;re clean-shaven now. If you grow one, these suit a {name} face best:</p>
         <p>{b.text}{forYou}</p>
-        <PairList items={b.styles} art="beard" />
+        <PairList items={b.styles} art="beard" tryOn />
       </div>
     );
   }
@@ -23,7 +23,7 @@ export default function BeardSection({ shape, beard, tweaks }: { shape: ShapeKey
       <p className="small muted">You have {beard === "full" ? "a full beard" : "stubble"} now. Here&apos;s how to shape it for a {name} face:</p>
       <p>{b.keep}{forYou}</p>
       <h3 style={{ fontSize: "1.05rem" }}>Best beard styles for your face</h3>
-      <PairList items={b.styles} art="beard" />
+      <PairList items={b.styles} art="beard" tryOn />
     </div>
   );
 }

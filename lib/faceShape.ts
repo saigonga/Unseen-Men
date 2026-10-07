@@ -122,8 +122,9 @@ export interface FaceResult {
   lean: ShapeKey | null;
 }
 
-export function analyse(P: Pt[], beard: Beard | null): FaceResult {
-  const m = measure(P);
+export const analyse = (P: Pt[], beard: Beard | null): FaceResult => analyseMeasures(measure(P), beard);
+
+export function analyseMeasures(m: Measures, beard: Beard | null): FaceResult {
   const z = zScores(m, beard);
   const ranked = classify(z);
   const key = ranked[0][0];

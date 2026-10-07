@@ -7,14 +7,19 @@ import type { PdfData } from "@/lib/pdf";
 import { saveFile, canvasToBlob } from "@/lib/download";
 import { loadImage } from "@/lib/image";
 import type { Photo } from "../FaceScanApp";
+import { useTryOn, lookKey } from "./TryOnContext";
 
 export default function ShareSection({ pdf, photo, beardStyle }: { pdf: PdfData; photo: Photo; beardStyle: string }) {
   const cardRef = useRef<HTMLCanvasElement>(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState<"card" | "pdf" | null>(null);
   const [showPhoto, setShowPhoto] = useState(true);
-  const [useTryOn, setUseTryOn] = useState(true);
-  const { result, code, tryOn } = pdf;
+  const [preferTryOn, setPreferTryOn] = useState(true);
+  const { result, code } = pdf;
+  const t = useTryOn();
+  // Best available AI preview: full look, else best cut, else best beard.
+  const tryOn = [lookKey("both", result.cuts[0].n, beardStyle), lookKey("hair", result.cuts[0].n), lookKey("beard", undefined, beardStyle)]
+    .map(k => t?.looks[k]).find(l => l?.status === "done")?.img ?? null;
 
   useEffect(() => { preloadPdf(); }, []);
 
@@ -22,7 +27,7 @@ export default function ShareSection({ pdf, photo, beardStyle }: { pdf: PdfData;
     let cancelled = false;
     (async () => {
       let tryOnImg: HTMLImageElement | null = null;
-      if (showPhoto && useTryOn && tryOn) {
+      if (showPhoto && preferTryOn && tryOn) {
         tryOnImg = await loadImage(tryOn).catch(() => null);
       }
       if (cancelled || !cardRef.current) return;
@@ -33,14 +38,14 @@ export default function ShareSection({ pdf, photo, beardStyle }: { pdf: PdfData;
       });
     })();
     return () => { cancelled = true; };
-  }, [result, code, photo, beardStyle, showPhoto, useTryOn, tryOn]);
+  }, [result, code, photo, beardStyle, showPhoto, preferTryOn, tryOn]);
 
   async function run(kind: "card" | "pdf") {
     setBusy(kind); setMsg("");
     try {
       const how = kind === "card"
         ? await saveFile(await canvasToBlob(cardRef.current!), `unseen-men-${result.key}.png`)
-        : await saveFile(await buildPdf(pdf), `unseen-men-report-${pdf.name.toLowerCase().replace(/[^a-z]+/g, "-")}.pdf`);
+        : await saveFile(await buildPdf({ ...pdf, tryOn }), `unseen-men-report-${pdf.name.toLowerCase().replace(/[^a-z]+/g, "-")}.pdf`);
       if (how === "downloaded") setMsg(kind === "pdf" ? "Report saved. On a phone, find it in Files → Downloads; on a computer, in your Downloads folder." : "Story card saved to your Downloads.");
       if (how === "shared") setMsg(kind === "pdf" ? "Report shared. Choose “Save to Files” to keep a copy." : "");
     } catch (e) {
@@ -57,7 +62,7 @@ export default function ShareSection({ pdf, photo, beardStyle }: { pdf: PdfData;
       <div className="row toggles">
         <label className="check small"><input type="checkbox" checked={!showPhoto} onChange={e => setShowPhoto(!e.target.checked)} /><span>Hide my photo</span></label>
         {tryOn && showPhoto && (
-          <label className="check small"><input type="checkbox" checked={useTryOn} onChange={e => setUseTryOn(e.target.checked)} /><span>Use my new-look preview</span></label>
+          <label className="check small"><input type="checkbox" checked={preferTryOn} onChange={e => setPreferTryOn(e.target.checked)} /><span>Use my new-look preview</span></label>
         )}
       </div>
       <div className="row">
