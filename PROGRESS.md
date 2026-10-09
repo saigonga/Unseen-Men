@@ -36,5 +36,18 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 - "Leaning X" now reads "85% Square match · with some Rectangle features".
 - **AI try-on per suggestion:** each top cut and beard style has "See it on me" (hair only / beard only), plus "Show my full new look" (both). One consent tick box. The best available preview feeds the story card and PDF. Needs `OPENAI_API_KEY` in `.env.local` (file created, empty).
 
+## Phase 3 — MediaPipe 478-point + debug view · BUILT
+- **MediaPipe Face Landmarker** (478 points) is now the primary detector for still photos. face-api 68-point is the automatic fallback (old browsers, no WASM). Gender gate stays on face-api's ageGenderNet.
+- `lib/landmarkMap.ts`: verified 478→68 index mapping (source: Real3DPortrait on HuggingFace).
+- `lib/mediapipe.ts`: FaceLandmarker wrapper (IMAGE + VIDEO modes), native head pose from facial transformation matrix.
+- `lib/detector.ts`: MediaPipe primary + face-api fallback. `Detection` interface extended with `P478` and `pose`.
+- `lib/robust.ts`: MediaPipe path uses 2 passes (original + mirrored) vs face-api's 8 passes. Steadier model = fewer passes needed.
+- `lib/quality.ts`: uses native MediaPipe head pose (yaw/pitch/roll) when available, landmark-based fallback otherwise.
+- `lib/overlay.ts`: optional 478-mesh rendering for debug view.
+- `components/DebugPanel.tsx`: hidden `?debug` panel showing engine, head pose, raw measurements, z-scores, shape scores, all 6 probabilities, 478 mesh toggle.
+- `public/mediapipe/`: WASM runtime + `face_landmarker.task` model (3.7MB). Cache headers set to immutable.
+- `@mediapipe/tasks-vision@1.1.0` installed.
+- Build passes clean.
+
 ## Next
-Phone test of the live camera via the tunnel → then phase 3 (MediaPipe + `?debug` view).
+Phone test, then phase 7 calibration with real Indian selfies.

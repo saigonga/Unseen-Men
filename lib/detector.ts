@@ -1,12 +1,18 @@
-/* Face detection on the device. face-api 68-point landmarks + a face-structure gender model
-   used only for the men-only gate (never shown, stored or sent).
-   Phase 3 replaces the landmark part with MediaPipe Face Landmarker. */
+/* Face detection on the device.
+   Phase 3: MediaPipe 478-point is primary for landmarks; face-api is kept for the gender gate.
+   If MediaPipe fails to load (old browser, no WASM), falls back to face-api for everything. */
 import { avgPts } from "./geometry";
 import type { Box, Pt } from "./geometry";
+import { loadMediaPipe, mpDetect, isMediaPipeReady } from "./mediapipe";
+import type { MPDetection } from "./mediapipe";
 
 export interface Detection {
   box: Box;
   P: Pt[];
+  /** All 478 MediaPipe points (null when using face-api fallback). */
+  P478: Pt[] | null;
+  /** Native head pose from MediaPipe (null when using face-api fallback). */
+  pose: { yaw: number; pitch: number; roll: number } | null;
   /** Probability (0–1) that the face model reads the face structure as female. */
   femaleP: number;
 }
@@ -15,7 +21,9 @@ export type FaceInput = HTMLImageElement | HTMLCanvasElement | HTMLVideoElement;
 /* eslint-disable @typescript-eslint/no-explicit-any */
 declare global { interface Window { faceapi?: any } }
 
-let ready: Promise<void> | null = null;
+let faceApiReady: Promise<void> | null = null;
+let mediapipeReady: Promise<void> | null = null;
+let mediapipeFailed = false;
 
 function loadScript(src: string) {
   return new Promise<void>((resolve, reject) => {
@@ -38,9 +46,9 @@ async function loadNet(net: any, name: string) {
   net.loadFromWeightMap(tf.io.decodeWeights(bin, specs));
 }
 
-export function loadDetector(): Promise<void> {
-  if (!ready) {
-    ready = (async () => {
+function loadFaceApi(): Promise<void> {
+  if (!faceApiReady) {
+    faceApiReady = (async () => {
       await loadScript("/vendor/face-api.js");
       const faceapi = window.faceapi, tf = faceapi.tf;
       let ok = false;
@@ -50,18 +58,56 @@ export function loadDetector(): Promise<void> {
       await loadNet(faceapi.nets.tinyFaceDetector, "tiny");
       await loadNet(faceapi.nets.faceLandmark68Net, "lm");
       await loadNet(faceapi.nets.ageGenderNet, "gender");
-    })().catch(e => { ready = null; throw e; });
+    })().catch(e => { faceApiReady = null; throw e; });
   }
-  return ready;
+  return faceApiReady;
+}
+
+/** Load both engines. MediaPipe failure is non-fatal (falls back to face-api). */
+export function loadDetector(): Promise<void> {
+  if (!mediapipeReady && !mediapipeFailed) {
+    mediapipeReady = loadMediaPipe().catch(e => {
+      console.warn("MediaPipe failed to load, using face-api fallback:", e);
+      mediapipeFailed = true;
+    });
+  }
+  // face-api always loads (needed for gender gate)
+  return Promise.all([loadFaceApi(), mediapipeReady]).then(() => {});
 }
 
 const femaleOf = (r: any) => (r.gender === "female" ? r.genderProbability : 1 - r.genderProbability);
 const toPts = (r: any): Pt[] => r.landmarks.positions.map((p: Pt) => ({ x: p.x, y: p.y }));
 const toBox = (b: any): Box => ({ x: b.x, y: b.y, width: b.width, height: b.height });
 
-/** Accurate pass for a still photo: two input sizes, landmarks averaged. */
+/** Gender check via face-api (always used regardless of MediaPipe). */
+async function genderCheck(input: FaceInput): Promise<number> {
+  await loadFaceApi();
+  const faceapi = window.faceapi;
+  const r = await faceapi
+    .detectSingleFace(input, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.35 }))
+    .withFaceLandmarks()
+    .withAgeAndGender();
+  return r ? femaleOf(r) : 0;
+}
+
+function mpToDetection(mp: MPDetection, femaleP: number): Detection {
+  return { box: mp.box, P: mp.P, P478: mp.P478, pose: mp.pose, femaleP };
+}
+
+/** Accurate pass for a still photo. MediaPipe primary, face-api fallback. */
 export async function detect(input: FaceInput): Promise<Detection | null> {
   await loadDetector();
+
+  // Gender check runs in parallel with MediaPipe detection
+  const img = input as HTMLImageElement | HTMLCanvasElement;
+  const [femaleP, mp] = await Promise.all([
+    genderCheck(input),
+    isMediaPipeReady() && !(input instanceof HTMLVideoElement) ? Promise.resolve(mpDetect(img)) : Promise.resolve(null),
+  ]);
+
+  if (mp) return mpToDetection(mp, femaleP);
+
+  // face-api fallback
   const faceapi = window.faceapi;
   const runs: any[] = [];
   for (const size of [416, 512]) {
@@ -73,14 +119,13 @@ export async function detect(input: FaceInput): Promise<Detection | null> {
   }
   if (!runs.length) return null;
   const positions = runs.map(toPts);
-  const P = positions[0].map((_, i) => avgPts(positions.map(run => run[i])));
-  const femaleP = runs.reduce((s, r) => s + femaleOf(r), 0) / runs.length;
-  return { box: toBox(runs[0].detection.box), P, femaleP };
+  const P = positions[0].map((_: Pt, i: number) => avgPts(positions.map(run => run[i])));
+  return { box: toBox(runs[0].detection.box), P, P478: null, pose: null, femaleP };
 }
 
-/** Fast single pass for live video tracking. */
+/** Fast single pass for live video tracking (face-api, since MediaPipe video needs separate init). */
 export async function detectFast(input: FaceInput, withGender = false): Promise<Detection | null> {
-  await loadDetector();
+  await loadFaceApi();
   const faceapi = window.faceapi;
   let q = faceapi
     .detectSingleFace(input, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 }))
@@ -88,18 +133,26 @@ export async function detectFast(input: FaceInput, withGender = false): Promise<
   if (withGender) q = q.withAgeAndGender();
   const r = await q;
   if (!r) return null;
-  return { box: toBox(r.detection.box), P: toPts(r), femaleP: withGender ? femaleOf(r) : 0 };
+  return { box: toBox(r.detection.box), P: toPts(r), P478: null, pose: null, femaleP: withGender ? femaleOf(r) : 0 };
 }
 
-/** One pass at a given detector input size (used by the robust multi-pass measurement). */
+/** One pass at a given detector input size (used by robust multi-pass). */
 export async function detectAt(input: FaceInput, inputSize: number): Promise<Detection | null> {
-  await loadDetector();
+  await loadFaceApi();
   const faceapi = window.faceapi;
   const r = await faceapi
     .detectSingleFace(input, new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold: 0.3 }))
     .withFaceLandmarks();
   if (!r) return null;
-  return { box: toBox(r.detection.box), P: toPts(r), femaleP: 0 };
+  return { box: toBox(r.detection.box), P: toPts(r), P478: null, pose: null, femaleP: 0 };
+}
+
+/** MediaPipe-based detection at image level (for robust multi-pass). */
+export function detectMP(input: HTMLImageElement | HTMLCanvasElement): Detection | null {
+  if (!isMediaPipeReady()) return null;
+  const mp = mpDetect(input);
+  if (!mp) return null;
+  return mpToDetection(mp, 0);
 }
 
 /** Average several detections of the same face (multi-frame capture). */
@@ -112,5 +165,5 @@ export function averageDetections(list: Detection[]): Detection {
     width: list.reduce((s, d) => s + d.box.width, 0) / n,
     height: list.reduce((s, d) => s + d.box.height, 0) / n,
   };
-  return { box, P, femaleP: list.reduce((s, d) => s + d.femaleP, 0) / n };
+  return { box, P, P478: list[0].P478, pose: list[0].pose, femaleP: list.reduce((s, d) => s + d.femaleP, 0) / n };
 }

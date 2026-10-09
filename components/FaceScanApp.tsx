@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import StepBar from "./StepBar";
 import Landing from "./screens/Landing";
 import Questions from "./screens/Questions";
@@ -14,6 +15,9 @@ import type { Detection } from "@/lib/detector";
 import { analyse, analyseMeasures } from "@/lib/faceShape";
 import type { FaceResult, Measures } from "@/lib/faceShape";
 import { captureReferral } from "@/lib/referral";
+import dynamic from "next/dynamic";
+
+const DebugPanel = dynamic(() => import("./DebugPanel"), { ssr: false });
 
 export type ScreenId = "start" | "inputs" | "tips" | "capture" | "scan" | "results";
 export const ORDER: ScreenId[] = ["start", "inputs", "tips", "capture", "scan", "results"];
@@ -23,6 +27,8 @@ export interface Photo { img: HTMLImageElement; url: string; det: Detection; m?:
 export type ModelState = "loading" | "ready" | "error";
 
 export default function FaceScanApp() {
+  const searchParams = useSearchParams();
+  const isDebug = searchParams.has("debug");
   const [screen, setScreen] = useState<ScreenId>("start");
   const [answers, setAnswers] = useState<Answers | null>(null);
   const [photo, setPhoto] = useState<Photo | null>(null);
@@ -63,6 +69,9 @@ export default function FaceScanApp() {
       {screen === "scan" && photo && <Scanning url={photo.url} />}
       {screen === "results" && photo && result && answers && (
         <Results answers={answers} photo={photo} result={result} onRestart={restart} />
+      )}
+      {isDebug && screen === "results" && photo && result && answers && (
+        <DebugPanel img={photo.img} det={photo.det} result={result} beard={answers.beard} />
       )}
     </div>
   );

@@ -1,4 +1,5 @@
-/* Photo quality checks, shared by the live camera and uploaded photos. */
+/* Photo quality checks, shared by the live camera and uploaded photos.
+   Phase 3: uses native head pose from MediaPipe when available, falls back to landmark-based. */
 import { dist, mid, avgPts } from "./geometry";
 import type { Detection, FaceInput } from "./detector";
 import { Q, FEMALE_BLOCK_P } from "./capture.config";
@@ -31,17 +32,23 @@ export function inputSize(input: FaceInput) {
 }
 
 export function metrics(input: FaceInput, det: Detection): Metrics {
-  const { box, P } = det, { W, H } = inputSize(input);
+  const { box, P, pose } = det, { W, H } = inputSize(input);
   const cheek = dist(P[1], P[15]);
   const eyeL = avgPts(P.slice(36, 42)), eyeR = avgPts(P.slice(42, 48)), eyes = mid(eyeL, eyeR);
   const lower = dist(mid(P[19], P[24]), P[8]);
+
+  // Use native MediaPipe pose when available (more accurate than landmark estimates)
+  const yaw = pose ? Math.abs(pose.yaw) / 100 : Math.abs(P[30].x - mid(P[0], P[16]).x) / cheek;
+  const roll = pose ? Math.abs(pose.roll) : Math.abs(Math.atan2(eyeR.y - eyeL.y, eyeR.x - eyeL.x)) * 180 / Math.PI;
+  const pitch = pose
+    ? (pose.pitch > 15 ? 0.55 : pose.pitch < -15 ? 0.2 : 0.38) // map degrees to the existing 0.28-0.5 range
+    : (P[30].y - eyes.y) / Math.max(1, P[8].y - eyes.y);
+
   return {
     size: box.width / Math.min(W, H),
     offX: Math.abs((box.x + box.width / 2) - W / 2) / W,
     offY: Math.abs((box.y + box.height / 2) - H / 2) / H,
-    yaw: Math.abs(P[30].x - mid(P[0], P[16]).x) / cheek,
-    roll: Math.abs(Math.atan2(eyeR.y - eyeL.y, eyeR.x - eyeL.x)) * 180 / Math.PI,
-    pitch: (P[30].y - eyes.y) / Math.max(1, P[8].y - eyes.y),
+    yaw, roll, pitch,
     lum: brightness(input, box),
     mouth: dist(P[62], P[66]) / lower,
     smile: dist(P[48], P[54]) / cheek,
@@ -63,7 +70,6 @@ export function checkQuality(input: FaceInput, det: Detection): QualityReport {
     { id: "expression", ok: m.mouth < Q.mouthMax, text: m.mouth < Q.mouthMax ? "Neutral" : "Mouth open" },
   ];
   const byId = Object.fromEntries(checks.map(c => [c.id, c])) as Record<CheckId, Check>;
-  // Men-only gate first; then a turned head or open mouth, which change the measurements themselves.
   const blocking = isFemale(det)
     ? MEN_ONLY_MSG
     : !byId.straight.ok

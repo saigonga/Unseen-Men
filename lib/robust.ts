@@ -1,16 +1,18 @@
 /* Stable measurements. A single landmark pass is noisy: the jaw-width spread between people is
    only ~2%, about the same as the model's own jitter, so one pass can flip the face shape.
-   We measure the same face many times (detector sizes × mirrored image, or many video frames)
-   and take the median of each measurement. All five measurements are left/right symmetric,
-   so a mirrored image gives a valid independent reading. */
-import { detectAt } from "./detector";
+   Phase 3: MediaPipe is the primary detector. We still do multiple passes (mirrored image)
+   and take the median. MediaPipe's 478-point model is steadier than face-api's 68-point,
+   so fewer passes are needed, but mirroring still helps catch asymmetry noise.
+   Falls back to face-api multi-size if MediaPipe isn't available. */
+import { detectAt, detectMP } from "./detector";
 import type { Detection, FaceInput } from "./detector";
+import { isMediaPipeReady, mpDetect } from "./mediapipe";
 import { measure } from "./faceShape";
 import type { Measures } from "./faceShape";
 import { inputSize } from "./quality";
 
 const KEYS = ["R", "J", "F", "K", "G"] as const;
-const SIZES = [320, 416, 512, 608];
+const SIZES = [320, 416, 512, 608]; // face-api fallback sizes
 
 const median = (a: number[]) => { const s = [...a].sort((x, y) => x - y), n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; };
 
@@ -36,8 +38,19 @@ function canvasOf(input: FaceInput, flip: boolean) {
   return c;
 }
 
-/** 8 passes (4 detector sizes × original/mirrored) → median measurements. */
-export async function robustMeasures(input: FaceInput, fallback?: Detection, extra: Measures[] = []): Promise<RobustMeasures | null> {
+/** MediaPipe path: original + mirrored = 2 passes. Steadier model needs fewer passes. */
+async function robustMP(input: FaceInput, extra: Measures[]): Promise<Measures[]> {
+  const list: Measures[] = [...extra];
+  for (const flip of [false, true]) {
+    const c = canvasOf(input, flip);
+    const mp = mpDetect(c);
+    if (mp) list.push(measure(mp.P));
+  }
+  return list;
+}
+
+/** face-api fallback: 4 sizes × 2 flips = 8 passes. */
+async function robustFaceApi(input: FaceInput, fallback: Detection | undefined, extra: Measures[]): Promise<Measures[]> {
   const list: Measures[] = [...extra];
   for (const flip of [false, true]) {
     const c = canvasOf(input, flip);
@@ -46,6 +59,16 @@ export async function robustMeasures(input: FaceInput, fallback?: Detection, ext
       if (d) list.push(measure(d.P));
     }
   }
+  if (!list.length && fallback) list.push(measure(fallback.P));
+  return list;
+}
+
+/** Multi-pass measurement → median. Uses MediaPipe when available, face-api fallback otherwise. */
+export async function robustMeasures(input: FaceInput, fallback?: Detection, extra: Measures[] = []): Promise<RobustMeasures | null> {
+  const list = isMediaPipeReady()
+    ? await robustMP(input, extra)
+    : await robustFaceApi(input, fallback, extra);
+
   if (!list.length && fallback) list.push(measure(fallback.P));
   return list.length ? medianMeasures(list) : null;
 }

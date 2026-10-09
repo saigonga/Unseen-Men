@@ -1,7 +1,7 @@
 import type { Detection } from "./detector";
 
 /** Draw the photo with landmarks. `forResult` crops around the face and adds measurement lines. */
-export function drawOverlay(canvas: HTMLCanvasElement, img: HTMLImageElement, det: Detection, forResult: boolean) {
+export function drawOverlay(canvas: HTMLCanvasElement, img: HTMLImageElement, det: Detection, forResult: boolean, show478 = false) {
   const W = img.naturalWidth, H = img.naturalHeight;
   let sx = 0, sy = 0, sw = W, sh = H;
   if (forResult) {
@@ -16,6 +16,14 @@ export function drawOverlay(canvas: HTMLCanvasElement, img: HTMLImageElement, de
   const P = det.P.map(p => ({ x: (p.x - sx) * scale, y: (p.y - sy) * scale }));
   const brass = getComputedStyle(document.documentElement).getPropertyValue("--brass").trim() || "#c9a46a";
   x.lineWidth = Math.max(1.5, canvas.width / 300); x.strokeStyle = brass; x.fillStyle = brass;
+
+  if (show478 && det.P478) {
+    const pts = det.P478.map(p => ({ x: (p.x - sx) * scale, y: (p.y - sy) * scale }));
+    x.globalAlpha = 0.3; x.fillStyle = "#00ff88";
+    pts.forEach(p => { x.beginPath(); x.arc(p.x, p.y, x.lineWidth * 0.5, 0, 7); x.fill(); });
+    x.globalAlpha = 1; x.fillStyle = brass;
+  }
+
   x.beginPath(); P.slice(0, 17).forEach((p, i) => i ? x.lineTo(p.x, p.y) : x.moveTo(p.x, p.y)); x.stroke();
   P.forEach(p => { x.beginPath(); x.arc(p.x, p.y, x.lineWidth * 0.9, 0, 7); x.fill(); });
   if (forResult) {
