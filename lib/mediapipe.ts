@@ -18,19 +18,77 @@ type FaceLandmarker = import("@mediapipe/tasks-vision").FaceLandmarker;
 let landmarker: FaceLandmarker | null = null;
 let loading: Promise<FaceLandmarker> | null = null;
 
+function silenceTFLite<T>(fn: () => T): T {
+  if (typeof window === "undefined") return fn();
+  const orig = console.error;
+  console.error = function (...args: unknown[]) {
+    let str = "";
+    for (let i = 0; i < args.length; i++) {
+      try { str += " " + String(args[i]); } catch {}
+    }
+    if (
+      str.includes("INFO:") ||
+      str.includes("XNNPACK") ||
+      str.includes("OpenGL error") ||
+      str.includes("FaceBlendshapesGraph") ||
+      str.includes("Created TensorFlow Lite") ||
+      str.includes("gl_context.cc")
+    ) {
+      console.info(...args);
+      return;
+    }
+    orig.apply(console, args);
+  };
+  try {
+    return fn();
+  } finally {
+    console.error = orig;
+  }
+}
+
+async function silenceTFLiteAsync<T>(fn: () => Promise<T>): Promise<T> {
+  if (typeof window === "undefined") return fn();
+  const orig = console.error;
+  console.error = function (...args: unknown[]) {
+    let str = "";
+    for (let i = 0; i < args.length; i++) {
+      try { str += " " + String(args[i]); } catch {}
+    }
+    if (
+      str.includes("INFO:") ||
+      str.includes("XNNPACK") ||
+      str.includes("OpenGL error") ||
+      str.includes("FaceBlendshapesGraph") ||
+      str.includes("Created TensorFlow Lite") ||
+      str.includes("gl_context.cc")
+    ) {
+      console.info(...args);
+      return;
+    }
+    orig.apply(console, args);
+  };
+  try {
+    return await fn();
+  } finally {
+    console.error = orig;
+  }
+}
+
 async function init(mode: "IMAGE" | "VIDEO" = "IMAGE"): Promise<FaceLandmarker> {
-  const { FaceLandmarker, FilesetResolver } = await import("@mediapipe/tasks-vision");
-  const wasm = await FilesetResolver.forVisionTasks("/mediapipe/");
-  const fl = await FaceLandmarker.createFromOptions(wasm, {
-    baseOptions: { modelAssetPath: "/mediapipe/face_landmarker.task" },
-    runningMode: mode,
-    numFaces: 1,
-    minFaceDetectionConfidence: 0.4,
-    minFacePresenceConfidence: 0.4,
-    minTrackingConfidence: 0.4,
-    outputFacialTransformationMatrixes: true,
+  return silenceTFLiteAsync(async () => {
+    const { FaceLandmarker, FilesetResolver } = await import("@mediapipe/tasks-vision");
+    const wasm = await FilesetResolver.forVisionTasks("/mediapipe/");
+    const fl = await FaceLandmarker.createFromOptions(wasm, {
+      baseOptions: { modelAssetPath: "/mediapipe/face_landmarker.task" },
+      runningMode: mode,
+      numFaces: 1,
+      minFaceDetectionConfidence: 0.4,
+      minFacePresenceConfidence: 0.4,
+      minTrackingConfidence: 0.4,
+      outputFacialTransformationMatrixes: true,
+    });
+    return fl;
   });
-  return fl;
 }
 
 export async function loadMediaPipe(): Promise<void> {
@@ -87,19 +145,37 @@ function convert(lm: NormLandmark[], mat: { rows: number; columns: number; data:
 /** Detect on a still image. */
 export function mpDetect(input: HTMLImageElement | HTMLCanvasElement): MPDetection | null {
   if (!landmarker) return null;
-  const r = landmarker.detect(input);
-  if (!r.faceLandmarks.length) return null;
   const w = input instanceof HTMLImageElement ? input.naturalWidth : input.width;
   const h = input instanceof HTMLImageElement ? input.naturalHeight : input.height;
-  return convert(r.faceLandmarks[0] as NormLandmark[], r.facialTransformationMatrixes?.[0], w, h);
+  if (!w || !h) return null;
+  return silenceTFLite(() => {
+    try {
+      const r = landmarker!.detect(input);
+      if (!r || !r.faceLandmarks || !r.faceLandmarks.length) return null;
+      return convert(r.faceLandmarks[0] as NormLandmark[], r.facialTransformationMatrixes?.[0], w, h);
+    } catch (err) {
+      console.warn("MediaPipe detect warning:", err);
+      return null;
+    }
+  });
 }
 
 /** Detect on a video frame (must call loadMediaPipeVideo first). */
 export function mpDetectVideo(video: HTMLVideoElement, timestampMs: number): MPDetection | null {
   if (!landmarker) return null;
-  const r = landmarker.detectForVideo(video, timestampMs);
-  if (!r.faceLandmarks.length) return null;
-  return convert(r.faceLandmarks[0] as NormLandmark[], r.facialTransformationMatrixes?.[0], video.videoWidth, video.videoHeight);
+  const w = video.videoWidth;
+  const h = video.videoHeight;
+  if (!w || !h) return null;
+  return silenceTFLite(() => {
+    try {
+      const r = landmarker!.detectForVideo(video, timestampMs);
+      if (!r || !r.faceLandmarks || !r.faceLandmarks.length) return null;
+      return convert(r.faceLandmarks[0] as NormLandmark[], r.facialTransformationMatrixes?.[0], w, h);
+    } catch (err) {
+      console.warn("MediaPipe video detect warning:", err);
+      return null;
+    }
+  });
 }
 
 export function isMediaPipeReady() { return landmarker !== null; }

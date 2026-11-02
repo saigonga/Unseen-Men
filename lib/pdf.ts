@@ -58,7 +58,7 @@ export async function buildPdf(d: PdfData): Promise<Blob> {
   };
   const footer = () => {
     font(7.5, "normal", K.muted);
-    doc.text("UNSEEN MEN · Nordman pre-launch · Grooming guidance, not medical advice. Your photo was analysed on your phone and not stored.", L, 820);
+    doc.text("NODD MEN · Founding Member Program · Grooming guidance, not medical advice. Photo analysed on device and not stored.", L, 820);
   };
   const newPage = () => { footer(); doc.addPage(); y = 50; };
   const ensure = (h: number) => { if (y + h > BOTTOM) newPage(); };
@@ -72,8 +72,8 @@ export async function buildPdf(d: PdfData): Promise<Blob> {
 
   // ---------- Header band ----------
   doc.setFillColor(...K.dark); doc.rect(0, 0, PW, 128, "F");
-  font(8, "bold", K.brassL); doc.text("UNSEEN MEN · FACE SCAN REPORT", L, 40);
-  font(26, "bold", [236, 230, 218]); doc.text("YOUR FACE, YOUR CUT", L, 72);
+  font(8, "bold", K.brassL); doc.text("NODD MEN · FACIAL ANALYSIS REPORT", L, 40);
+  font(26, "bold", [236, 230, 218]); doc.text("A PRECISE ANALYSIS OF YOUR FACE", L, 72);
   const date = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
   font(9, "normal", [157, 149, 138]);
   doc.text(`Prepared for ${d.name} · ${d.mobile}${d.email ? ` · ${d.email}` : ""}`, L, 96);

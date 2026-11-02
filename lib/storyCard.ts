@@ -21,9 +21,9 @@ const cssVar = (name: string) => getComputedStyle(document.documentElement).getP
 
 function fonts() {
   return {
-    display: `${cssVar("--font-display")}, "Big Shoulders", Impact, sans-serif`,
-    body: `${cssVar("--font-body")}, "Instrument Sans", sans-serif`,
-    mono: `${cssVar("--font-mono")}, "JetBrains Mono", monospace`,
+    display: `${cssVar("--font-sora")}, "Sora", sans-serif`,
+    body: `${cssVar("--font-space-grotesk")}, "Space Grotesk", sans-serif`,
+    mono: `${cssVar("--font-jetbrains-mono")}, "JetBrains Mono", monospace`,
   };
 }
 
@@ -122,7 +122,7 @@ export async function drawCard(c: HTMLCanvasElement, d: CardData) {
   }
 
   x.font = `500 32px ${F.mono}`;
-  const brand = "UNSEEN MEN · FACE SCAN";
+  const brand = "NODD MEN · FACIAL ANALYSIS";
   if (hasPhoto) { x.fillStyle = "rgba(20,19,18,.72)"; x.beginPath(); x.roundRect(84, 92, x.measureText(brand).width + 40, 56, 28); x.fill(); }
   x.fillStyle = C.brass; x.fillText(brand, 104, 132);
   if (d.tryOn) { x.textAlign = "right"; x.fillStyle = C.fg; x.fillText("AI PREVIEW", 980, 132); x.textAlign = "left"; }

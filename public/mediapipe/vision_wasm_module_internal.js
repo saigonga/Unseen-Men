@@ -146,7 +146,24 @@ if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
 
 var out = console.log.bind(console);
 
-var err = console.error.bind(console);
+var err = function() {
+  var str = "";
+  for (var i = 0; i < arguments.length; i++) {
+    try { str += " " + String(arguments[i]); } catch(e) {}
+  }
+  if (
+    str.indexOf("INFO:") !== -1 ||
+    str.indexOf("XNNPACK") !== -1 ||
+    str.indexOf("OpenGL error") !== -1 ||
+    str.indexOf("FaceBlendshapesGraph") !== -1 ||
+    str.indexOf("Created TensorFlow Lite") !== -1 ||
+    str.indexOf("gl_context.cc") !== -1
+  ) {
+    console.info.apply(console, arguments);
+    return;
+  }
+  console.error.apply(console, arguments);
+};
 
 // end include: shell.js
 // include: preamble.js

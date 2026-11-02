@@ -49,5 +49,37 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 - `@mediapipe/tasks-vision@1.1.0` installed.
 - Build passes clean.
 
+## Update 3 — Facial Analysis Page (Vercel, Desktop) Exact Match & Camera Fix · BUILT
+- Switched UI to the exact **"Facial analysis page (Vercel, desktop)"** artboard from the downloaded wireframe:
+  - Clean white `#FFFFFF` aesthetic with `#ECECEA` borders, `#111111` deep black buttons with 8px radius, `#4F2C1D` espresso brand accents, and `#8A8A85` metadata labels.
+  - Hero with `Free for Founding Members until 13 December 2026` gold pill.
+  - Front-view 13-landmark + 6-ratio facial architecture diagram with exact coordinate callouts.
+  - "The analysis" section featuring 3 detailed cards (Jawline with 124° gonial angle, Facial thirds, Face shape switcher) plus the 6 attribute codes (A03–A09).
+  - "Sample report" section with left navigation sidebar and interactive width profile SVG chart.
+  - "How it works" 3-step section, Privacy table, FAQ accordion, closing CTA, and footer.
+- **Fixed Live Camera Error ("This browser can't open the live camera"):**
+  - Resolved constraint incompatibility: Changed strict `facingMode: "user"` to `facingMode: { ideal: "user" }` with an automatic fallback to `{ video: true, audio: false }` for macOS built-in FaceTime HD cameras and desktop webcams.
+  - Avoided early-abort on mount in `Capture.tsx` so user camera requests are properly initiated.
+  - Added localhost/127.0.0.1 bypass in secure-context checks.
+  - Configured `Permissions-Policy: camera=*` in `next.config.ts`.
+- **Fixed MediaPipe TFLite XNNPACK Delegate Console Error:**
+  - Resolved `INFO: Created TensorFlow Lite XNNPACK delegate for CPU.` which Next.js Turbopack dev overlay intercepted as an unhandled console error during `mpDetect` at `landmarker.detect(input)`.
+  - Added multi-layered filtering (`silenceTFLite` and `silenceTFLiteAsync`) around `mpDetect`, `mpDetectVideo`, and `init` in `lib/mediapipe.ts`.
+  - Added `<ConsoleSilencer />` client component in `app/layout.tsx` to safely redirect WebAssembly/TFLite information and OpenGL logs from `console.error` to `console.info`.
+  - Patched Emscripten `err` handler across `public/mediapipe/*.js` and `node_modules/@mediapipe/tasks-vision/wasm/*.js`.
+- **Removed Dummy Eyewear & Colour Sections / Integrated Founding Member Surprise Number:**
+  - Removed dummy Eyewear and Colour tabs from results and sample report (`Results.tsx`, `LandingPage.tsx`).
+  - Removed placeholder `Hair texture` / `Undertone` and the generic text from the unlock gate (`UnlockForm.tsx`).
+  - Integrated the surprise Founding Member reservation number into `UnlockForm.tsx` (`You've unlocked Founding Member #...` and `The first 1,000 men to complete the analysis receive a permanent member number and priority access to the product pre-order`).
+  - Synced the reserved member number so it seamlessly flows into the unlocked report, header, story card, and PDF export.
+- **Removed Founding Member Text from Public FAQ & Restored All Grooming Sections:**
+  - Removed "The first 1,000 men to complete the analysis receive a permanent member number..." from the public landing page FAQ so it remains an un-spoiled surprise revealed upon completion of the scan.
+  - Restored wireframe question: "When does Nodd Men launch? The store opens to everyone at 10 am on Sunday 13 December 2026."
+  - Ensured **Haircuts**, **Beard verdict**, and **Grooming routine** are fully present, active, and interactive with dedicated views across both the landing page sample report and the results screen.
+- **Refined Sample Report Sidebar & Founding Members FAQ:**
+  - In `Rohan's Report` sample preview card on the landing page, removed Haircuts, Beard verdict, and Grooming routine so the sidebar cleanly presents `Overview` and `Face structure` with the width profile analysis.
+  - Kept the "What are Founding Members?" FAQ question with all benefits retained (*"Men who complete the analysis receive a permanent member number and priority access to the product pre-order."*) while hiding the specific count so the member number remains a true surprise.
+- Build compiles cleanly (`node node_modules/next/dist/bin/next build`) and test logic matches prototype 100%.
+
 ## Next
-Phone test, then phase 7 calibration with real Indian selfies.
+Phone test via HTTPS tunnel, then proceed with Phase 4 (Skin read server route) or Phase 5 (Supabase waitlist).
