@@ -164,6 +164,7 @@ export default function FaceScanApp() {
                   phone: profile.phone,
                   email: profile.email,
                 }),
+                keepalive: true,
               }).catch((e) => console.warn("Upfront lead registration error:", e));
 
               setInitialCaptureMode(mode);
