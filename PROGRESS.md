@@ -98,6 +98,30 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
     - Atomically increments referrer's count when a visitor signs up via `?ref=CODE`.
     - Returns real waitlist position and member status.
   - `GET /api/waitlist?code=UM-XXXX`:
+    - Retrieves live waitlist standing, confirmed referrals, and remaining referrals until launch reward.
+
+## Update 4 — DPDP Compliance, Pure Facial Architecture Focus, Mobile UX & Instant Database Sync · BUILT & DEPLOYED
+- **DPDP Act Compliant Consent:**
+  - Starts completely unticked by default (pre-ticked consent violates DPDP Rules).
+  - Two mandatory checkboxes required before capture:
+    1. 18+ and photo analysis consent for personalised style recommendations.
+    2. Results and style recommendations delivery on WhatsApp with STOP opt-out.
+  - Short notice under checkboxes specifying retention until 31 January 2027 and link to "How we use your data".
+  - Dedicated `/how-we-use-your-data` page and in-app modal detailing what is collected, purpose, photo handling, storage on Vercel/Supabase, deletion timeline, and withdrawal options (`care@noddmen.com`).
+- **Streamlined Report: Pure Facial Architecture:**
+  - Removed all extraneous styling sections (`02 Frames`, `03 Hair`, `04 Grooming`, `05 Colour`, `Routine`).
+  - Report is 100% focused on face shape, match %, facial thirds, gonial angle, jawline architecture, landmark overlay, and population comparison metrics.
+  - Removed redundant `UnlockForm` from the results page (user details are collected upfront and unlocked from frame 1).
+- **Mobile UX & Capture Unblocked:**
+  - Fixed issue where users saw only "Retake photo" and "Pick another" without being able to proceed: `canAnalyse` is always enabled when a face is detected, with an active "Analyse anyway" button for any quality warnings.
+  - Auto-advances smoothly to analysis on clean live camera captures.
+  - Replaced hardcoded off-center SVG face in scanning screen with user's real captured photo and mapped 68-point landmarks in real time.
+- **Database & Storage Instant Synchronization:**
+  - Added dual-stage sync: upfront details save immediately to Supabase waitlist on registration, and client photo base64 is immediately uploaded upon capture completion and updated on results.
+  - Reliable cross-platform `getPhotoDataUrl` helper in `lib/photoData.ts` supporting image elements, canvas scaling, and asynchronous blob URLs.
+- **Identified Vercel Deployment Action Required:**
+  - Root cause for Vercel not saving to database: Vercel environment variables need `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` added in Vercel Dashboard > Project Settings > Environment Variables.
+
     - Retrieves real-time member number, referral count, and waitlist position.
 - **Frontend Integration:**
   - `UnlockForm.tsx`: Submits real lead data + compressed selfie image, handles loading spinner, displays server errors, and falls back gracefully if offline.
