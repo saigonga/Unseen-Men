@@ -18,6 +18,7 @@ import StepBar from "../StepBar";
 interface Pending {
   img: HTMLImageElement;
   url: string;
+  dataUrl?: string;
   source: "camera" | "upload";
   det?: Detection;
   frames?: Measures[];
@@ -107,6 +108,7 @@ export default function Capture({
         onAnalyse({
           img: p.img,
           url: p.url,
+          dataUrl: p.dataUrl,
           det: d,
           m: mRes ?? undefined,
         });
@@ -156,7 +158,21 @@ export default function Capture({
     if (!f) return;
     const url = URL.createObjectURL(f);
     try {
-      setNew({ img: await loadImage(url), url, source: "upload" });
+      const img = await loadImage(url);
+      const c = document.createElement("canvas");
+      const nw = img.naturalWidth || img.width;
+      const nh = img.naturalHeight || img.height;
+      const maxW = 900;
+      const scale = nw > maxW ? maxW / nw : 1;
+      c.width = Math.round(nw * scale);
+      c.height = Math.round(nh * scale);
+      const ctx = c.getContext("2d");
+      let dataUrl: string | undefined = undefined;
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        dataUrl = c.toDataURL("image/jpeg", 0.85);
+      }
+      setNew({ img, url, dataUrl, source: "upload" });
     } catch {
       URL.revokeObjectURL(url);
       setMsg({ text: "Could not open that image file.", bad: true });
@@ -164,8 +180,9 @@ export default function Capture({
   }
 
   async function onShot(s: LiveShot) {
+    const dataUrl = s.canvas.toDataURL("image/jpeg", 0.85);
     const url = URL.createObjectURL(await canvasToBlob(s.canvas, "image/jpeg", 0.92));
-    setNew({ img: await loadImage(url), url, source: "camera", det: s.det, frames: s.frames });
+    setNew({ img: await loadImage(url), url, dataUrl, source: "camera", det: s.det, frames: s.frames });
   }
 
   function onProblem(p: CameraProblem) {
@@ -441,6 +458,7 @@ export default function Capture({
                   onAnalyse({
                     img: pending!.img,
                     url: pending!.url,
+                    dataUrl: pending!.dataUrl,
                     det: det!,
                     m: measures ?? undefined,
                   });

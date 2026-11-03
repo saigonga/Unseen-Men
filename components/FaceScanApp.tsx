@@ -25,6 +25,7 @@ export type ScreenId = "landing" | "register" | "capture" | "scan" | "questions"
 export interface Photo {
   img: HTMLImageElement;
   url: string;
+  dataUrl?: string;
   det: Detection;
   m?: Measures;
 }
@@ -110,7 +111,8 @@ export default function FaceScanApp() {
 
       // Sync photo immediately to waitlist in background as soon as capture finishes
       if (userLead) {
-        getPhotoDataUrl(p).then((photoBase64) => {
+        const getBase64 = async () => p.dataUrl || (await getPhotoDataUrl(p));
+        getBase64().then((photoBase64) => {
           if (photoBase64) {
             fetch("/api/waitlist", {
               method: "POST",
@@ -120,6 +122,9 @@ export default function FaceScanApp() {
                 contact: userLead.phone,
                 phone: userLead.phone,
                 email: userLead.email,
+                ageBracket: userLead.age,
+                beard: userLead.beard,
+                skinConcern: userLead.concern,
                 photoBase64,
               }),
             }).catch((err) => console.warn("Background photo sync:", err));

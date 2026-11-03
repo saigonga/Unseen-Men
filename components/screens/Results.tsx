@@ -65,7 +65,8 @@ export default function Results({
   // Auto-register lead when upfront details were provided
   useEffect(() => {
     if (userLead) {
-      getPhotoDataUrl(photo).then((photoBase64) => {
+      const getBase64 = async () => photo.dataUrl || (await getPhotoDataUrl(photo));
+      getBase64().then((photoBase64) => {
         fetch("/api/waitlist", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -74,9 +75,10 @@ export default function Results({
             contact: userLead.phone,
             phone: userLead.phone,
             email: userLead.email,
-            ageBracket: answers.age,
+            ageBracket: userLead.age || answers.age,
+            beard: userLead.beard || answers.beard,
             faceShape: sh.name,
-            skinConcern: answers.concern,
+            skinConcern: userLead.concern || answers.concern,
             photoBase64,
             memberNumber: surpriseNumber,
             styling: {

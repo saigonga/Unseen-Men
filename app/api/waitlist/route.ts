@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     const ageBracket = body.ageBracket ? String(body.ageBracket) : null;
     const faceShape = body.faceShape ? String(body.faceShape) : null;
     const skinConcern = body.skinConcern ? String(body.skinConcern) : null;
+    const beard = body.beard ? String(body.beard) : null;
     const stylingData = body.styling || null;
     const requestedMemberNumber = body.memberNumber ? parseInt(String(body.memberNumber), 10) : null;
     let referredBy = body.referredBy ? String(body.referredBy).trim().toUpperCase() : null;
@@ -105,24 +106,33 @@ export async function POST(req: NextRequest) {
       const updatePayload: Record<string, unknown> = {};
       if (faceShape) updatePayload.face_shape = faceShape;
       if (ageBracket) updatePayload.age_bracket = ageBracket;
+      if (beard) updatePayload.beard = beard;
       if (rawName && rawName !== existing.name) updatePayload.name = rawName;
       if (updatedPhotoUrl) updatePayload.photo_url = updatedPhotoUrl;
-      if (rawEmail) {
-        updatePayload.skin_concern = skinConcern ? `${skinConcern} | email:${rawEmail}` : `email:${rawEmail}`;
-      }
+      if (rawEmail) updatePayload.email = rawEmail;
+      if (skinConcern) updatePayload.skin_concern = skinConcern;
 
       if (Object.keys(updatePayload).length > 0) {
-        const { error: updateErr } = await supabase
+        let { error: updateErr } = await supabase
           .from("waitlist")
           .update(updatePayload)
           .eq("id", existing.id);
 
         if (updateErr) {
-          // If photo_url column caused error, retry without photo_url
+          // If email, beard, or photo_url column doesn't exist yet, retry with graceful fallbacks
+          if (updateErr.message?.includes("email")) {
+            delete updatePayload.email;
+            if (rawEmail) {
+              updatePayload.skin_concern = skinConcern ? `${skinConcern} | email:${rawEmail}` : `email:${rawEmail}`;
+            }
+          }
+          if (updateErr.message?.includes("beard")) {
+            delete updatePayload.beard;
+          }
           if (updateErr.message?.includes("photo_url")) {
             delete updatePayload.photo_url;
-            await supabase.from("waitlist").update(updatePayload).eq("id", existing.id);
           }
+          await supabase.from("waitlist").update(updatePayload).eq("id", existing.id);
         }
       }
 
@@ -263,16 +273,14 @@ export async function POST(req: NextRequest) {
     }
 
     // 6. Insert new waitlist row
-    const storedSkinConcern = rawEmail
-      ? (skinConcern ? `${skinConcern} | email:${rawEmail}` : `email:${rawEmail}`)
-      : skinConcern;
-
     const insertPayload: Record<string, unknown> = {
       name: rawName,
       contact: normalizedContact,
+      email: rawEmail || null,
       age_bracket: ageBracket,
+      beard: beard,
       face_shape: faceShape,
-      skin_concern: storedSkinConcern,
+      skin_concern: skinConcern,
       referral_code: assignedCode,
       referred_by: validReferrerCode,
       member_number: assignedMemberNumber,
@@ -285,9 +293,20 @@ export async function POST(req: NextRequest) {
 
     let { error: insertErr } = await supabase.from("waitlist").insert(insertPayload);
 
-    // If photo_url column doesn't exist yet, retry without photo_url so user flow never breaks
-    if (insertErr && photoUrl && insertErr.message?.includes("photo_url")) {
-      delete insertPayload.photo_url;
+    // If email, beard, or photo_url column doesn't exist yet, retry with graceful fallbacks
+    if (insertErr && (insertErr.message?.includes("email") || insertErr.message?.includes("beard") || insertErr.message?.includes("photo_url"))) {
+      if (insertErr.message?.includes("email")) {
+        delete insertPayload.email;
+        if (rawEmail) {
+          insertPayload.skin_concern = skinConcern ? `${skinConcern} | email:${rawEmail}` : `email:${rawEmail}`;
+        }
+      }
+      if (insertErr.message?.includes("beard")) {
+        delete insertPayload.beard;
+      }
+      if (insertErr.message?.includes("photo_url")) {
+        delete insertPayload.photo_url;
+      }
       const retry = await supabase.from("waitlist").insert(insertPayload);
       insertErr = retry.error;
     }
