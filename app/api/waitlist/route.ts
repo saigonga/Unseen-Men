@@ -119,15 +119,11 @@ export async function POST(req: NextRequest) {
           .eq("id", existing.id);
 
         if (updateErr) {
-          // If email, beard, or photo_url column doesn't exist yet, retry with graceful fallbacks
-          if (updateErr.message?.includes("email")) {
-            delete updatePayload.email;
-            if (rawEmail) {
-              updatePayload.skin_concern = skinConcern ? `${skinConcern} | email:${rawEmail}` : `email:${rawEmail}`;
-            }
-          }
-          if (updateErr.message?.includes("beard")) {
-            delete updatePayload.beard;
+          // If optional email or beard columns do not exist in table schema, cleanly strip and retry
+          delete updatePayload.email;
+          delete updatePayload.beard;
+          if (rawEmail) {
+            updatePayload.skin_concern = skinConcern ? `${skinConcern} | email:${rawEmail}` : `email:${rawEmail}`;
           }
           if (updateErr.message?.includes("photo_url")) {
             delete updatePayload.photo_url;
@@ -293,16 +289,12 @@ export async function POST(req: NextRequest) {
 
     let { error: insertErr } = await supabase.from("waitlist").insert(insertPayload);
 
-    // If email, beard, or photo_url column doesn't exist yet, retry with graceful fallbacks
-    if (insertErr && (insertErr.message?.includes("email") || insertErr.message?.includes("beard") || insertErr.message?.includes("photo_url"))) {
-      if (insertErr.message?.includes("email")) {
-        delete insertPayload.email;
-        if (rawEmail) {
-          insertPayload.skin_concern = skinConcern ? `${skinConcern} | email:${rawEmail}` : `email:${rawEmail}`;
-        }
-      }
-      if (insertErr.message?.includes("beard")) {
-        delete insertPayload.beard;
+    // If email, beard, or photo_url column doesn't exist yet, retry with clean fallback
+    if (insertErr) {
+      delete insertPayload.email;
+      delete insertPayload.beard;
+      if (rawEmail) {
+        insertPayload.skin_concern = skinConcern ? `${skinConcern} | email:${rawEmail}` : `email:${rawEmail}`;
       }
       if (insertErr.message?.includes("photo_url")) {
         delete insertPayload.photo_url;
