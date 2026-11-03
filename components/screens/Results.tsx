@@ -20,6 +20,7 @@ import type { Photo } from "../FaceScanApp";
 interface Unlocked extends Lead {
   code: string;
   position: number;
+  referrals: number;
 }
 
 type ReportTab = "all" | "structure" | "haircuts" | "beard" | "routine";
@@ -70,8 +71,10 @@ export default function Results({
   function unlock(l: Lead) {
     setUnlocked({
       ...l,
-      code: newCode(),
-      position: parseInt(surpriseNumber, 10),
+      code: l.referralCode || newCode(),
+      position: l.waitlistPosition || 1,
+      referrals: l.referralCount || 0,
+      memberNumber: l.memberNumber || parseInt(surpriseNumber, 10),
     });
   }
 
@@ -124,7 +127,9 @@ export default function Results({
                 fontWeight: 500,
               }}
             >
-              {unlocked ? `Member #${unlocked.position}` : `Reserved #${surpriseNumber}`}
+              {unlocked
+                ? `Member #${String(unlocked.memberNumber || surpriseNumber).padStart(4, "0")}`
+                : `Reserved #${surpriseNumber}`}
             </span>
           </div>
 
@@ -472,7 +477,13 @@ export default function Results({
           {/* UNLOCK GATE (If not unlocked yet) */}
           {!unlocked && (
             <div style={{ marginTop: 8 }}>
-              <UnlockForm result={result} memberNumber={surpriseNumber} onUnlock={unlock} />
+              <UnlockForm
+                result={result}
+                memberNumber={surpriseNumber}
+                ageBracket={answers.age}
+                skinConcern={answers.concern}
+                onUnlock={unlock}
+              />
             </div>
           )}
 
@@ -535,7 +546,12 @@ export default function Results({
               />
 
               {/* Founding Member Rewards & Position */}
-              <Rewards code={unlocked.code} position={unlocked.position} referrals={0} />
+              <Rewards
+                code={unlocked.code}
+                position={unlocked.position}
+                referrals={unlocked.referrals}
+                memberNumber={unlocked.memberNumber || surpriseNumber}
+              />
 
               <button
                 type="button"

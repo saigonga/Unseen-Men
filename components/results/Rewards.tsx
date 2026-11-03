@@ -8,12 +8,15 @@ export default function Rewards({
   code,
   position,
   referrals,
+  memberNumber,
 }: {
   code: string;
   position: number;
   referrals: number;
+  memberNumber?: string | number;
 }) {
   const [copied, setCopied] = useState(false);
+  const formattedMember = memberNumber ? String(memberNumber).padStart(4, "0") : String(position).padStart(4, "0");
 
   async function copy() {
     const text = `I just found my face shape on NODD MEN Facial Analysis. Check yours with my invite code ${code}: ${inviteLink(
@@ -50,7 +53,7 @@ export default function Rewards({
             color: "#4F2C1D",
           }}
         >
-          Founding Member
+          Founding Member #{formattedMember}
         </span>
         <span
           style={{
@@ -62,7 +65,7 @@ export default function Rewards({
             fontWeight: 600,
           }}
         >
-          #{position}
+          Waitlist Spot #{position}
         </span>
       </div>
 
@@ -76,7 +79,7 @@ export default function Rewards({
             color: "#1B1815",
           }}
         >
-          You&apos;re #{position} on the Founding Member list
+          You&apos;re #{position} on the launch waitlist
         </h3>
         <p style={{ margin: "4px 0 0", fontSize: 13, color: "#5C4F47" }}>
           Invite {REWARD.referralsNeeded} friends to scan with your code to unlock{" "}

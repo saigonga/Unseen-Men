@@ -4,34 +4,44 @@ import { useState } from "react";
 import { checkIndianMobile, isEmail } from "@/lib/phone";
 import type { FaceResult } from "@/lib/faceShape";
 import { SHAPES } from "@/lib/content";
+import { captureReferral } from "@/lib/referral";
 
 export interface Lead {
   name: string;
   mobile: string;
   email: string | null;
+  memberNumber?: number;
+  waitlistPosition?: number;
+  referralCode?: string;
+  referralCount?: number;
 }
 
 interface UnlockFormProps {
   result: FaceResult;
   memberNumber?: string;
+  ageBracket?: string;
+  skinConcern?: string | null;
   onUnlock: (l: Lead) => void;
 }
 
 export default function UnlockForm({
   result,
   memberNumber = "0347",
+  ageBracket,
+  skinConcern,
   onUnlock,
 }: UnlockFormProps) {
   const [name, setName] = useState("Rohan");
   const [contact, setContact] = useState("");
-  const [errs, setErrs] = useState<{ name?: string; contact?: string }>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [errs, setErrs] = useState<{ name?: string; contact?: string; server?: string }>({});
 
   const sh = SHAPES[result.key];
   const jawTrait = result.traits.find((t) => t.f === "J" || t.f === "A");
   const jawDesc = jawTrait ? jawTrait.label : "Defined";
   const ratio = Math.max(1.15, Math.min(1.5, 1.3 + (result.z?.R || 0) * 0.08)).toFixed(2);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     const n = name.trim().replace(/\s+/g, " ");
     const rawContact = contact.trim();
@@ -64,11 +74,47 @@ export default function UnlockForm({
     setErrs(next);
     if (Object.keys(next).length) return;
 
-    onUnlock({
-      name: n,
-      mobile: mobileVal || "+91 98765 43210",
-      email: emailVal,
-    });
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: n,
+          contact: rawContact,
+          ageBracket,
+          faceShape: sh.name,
+          skinConcern,
+          memberNumber: parseInt(memberNumber, 10),
+          referredBy: captureReferral(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Failed to join waitlist");
+      }
+
+      onUnlock({
+        name: data.name || n,
+        mobile: mobileVal || (data.contact?.startsWith("+91") ? data.contact : "+91 98765 43210"),
+        email: emailVal || (data.contact?.includes("@") ? data.contact : null),
+        memberNumber: data.memberNumber,
+        waitlistPosition: data.waitlistPosition,
+        referralCode: data.referralCode,
+        referralCount: data.referralCount,
+      });
+    } catch (err: unknown) {
+      console.warn("Waitlist API fallback:", err);
+      // Fallback: don't block the user from seeing their report if offline or api fails
+      onUnlock({
+        name: n,
+        mobile: mobileVal || "+91 98765 43210",
+        email: emailVal,
+      });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -256,6 +302,7 @@ export default function UnlockForm({
 
         <button
           type="submit"
+          disabled={submitting}
           className="btn-primary"
           style={{
             width: "100%",
@@ -263,9 +310,11 @@ export default function UnlockForm({
             marginTop: 4,
             fontSize: 15,
             borderRadius: 8,
+            opacity: submitting ? 0.7 : 1,
+            cursor: submitting ? "not-allowed" : "pointer",
           }}
         >
-          Claim Member #{memberNumber} & view report
+          {submitting ? "Claiming Founding Member spot..." : `Claim Member #${memberNumber} & view report`}
         </button>
 
         <div

@@ -81,5 +81,31 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
   - Kept the "What are Founding Members?" FAQ question with all benefits retained (*"Men who complete the analysis receive a permanent member number and priority access to the product pre-order."*) while hiding the specific count so the member number remains a true surprise.
 - Build compiles cleanly (`node node_modules/next/dist/bin/next build`) and test logic matches prototype 100%.
 
+## Phase 5 — Supabase Waitlist, Member Numbers & Referral Engine · BUILT & VERIFIED
+- **Database integration via `@supabase/supabase-js`:**
+  - Table: `waitlist` (id, created_at, name, contact, age_bracket, face_shape, skin_concern, referral_code, referred_by, member_number, referral_count).
+  - PostgreSQL indexes on `referral_code` and `referred_by` for low-latency queries.
+  - Stored Procedure `increment_referral_count(ref_code)` for atomic referral tracking without race conditions.
+  - Secrets stored strictly in `.env.local` (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`), `.env.example` kept clean and `.env.local` gitignored.
+- **API Routes (`app/api/waitlist/route.ts`):**
+  - `POST /api/waitlist`:
+    - Validates name, age bracket, face shape, skin concern, and contact (Indian mobile via `checkIndianMobile` or email).
+    - Checks for existing user (idempotent re-entry returns existing member number, waitlist position, and referral stats).
+    - Generates unique 4-char referral code (`UM-XXXX`).
+    - Assigns Founding Member number.
+    - Atomically increments referrer's count when a visitor signs up via `?ref=CODE`.
+    - Returns real waitlist position and member status.
+  - `GET /api/waitlist?code=UM-XXXX`:
+    - Retrieves real-time member number, referral count, and waitlist position.
+- **Frontend Integration:**
+  - `UnlockForm.tsx`: Submits real lead data, handles loading spinner, displays server errors, and falls back gracefully if offline.
+  - `Results.tsx`: Receives true waitlist position, referral code, and member number from Supabase.
+  - `Rewards.tsx`: Displays live Founding Member number, live launch waitlist spot, real referral code, and progress towards 3 referrals.
+- **Verification:**
+  - Direct database insertion, referral lookup, RPC increment, and duplicate prevention tested and verified live with 100% pass rate. Test records cleaned up.
+
 ## Next
-Phone test via HTTPS tunnel, then proceed with Phase 4 (Skin read server route) or Phase 5 (Supabase waitlist).
+- Phase 4: Claude API skin read server route.
+- Phase 6: Privacy policy & terms pages, analytics, rate limiting.
+- Phase 7: Calibration with 50+ labelled Indian male selfies.
+- Phase 8: Deploy to Vercel.
