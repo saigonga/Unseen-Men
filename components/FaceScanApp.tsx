@@ -35,13 +35,39 @@ export default function FaceScanApp() {
   const searchParams = useSearchParams();
   const isDebug = searchParams.has("debug");
 
-  const [screen, setScreen] = useState<ScreenId>("landing");
+  const [screen, setScreen] = useState<ScreenId>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const savedScreen = sessionStorage.getItem("unseen_screen");
+        if (savedScreen && ["landing", "register", "capture"].includes(savedScreen)) {
+          return savedScreen as ScreenId;
+        }
+      } catch {}
+    }
+    return "landing";
+  });
   const [initialCaptureMode, setInitialCaptureMode] = useState<"live" | "choose">("live");
-  const [answers, setAnswers] = useState<Answers>({
-    age: "25-34",
-    beard: "stubble",
-    concern: null,
-    haircutFrequency: "3-4weeks",
+  const [answers, setAnswers] = useState<Answers>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("unseen_lead");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return {
+            age: parsed.age || "25-34",
+            beard: parsed.beard || "stubble",
+            concern: parsed.concern ?? null,
+            haircutFrequency: "3-4weeks",
+          };
+        }
+      } catch {}
+    }
+    return {
+      age: "25-34",
+      beard: "stubble",
+      concern: null,
+      haircutFrequency: "3-4weeks",
+    };
   });
   const [userLead, setUserLead] = useState<UserLeadProfile | null>(() => {
     if (typeof window === "undefined") return null;
@@ -69,6 +95,9 @@ export default function FaceScanApp() {
 
   const go = useCallback((id: ScreenId) => {
     setScreen(id);
+    try {
+      sessionStorage.setItem("unseen_screen", id);
+    } catch {}
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
@@ -133,6 +162,9 @@ export default function FaceScanApp() {
       return null;
     });
     setResult(null);
+    try {
+      sessionStorage.setItem("unseen_screen", "register");
+    } catch {}
     go("register");
   }, [go]);
 
@@ -150,6 +182,12 @@ export default function FaceScanApp() {
             initial={userLead || undefined}
             onProceed={(profile, mode) => {
               setUserLead(profile);
+              setAnswers((prev) => ({
+                ...prev,
+                age: profile.age,
+                beard: profile.beard,
+                concern: profile.concern,
+              }));
               try {
                 localStorage.setItem("unseen_lead", JSON.stringify(profile));
               } catch {}
@@ -163,6 +201,8 @@ export default function FaceScanApp() {
                   contact: profile.phone,
                   phone: profile.phone,
                   email: profile.email,
+                  ageBracket: profile.age,
+                  skinConcern: profile.concern,
                 }),
                 keepalive: true,
               }).catch((e) => console.warn("Upfront lead registration error:", e));

@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import StepBar from "../StepBar";
 import { checkIndianMobile, isEmail } from "@/lib/phone";
 import DataUseModal from "./DataUseModal";
+import type { AgeBracket, Beard, Concern } from "@/lib/content";
 
 export interface UserLeadProfile {
   name: string;
   phone: string;
   email: string;
+  age: AgeBracket;
+  beard: Beard;
+  concern: Concern | null;
 }
 
 interface RegisterLeadProps {
@@ -17,16 +21,129 @@ interface RegisterLeadProps {
   onClose?: () => void;
 }
 
+const AGES: { id: AgeBracket; label: string }[] = [
+  { id: "18-24", label: "18–24" },
+  { id: "25-34", label: "25–34" },
+  { id: "35-44", label: "35–44" },
+  { id: "45+", label: "45+" },
+];
+
+const BEARDS: { id: Beard; label: string; desc: string }[] = [
+  { id: "none", label: "Clean shave", desc: "No facial hair" },
+  { id: "stubble", label: "Stubble", desc: "Short shadow" },
+  { id: "full", label: "Full beard", desc: "Defined length" },
+];
+
+const CONCERNS: { id: Concern | "none"; label: string }[] = [
+  { id: "none", label: "Balanced / None" },
+  { id: "acne", label: "Acne / Breakouts" },
+  { id: "oil", label: "Oiliness / Shine" },
+  { id: "spots", label: "Uneven Tone / Dark Spots" },
+  { id: "dull", label: "Dryness / Dull" },
+];
+
 export default function RegisterLead({
   initial,
   onProceed,
   onClose,
 }: RegisterLeadProps) {
-  const [name, setName] = useState(initial?.name || "");
-  const [phone, setPhone] = useState(initial?.phone || "");
-  const [email, setEmail] = useState(initial?.email || "");
-  const [consentAgeAndPhoto, setConsentAgeAndPhoto] = useState(false);
-  const [consentWhatsApp, setConsentWhatsApp] = useState(false);
+  // Synchronous lazy state initialization from localStorage to ensure reload never wipes data
+  const [name, setName] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const s = localStorage.getItem("unseen_lead");
+        if (s) {
+          const parsed = JSON.parse(s);
+          if (parsed.name) return parsed.name;
+        }
+      } catch {}
+    }
+    return initial?.name || "";
+  });
+
+  const [phone, setPhone] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const s = localStorage.getItem("unseen_lead");
+        if (s) {
+          const parsed = JSON.parse(s);
+          if (parsed.phone) return parsed.phone;
+        }
+      } catch {}
+    }
+    return initial?.phone || "";
+  });
+
+  const [email, setEmail] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const s = localStorage.getItem("unseen_lead");
+        if (s) {
+          const parsed = JSON.parse(s);
+          if (parsed.email) return parsed.email;
+        }
+      } catch {}
+    }
+    return initial?.email || "";
+  });
+
+  const [age, setAge] = useState<AgeBracket>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const s = localStorage.getItem("unseen_lead");
+        if (s) {
+          const parsed = JSON.parse(s);
+          if (parsed.age) return parsed.age;
+        }
+      } catch {}
+    }
+    return initial?.age || "25-34";
+  });
+
+  const [beard, setBeard] = useState<Beard>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const s = localStorage.getItem("unseen_lead");
+        if (s) {
+          const parsed = JSON.parse(s);
+          if (parsed.beard) return parsed.beard;
+        }
+      } catch {}
+    }
+    return initial?.beard || "stubble";
+  });
+
+  const [concern, setConcern] = useState<Concern | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const s = localStorage.getItem("unseen_lead");
+        if (s) {
+          const parsed = JSON.parse(s);
+          if (parsed.concern !== undefined) return parsed.concern;
+        }
+      } catch {}
+    }
+    return initial?.concern ?? null;
+  });
+
+  const [consentAgeAndPhoto, setConsentAgeAndPhoto] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return localStorage.getItem("unseen_consent_age") === "true";
+      } catch {}
+    }
+    return false;
+  });
+
+  const [consentWhatsApp, setConsentWhatsApp] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return localStorage.getItem("unseen_consent_wa") === "true";
+      } catch {}
+    }
+    return false;
+  });
+
   const [showDataModal, setShowDataModal] = useState(false);
   const [errs, setErrs] = useState<{
     name?: string;
@@ -35,6 +152,23 @@ export default function RegisterLead({
     consentAgeAndPhoto?: string;
     consentWhatsApp?: string;
   }>({});
+
+  // Persist immediately on any input change so reloads preserve all details
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "unseen_lead",
+        JSON.stringify({ name, phone, email, age, beard, concern })
+      );
+    } catch {}
+  }, [name, phone, email, age, beard, concern]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("unseen_consent_age", String(consentAgeAndPhoto));
+      localStorage.setItem("unseen_consent_wa", String(consentWhatsApp));
+    } catch {}
+  }, [consentAgeAndPhoto, consentWhatsApp]);
 
   function validate(): { ok: boolean; cleanPhone?: string } {
     const next: typeof errs = {};
@@ -85,6 +219,9 @@ export default function RegisterLead({
         name: name.trim().replace(/\s+/g, " "),
         phone: val.cleanPhone,
         email: email.trim().toLowerCase(),
+        age,
+        beard,
+        concern,
       },
       mode
     );
@@ -100,7 +237,7 @@ export default function RegisterLead({
         boxSizing: "border-box",
         background: "#FFFFFF",
         color: "#111111",
-        padding: "18px 16px 24px",
+        padding: "18px 16px 28px",
         display: "flex",
         flexDirection: "column",
         gap: 16,
@@ -129,7 +266,7 @@ export default function RegisterLead({
           Start your facial analysis.
         </h1>
         <p style={{ margin: "2px 0 0", color: "#5F5F5B", fontSize: 13.5, lineHeight: 1.45 }}>
-          Enter your details to receive your personalized styling blueprint, haircut guide, and priority pre-order access.
+          Enter your details and preferences to receive your personalized styling blueprint and haircut guide.
         </p>
       </div>
 
@@ -139,7 +276,7 @@ export default function RegisterLead({
           <span>Your Full Name <span style={{ color: "#D9735E" }}>*</span></span>
           <input
             type="text"
-            placeholder="e.g. Sai Gonga"
+            placeholder="e.g. Rajdeep More"
             value={name}
             onChange={(e) => setName(e.target.value)}
             style={{
@@ -199,6 +336,109 @@ export default function RegisterLead({
           />
           {errs.email && <span style={{ color: "#D9735E", fontSize: 12 }}>{errs.email}</span>}
         </label>
+
+        {/* Age Bracket */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 2 }}>
+          <span style={{ fontSize: 13, fontWeight: 500, color: "#444441" }}>
+            Age Bracket
+          </span>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+            {AGES.map((a) => {
+              const active = age === a.id;
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => setAge(a.id)}
+                  style={{
+                    padding: "9px 4px",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: active ? 600 : 400,
+                    background: active ? "#111111" : "#FAFAFA",
+                    color: active ? "#FFFFFF" : "#444441",
+                    border: active ? "1px solid #111111" : "1px solid #ECECEA",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {a.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Current Beard Style */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 2 }}>
+          <span style={{ fontSize: 13, fontWeight: 500, color: "#444441" }}>
+            Facial Hair Right Now
+          </span>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+            {BEARDS.map((b) => {
+              const active = beard === b.id;
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => setBeard(b.id)}
+                  style={{
+                    padding: "9px 6px",
+                    borderRadius: 8,
+                    fontSize: 12.5,
+                    fontWeight: active ? 600 : 400,
+                    background: active ? "#111111" : "#FAFAFA",
+                    color: active ? "#FFFFFF" : "#444441",
+                    border: active ? "1px solid #111111" : "1px solid #ECECEA",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 2,
+                  }}
+                >
+                  <span>{b.label}</span>
+                  <span style={{ fontSize: 10, color: active ? "rgba(255,255,255,0.7)" : "#8A8A85" }}>
+                    {b.desc}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Skin Type / Concern */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 2 }}>
+          <span style={{ fontSize: 13, fontWeight: 500, color: "#444441" }}>
+            Skin Type or Main Concern <span style={{ fontSize: 11, fontWeight: 400, color: "#8A8A85" }}>(optional)</span>
+          </span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {CONCERNS.map((c) => {
+              const isSelected = (c.id === "none" && concern === null) || concern === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setConcern(c.id === "none" ? null : c.id)}
+                  style={{
+                    padding: "7px 11px",
+                    borderRadius: 20,
+                    fontSize: 12,
+                    fontWeight: isSelected ? 600 : 400,
+                    background: isSelected ? "#4F2C1D" : "#FAFAFA",
+                    color: isSelected ? "#FFFFFF" : "#555552",
+                    border: isSelected ? "1px solid #4F2C1D" : "1px solid #ECECEA",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {c.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Consent Section (Both Unticked by Default, Both Required under DPDP Rules) */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
