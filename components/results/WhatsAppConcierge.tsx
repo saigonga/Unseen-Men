@@ -26,11 +26,11 @@ export default function WhatsAppConcierge({
       style={{
         border: "1px solid #D6E8D8",
         borderRadius: "4px 16px 4px 4px",
-        padding: "18px 20px",
+        padding: "16px 16px",
         background: "#F4FAF5",
         display: "flex",
         flexDirection: "column",
-        gap: 14,
+        gap: 13,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

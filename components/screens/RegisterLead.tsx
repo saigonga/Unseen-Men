@@ -83,14 +83,14 @@ export default function RegisterLead({
         width: "100%",
         maxWidth: 440,
         margin: "0 auto",
-        minHeight: 640,
+        minHeight: "auto",
         boxSizing: "border-box",
         background: "#FFFFFF",
         color: "#111111",
-        padding: "20px 22px 28px",
+        padding: "18px 16px 24px",
         display: "flex",
         flexDirection: "column",
-        gap: 18,
+        gap: 16,
         borderRadius: 14,
         border: "1px solid #ECECEA",
         boxShadow: "0 20px 40px -28px rgba(17,17,17,0.12)",
@@ -98,8 +98,8 @@ export default function RegisterLead({
     >
       <StepBar step={1} total={4} onClose={onClose} />
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-        <span style={{ fontSize: 13, color: "#8A8A85" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 2 }}>
+        <span style={{ fontSize: 12.5, color: "#8A8A85" }}>
           Step 1 of 4 · Member Details
         </span>
         <h1
@@ -107,15 +107,15 @@ export default function RegisterLead({
             margin: "2px 0 0",
             fontFamily: "var(--font-heading)",
             fontWeight: 400,
-            fontSize: 27,
-            lineHeight: 1.15,
+            fontSize: "clamp(22px, 5.5vw, 26px)",
+            lineHeight: 1.2,
             letterSpacing: "-0.03em",
             color: "#111111",
           }}
         >
           Start your facial analysis.
         </h1>
-        <p style={{ margin: "2px 0 0", color: "#5F5F5B", fontSize: 14, lineHeight: 1.45 }}>
+        <p style={{ margin: "2px 0 0", color: "#5F5F5B", fontSize: 13.5, lineHeight: 1.45 }}>
           Enter your details to receive your personalized styling blueprint, haircut guide, and priority pre-order access.
         </p>
       </div>
@@ -133,7 +133,7 @@ export default function RegisterLead({
               border: errs.name ? "1px solid #D9735E" : "1px solid #D9D9D6",
               borderRadius: 8,
               padding: "11px 14px",
-              fontSize: 15,
+              fontSize: 16, // Prevents iOS Safari auto-zoom
               color: "#111111",
               minHeight: 46,
               boxSizing: "border-box",
@@ -155,7 +155,7 @@ export default function RegisterLead({
               border: errs.phone ? "1px solid #D9735E" : "1px solid #D9D9D6",
               borderRadius: 8,
               padding: "11px 14px",
-              fontSize: 15,
+              fontSize: 16, // Prevents iOS Safari auto-zoom
               color: "#111111",
               minHeight: 46,
               boxSizing: "border-box",
@@ -177,7 +177,7 @@ export default function RegisterLead({
               border: errs.email ? "1px solid #D9735E" : "1px solid #D9D9D6",
               borderRadius: 8,
               padding: "11px 14px",
-              fontSize: 15,
+              fontSize: 16, // Prevents iOS Safari auto-zoom
               color: "#111111",
               minHeight: 46,
               boxSizing: "border-box",

@@ -233,12 +233,14 @@ export default function Results({
           <div
             style={{
               display: "flex",
-              gap: 14,
+              gap: 12,
               fontSize: 13,
               color: "#8A8A85",
               borderTop: "1px solid #F0F0EE",
-              paddingTop: 12,
+              paddingTop: 10,
+              paddingBottom: 2,
               overflowX: "auto",
+              WebkitOverflowScrolling: "touch",
               scrollbarWidth: "none",
             }}
           >
@@ -262,7 +264,7 @@ export default function Results({
                   style={{
                     background: "transparent",
                     border: "none",
-                    paddingBottom: 6,
+                    padding: "6px 4px 8px",
                     color: active ? "#111111" : "#8A8A85",
                     fontWeight: active ? 600 : 400,
                     borderBottom: active ? "2px solid #111111" : "2px solid transparent",
@@ -270,6 +272,7 @@ export default function Results({
                     fontFamily: "inherit",
                     fontSize: 13,
                     whiteSpace: "nowrap",
+                    flexShrink: 0,
                   }}
                 >
                   {label}
@@ -280,7 +283,7 @@ export default function Results({
         </div>
 
         {/* Tab Content Area */}
-        <div style={{ padding: "24px 20px 32px", display: "flex", flexDirection: "column", gap: 24 }}>
+        <div style={{ padding: "20px clamp(14px, 3.5vw, 24px) 32px", display: "flex", flexDirection: "column", gap: 20 }}>
           {/* SECTION 1: FACE STRUCTURE */}
           {(activeTab === "all" || activeTab === "structure") && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

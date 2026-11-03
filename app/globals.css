@@ -185,3 +185,21 @@ details summary::-webkit-details-marker {
     top: 50%;
   }
 }
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  /* Prevent iOS Safari involuntary viewport zoom when focusing form inputs */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Touch-optimized horizontal scrolling without ugly scrollbars */
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.touch-scroll::-webkit-scrollbar {
+  display: none;
+}

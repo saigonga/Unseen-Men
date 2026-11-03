@@ -15,11 +15,11 @@ export default function ColorPaletteSection({ palette = UNDERTONE_PALETTES.warm_
       style={{
         border: "1px solid #DDD9D3",
         borderRadius: "4px 16px 4px 4px",
-        padding: "20px 22px",
+        padding: "18px 16px",
         background: "#FFFFFF",
         display: "flex",
         flexDirection: "column",
-        gap: 18,
+        gap: 16,
       }}
     >
       <div>
@@ -27,55 +27,55 @@ export default function ColorPaletteSection({ palette = UNDERTONE_PALETTES.warm_
           <span
             style={{
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 11,
+              fontSize: 10.5,
               letterSpacing: "0.14em",
               textTransform: "uppercase",
               color: "#4F2C1D",
               fontWeight: 600,
             }}
           >
-            05 THE COLOUR · WARDROBE & APPAREL
+            05 THE COLOUR · WARDROBE
           </span>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span
               style={{
                 display: "inline-block",
-                width: 14,
-                height: 14,
+                width: 13,
+                height: 13,
                 borderRadius: "50%",
                 background: palette.sampleHex,
                 border: "1px solid #DDD",
               }}
             />
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: "#111111" }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#111111" }}>
               {palette.undertoneName}
             </span>
           </div>
         </div>
         <h3
           style={{
-            margin: "4px 0 0",
+            margin: "3px 0 0",
             fontFamily: "var(--font-heading)",
-            fontSize: 20,
+            fontSize: "clamp(18px, 4vw, 20px)",
             fontWeight: 500,
             color: "#111111",
           }}
         >
           Your Personal Color Direction
         </h3>
-        <p style={{ margin: "4px 0 0", fontSize: 13.5, color: "#5F5E59", lineHeight: 1.45 }}>
+        <p style={{ margin: "4px 0 0", fontSize: 13, color: "#5F5E59", lineHeight: 1.45 }}>
           {palette.undertoneDesc}
         </p>
       </div>
 
-      {/* 8 Base Neutrals */}
+      {/* 8 Base Neutrals (4 per row on mobile) */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#4F2C1D", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-            8 Base Neutrals (Jackets, Trousers & Sweaters)
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4F2C1D", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            8 Base Neutrals (Jackets & Trousers)
           </span>
           {selectedHex && (
-            <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: "#666" }}>
+            <span style={{ fontSize: 10.5, fontFamily: "'JetBrains Mono', monospace", color: "#666" }}>
               {selectedHex}
             </span>
           )}
@@ -83,8 +83,8 @@ export default function ColorPaletteSection({ palette = UNDERTONE_PALETTES.warm_
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(70px, 1fr))",
-            gap: 8,
+            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+            gap: 7,
           }}
         >
           {palette.baseNeutrals.map((c) => (
@@ -96,7 +96,7 @@ export default function ColorPaletteSection({ palette = UNDERTONE_PALETTES.warm_
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                gap: 5,
+                gap: 4,
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
@@ -106,7 +106,7 @@ export default function ColorPaletteSection({ palette = UNDERTONE_PALETTES.warm_
               <div
                 style={{
                   width: "100%",
-                  height: 38,
+                  height: 36,
                   borderRadius: 6,
                   background: c.hex,
                   border: "1px solid rgba(0,0,0,0.12)",
@@ -115,7 +115,7 @@ export default function ColorPaletteSection({ palette = UNDERTONE_PALETTES.warm_
               />
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: 10.5,
                   color: "#333",
                   textAlign: "center",
                   lineHeight: 1.2,
@@ -133,16 +133,16 @@ export default function ColorPaletteSection({ palette = UNDERTONE_PALETTES.warm_
         </div>
       </div>
 
-      {/* 12 Matching Shirt & Apparel Colors */}
+      {/* 12 Matching Shirt & Apparel Colors (4 per row on mobile) */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#4F2C1D", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4F2C1D", textTransform: "uppercase", letterSpacing: "0.08em" }}>
           12 Flattering Shirt & Knitwear Shades
         </span>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(70px, 1fr))",
-            gap: 8,
+            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+            gap: 7,
           }}
         >
           {palette.matchingColors.map((c) => (
@@ -154,7 +154,7 @@ export default function ColorPaletteSection({ palette = UNDERTONE_PALETTES.warm_
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                gap: 5,
+                gap: 4,
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
@@ -164,7 +164,7 @@ export default function ColorPaletteSection({ palette = UNDERTONE_PALETTES.warm_
               <div
                 style={{
                   width: "100%",
-                  height: 38,
+                  height: 36,
                   borderRadius: 6,
                   background: c.hex,
                   border: "1px solid rgba(0,0,0,0.12)",
@@ -173,7 +173,7 @@ export default function ColorPaletteSection({ palette = UNDERTONE_PALETTES.warm_
               />
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: 10.5,
                   color: "#333",
                   textAlign: "center",
                   lineHeight: 1.2,
@@ -193,10 +193,10 @@ export default function ColorPaletteSection({ palette = UNDERTONE_PALETTES.warm_
 
       {/* 4 Colors to Avoid */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#7A2016", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: "#7A2016", textTransform: "uppercase", letterSpacing: "0.08em" }}>
           Wardrobe Shades to Avoid
         </span>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 250px), 1fr))", gap: 8 }}>
           {palette.avoidColors.map((c) => (
             <div
               key={c.name}

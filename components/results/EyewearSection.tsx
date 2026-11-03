@@ -17,18 +17,18 @@ export default function EyewearSection({ shapeKey }: EyewearSectionProps) {
       style={{
         border: "1px solid #DDD9D3",
         borderRadius: "4px 16px 4px 4px",
-        padding: "20px 22px",
+        padding: "18px 16px",
         background: "#FFFFFF",
         display: "flex",
         flexDirection: "column",
-        gap: 18,
+        gap: 16,
       }}
     >
       <div>
         <span
           style={{
             fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
+            fontSize: 10.5,
             letterSpacing: "0.14em",
             textTransform: "uppercase",
             color: "#4F2C1D",
@@ -39,27 +39,30 @@ export default function EyewearSection({ shapeKey }: EyewearSectionProps) {
         </span>
         <h3
           style={{
-            margin: "4px 0 0",
+            margin: "3px 0 0",
             fontFamily: "var(--font-heading)",
-            fontSize: 20,
+            fontSize: "clamp(18px, 4vw, 20px)",
             fontWeight: 500,
             color: "#111111",
           }}
         >
           {advice.headline}
         </h3>
-        <p style={{ margin: "4px 0 0", fontSize: 13.5, color: "#5F5E59", lineHeight: 1.45 }}>
+        <p style={{ margin: "4px 0 0", fontSize: 13, color: "#5F5E59", lineHeight: 1.45 }}>
           {advice.objective}
         </p>
       </div>
 
-      {/* Subtab Buttons */}
+      {/* Subtab Buttons - Scrollable on mobile */}
       <div
         style={{
           display: "flex",
           gap: 8,
           borderBottom: "1px solid #EFEFEA",
           paddingBottom: 8,
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
+          scrollbarWidth: "none",
         }}
       >
         <button
@@ -70,10 +73,12 @@ export default function EyewearSection({ shapeKey }: EyewearSectionProps) {
             color: subTab === "optical" ? "#FFFFFF" : "#555450",
             border: "none",
             borderRadius: 6,
-            padding: "6px 14px",
-            fontSize: 13,
+            padding: "7px 14px",
+            fontSize: 12.5,
             fontWeight: 500,
             cursor: "pointer",
+            flexShrink: 0,
+            whiteSpace: "nowrap",
           }}
         >
           Optical Specs (3)
@@ -86,10 +91,12 @@ export default function EyewearSection({ shapeKey }: EyewearSectionProps) {
             color: subTab === "sunglasses" ? "#FFFFFF" : "#555450",
             border: "none",
             borderRadius: 6,
-            padding: "6px 14px",
-            fontSize: 13,
+            padding: "7px 14px",
+            fontSize: 12.5,
             fontWeight: 500,
             cursor: "pointer",
+            flexShrink: 0,
+            whiteSpace: "nowrap",
           }}
         >
           Sunglasses (3)
@@ -102,10 +109,12 @@ export default function EyewearSection({ shapeKey }: EyewearSectionProps) {
             color: subTab === "avoid" ? "#FFFFFF" : "#7A2016",
             border: "none",
             borderRadius: 6,
-            padding: "6px 14px",
-            fontSize: 13,
+            padding: "7px 14px",
+            fontSize: 12.5,
             fontWeight: 500,
             cursor: "pointer",
+            flexShrink: 0,
+            whiteSpace: "nowrap",
           }}
         >
           Frames to Avoid

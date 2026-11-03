@@ -186,7 +186,7 @@ export default function FaceScanApp() {
 
       {/* 6. Step 5 & 6: Report */}
       {screen === "results" && photo && result && (
-        <div style={{ padding: "24px 16px 64px", display: "grid", placeItems: "center" }}>
+        <div style={{ padding: "16px clamp(10px, 3vw, 16px) 64px", display: "grid", placeItems: "center" }}>
           <Results
             answers={answers}
             photo={photo}

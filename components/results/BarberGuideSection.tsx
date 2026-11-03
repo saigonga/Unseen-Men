@@ -32,32 +32,32 @@ Note: ${guide.notes}`;
       style={{
         border: "1px solid #DDD9D3",
         borderRadius: "4px 16px 4px 4px",
-        padding: "20px 22px",
+        padding: "18px 16px",
         background: "#FFFFFF",
         display: "flex",
         flexDirection: "column",
-        gap: 16,
+        gap: 15,
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
         <div>
           <span
             style={{
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 11,
+              fontSize: 10.5,
               letterSpacing: "0.14em",
               textTransform: "uppercase",
               color: "#4F2C1D",
               fontWeight: 600,
             }}
           >
-            03 THE HAIR · BARBER INSTRUCTION CARD
+            03 THE HAIR · BARBER SPECS
           </span>
           <h3
             style={{
-              margin: "4px 0 0",
+              margin: "3px 0 0",
               fontFamily: "var(--font-heading)",
-              fontSize: 20,
+              fontSize: "clamp(18px, 4vw, 20px)",
               fontWeight: 500,
               color: "#111111",
             }}
@@ -73,27 +73,29 @@ Note: ${guide.notes}`;
             color: copied ? "#FFFFFF" : "#4F2C1D",
             border: "1px solid #DDD9D3",
             borderRadius: 6,
-            padding: "4px 10px",
+            padding: "6px 10px",
             fontSize: 11,
             fontWeight: 600,
             cursor: "pointer",
             fontFamily: "inherit",
+            flexShrink: 0,
+            minHeight: 32,
           }}
         >
-          {copied ? "Copied ✓" : "Copy for Barber"}
+          {copied ? "Copied ✓" : "Copy Specs"}
         </button>
       </div>
 
-      <p style={{ margin: 0, fontSize: 13.5, color: "#5F5E59", lineHeight: 1.45 }}>
+      <p style={{ margin: 0, fontSize: 13, color: "#5F5E59", lineHeight: 1.45 }}>
         Show these exact measurements and clipper guards directly to your hairstylist or barber.
       </p>
 
-      {/* Structured Clipper & Length Grid */}
+      {/* Structured Clipper & Length Grid - 2 columns on all devices */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-          gap: 10,
+          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+          gap: 8,
         }}
       >
         <div

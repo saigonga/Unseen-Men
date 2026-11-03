@@ -23,11 +23,11 @@ export default function FacialThirdsSection({
       style={{
         border: "1px solid #DDD9D3",
         borderRadius: "4px 16px 4px 4px",
-        padding: "20px 22px",
+        padding: "18px 16px",
         background: "#FFFFFF",
         display: "flex",
         flexDirection: "column",
-        gap: 18,
+        gap: 16,
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -35,7 +35,7 @@ export default function FacialThirdsSection({
           <span
             style={{
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 11,
+              fontSize: 10.5,
               letterSpacing: "0.14em",
               textTransform: "uppercase",
               color: "#4F2C1D",
@@ -46,9 +46,9 @@ export default function FacialThirdsSection({
           </span>
           <h3
             style={{
-              margin: "4px 0 0",
+              margin: "3px 0 0",
               fontFamily: "var(--font-heading)",
-              fontSize: 20,
+              fontSize: "clamp(18px, 4vw, 20px)",
               fontWeight: 500,
               color: "#111111",
             }}
@@ -65,9 +65,10 @@ export default function FacialThirdsSection({
             padding: "3px 8px",
             borderRadius: 4,
             fontWeight: 600,
+            whiteSpace: "nowrap",
           }}
         >
-          {thirds.upperPct} / {thirds.midPct} / {thirds.lowerPct}
+          {thirds.upperPct}/{thirds.midPct}/{thirds.lowerPct}
         </span>
       </div>
 
@@ -113,22 +114,22 @@ export default function FacialThirdsSection({
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr 1fr",
-            gap: 8,
-            fontSize: 12,
+            gap: 6,
+            fontSize: 11.5,
             marginTop: 4,
           }}
         >
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ color: "#777672", fontSize: 11 }}>Upper (Forehead)</span>
-            <span style={{ fontWeight: 600, color: "#111111" }}>{thirds.upperPct}%</span>
+            <span style={{ color: "#777672", fontSize: 10.5, lineHeight: 1.2 }}>Upper (Forehead)</span>
+            <span style={{ fontWeight: 600, color: "#111111", fontSize: 13, marginTop: 2 }}>{thirds.upperPct}%</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ color: "#777672", fontSize: 11 }}>Mid (Brow - Nose)</span>
-            <span style={{ fontWeight: 600, color: "#111111" }}>{thirds.midPct}%</span>
+            <span style={{ color: "#777672", fontSize: 10.5, lineHeight: 1.2 }}>Mid (Brow - Nose)</span>
+            <span style={{ fontWeight: 600, color: "#111111", fontSize: 13, marginTop: 2 }}>{thirds.midPct}%</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ color: "#777672", fontSize: 11 }}>Lower (Nose - Chin)</span>
-            <span style={{ fontWeight: 600, color: "#111111" }}>{thirds.lowerPct}%</span>
+            <span style={{ color: "#777672", fontSize: 10.5, lineHeight: 1.2 }}>Lower (Nose - Chin)</span>
+            <span style={{ fontWeight: 600, color: "#111111", fontSize: 13, marginTop: 2 }}>{thirds.lowerPct}%</span>
           </div>
         </div>
       </div>
