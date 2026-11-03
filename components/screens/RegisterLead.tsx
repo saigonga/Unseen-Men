@@ -109,11 +109,11 @@ export default function RegisterLead({
         boxShadow: "0 20px 40px -28px rgba(17,17,17,0.12)",
       }}
     >
-      <StepBar step={1} total={4} onClose={onClose} />
+      <StepBar step={1} total={3} onClose={onClose} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 2 }}>
         <span style={{ fontSize: 12.5, color: "#8A8A85" }}>
-          Step 1 of 4 · Member Details
+          Step 1 of 3 · Member Details
         </span>
         <h1
           style={{

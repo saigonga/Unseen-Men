@@ -1,23 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { SHAPES, ROUTINES } from "@/lib/content";
+import { SHAPES } from "@/lib/content";
 import type { FaceResult } from "@/lib/faceShape";
 import { drawOverlay } from "@/lib/overlay";
 import { newCode } from "@/lib/referral";
 import CompareBars from "../results/CompareBars";
-import { BestCuts, PairList } from "../results/CutList";
 import UnlockForm from "../results/UnlockForm";
 import type { Lead } from "../results/UnlockForm";
-import BeardSection from "../results/BeardSection";
-import { TryOnProvider, TryOnConsent, SeeOnMe } from "../results/TryOnContext";
+import { TryOnProvider } from "../results/TryOnContext";
 import SkinRead from "../results/SkinRead";
 import ShareSection from "../results/ShareSection";
 import Rewards from "../results/Rewards";
 import FacialThirdsSection from "../results/FacialThirdsSection";
-import BarberGuideSection from "../results/BarberGuideSection";
 import WhatsAppConcierge from "../results/WhatsAppConcierge";
-import { getFacialThirds, BARBER_GUIDE_BY_SHAPE } from "@/lib/styling";
+import { getFacialThirds } from "@/lib/styling";
 import type { Answers } from "./Questions";
 import type { Photo } from "../FaceScanApp";
 import type { UserLeadProfile } from "./RegisterLead";
@@ -27,8 +24,6 @@ interface Unlocked extends Lead {
   position: number;
   referrals: number;
 }
-
-type ReportTab = "all" | "structure" | "haircuts" | "beard" | "routine";
 
 function extractJpeg(img: HTMLImageElement): string | null {
   try {
@@ -64,7 +59,6 @@ export default function Results({
 }) {
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const [unlocked, setUnlocked] = useState<Unlocked | null>(null);
-  const [activeTab, setActiveTab] = useState<ReportTab>("all");
   const [surpriseNumber] = useState(() => String(300 + Math.floor(Math.random() * 200)).padStart(4, "0"));
   const fullRef = useRef<HTMLDivElement>(null);
 
@@ -95,9 +89,6 @@ export default function Results({
           memberNumber: surpriseNumber,
           styling: {
             facialThirds: getFacialThirds(photo.det.P),
-            barberGuide: BARBER_GUIDE_BY_SHAPE[result.key],
-            topCuts: result.cuts,
-            avoidCuts: result.avoid,
           },
         }),
       })
@@ -213,7 +204,7 @@ export default function Results({
                 color: "#111111",
               }}
             >
-              {unlocked ? `${unlocked.name}'s Lookbook` : "Facial Analysis Lookbook"}
+              {unlocked ? `${unlocked.name}'s Facial Architecture` : "Facial Architecture & Proportions"}
             </h1>
             <div style={{ fontSize: 13, color: "#8A8A85", marginTop: 2 }}>
               {new Date().toLocaleDateString("en-GB", {
@@ -224,63 +215,11 @@ export default function Results({
               · {Math.round(p1 * 100)}% {sh.name} match
             </div>
           </div>
-
-          {/* Navigation Category Tabs */}
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              fontSize: 13,
-              color: "#8A8A85",
-              borderTop: "1px solid #F0F0EE",
-              paddingTop: 10,
-              paddingBottom: 2,
-              overflowX: "auto",
-              WebkitOverflowScrolling: "touch",
-              scrollbarWidth: "none",
-            }}
-          >
-            {(
-              [
-                ["all", "All Report"],
-                ["structure", "01 Face"],
-                ["haircuts", "02 Hair"],
-                ["beard", "03 Grooming"],
-                ["routine", "04 Routine"],
-              ] as [ReportTab, string][]
-            ).map(([tab, label]) => {
-              const active = activeTab === tab;
-              return (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    padding: "6px 4px 8px",
-                    color: active ? "#111111" : "#8A8A85",
-                    fontWeight: active ? 600 : 400,
-                    borderBottom: active ? "2px solid #111111" : "2px solid transparent",
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                    fontSize: 13,
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
-                  }}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
         </div>
 
-        {/* Tab Content Area */}
+        {/* Report Content Body — Focused strictly on Facial Architecture & Specifications */}
         <div style={{ padding: "20px clamp(14px, 3.5vw, 24px) 32px", display: "flex", flexDirection: "column", gap: 20 }}>
-          {/* SECTION 1: FACE STRUCTURE */}
-          {(activeTab === "all" || activeTab === "structure") && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {/* Primary Face Shape Card */}
               <div
                 style={{
@@ -410,152 +349,6 @@ export default function Results({
                 <CompareBars z={result.z} />
               </div>
             </div>
-          )}
-
-          {/* SECTION 2: TOP RECOMMENDED HAIRCUTS & BARBER SPECIFICATIONS */}
-          {(activeTab === "all" || activeTab === "haircuts") && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div>
-                <span
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    letterSpacing: "0.16em",
-                    textTransform: "uppercase",
-                    color: "#4F2C1D",
-                  }}
-                >
-                  02 THE HAIR · HAIRCUTS
-                </span>
-                <h3
-                  style={{
-                    margin: "4px 0 0",
-                    fontFamily: "var(--font-heading)",
-                    fontWeight: 500,
-                    fontSize: 20,
-                  }}
-                >
-                  Curated Cuts for Your Architecture
-                </h3>
-              </div>
-
-              <BestCuts
-                cuts={result.cuts}
-                tryOn
-              />
-
-              {/* Barber Instruction Card */}
-              <BarberGuideSection shapeKey={result.key} />
-
-              {unlocked && (
-                <div style={{ marginTop: 8 }}>
-                  <div
-                    style={{
-                      fontFamily: "var(--font-heading)",
-                      fontWeight: 600,
-                      fontSize: 16,
-                      color: "#111111",
-                      marginBottom: 10,
-                    }}
-                  >
-                    Haircuts to Avoid
-                  </div>
-                  <PairList
-                    items={result.avoid}
-                    avoid
-                    art="cut"
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* SECTION 3: BEARD VERDICT */}
-          {(activeTab === "beard" || (activeTab === "all" && unlocked)) && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div>
-                <span
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    letterSpacing: "0.16em",
-                    textTransform: "uppercase",
-                    color: "#4F2C1D",
-                  }}
-                >
-                  03 THE GROOMING · FACIAL HAIR
-                </span>
-                <h3
-                  style={{
-                    margin: "4px 0 0",
-                    fontFamily: "var(--font-heading)",
-                    fontWeight: 500,
-                    fontSize: 20,
-                  }}
-                >
-                  Beard verdict & styling
-                </h3>
-              </div>
-
-              <BeardSection
-                shape={result.key}
-                beard={answers.beard}
-                tweaks={result.beardTweaks}
-              />
-            </div>
-          )}
-
-          {/* SECTION 4: ROUTINE */}
-          {(activeTab === "routine" || (activeTab === "all" && unlocked)) && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div>
-                <span
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    letterSpacing: "0.16em",
-                    textTransform: "uppercase",
-                    color: "#4F2C1D",
-                  }}
-                >
-                  04 THE ROUTINE · DAILY CARE
-                </span>
-                <h3
-                  style={{
-                    margin: "4px 0 0",
-                    fontFamily: "var(--font-heading)",
-                    fontWeight: 500,
-                    fontSize: 20,
-                  }}
-                >
-                  Your age-bracket routine
-                </h3>
-              </div>
-              <div
-                style={{
-                  border: "1px solid #DDD9D3",
-                  borderRadius: "3px 14px 3px 3px",
-                  padding: 18,
-                  background: "#FFFFFF",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <span style={{ fontWeight: 600, color: "#4F2C1D" }}>Daily Steps</span>
-                  <span style={{ fontSize: 12, color: "#7A6A60" }}>Bracket: {answers.age}</span>
-                </div>
-                <ol style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 8, fontSize: 14 }}>
-                  {ROUTINES[answers.age].map((r) => (
-                    <li key={r}>
-                      <span>{r}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            </div>
-          )}
 
           {/* UNLOCK GATE (Fallback only if user bypassed lead registration) */}
           {!unlocked && (

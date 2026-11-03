@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import StepBar from "../StepBar";
+import { drawOverlay } from "@/lib/overlay";
+import type { Photo } from "../FaceScanApp";
 
 interface ScanningProps {
-  url: string;
+  url?: string;
+  photo?: Photo;
 }
 
 interface StepItem {
@@ -13,23 +16,30 @@ interface StepItem {
   status: "done" | "now" | "wait";
 }
 
-export default function Scanning({ url }: ScanningProps) {
-  const [activeStepIndex, setActiveStepIndex] = useState(3);
+export default function Scanning({ url, photo }: ScanningProps) {
+  const [activeStepIndex, setActiveStepIndex] = useState(2);
   const [progressPct, setProgressPct] = useState(35);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    if (canvasRef.current && photo?.img && photo?.det) {
+      drawOverlay(canvasRef.current, photo.img, photo.det, true);
+    }
+  }, [photo]);
 
   useEffect(() => {
     const t1 = setTimeout(() => {
-      setActiveStepIndex(4);
+      setActiveStepIndex(3);
       setProgressPct(55);
     }, 700);
 
     const t2 = setTimeout(() => {
-      setActiveStepIndex(5);
+      setActiveStepIndex(4);
       setProgressPct(78);
     }, 1400);
 
     const t3 = setTimeout(() => {
-      setActiveStepIndex(6);
+      setActiveStepIndex(5);
       setProgressPct(100);
     }, 2100);
 
@@ -42,12 +52,11 @@ export default function Scanning({ url }: ScanningProps) {
 
   const baseSteps: { name: string; finalVal: string }[] = [
     { name: "Photo quality check", finalVal: "Passed" },
-    { name: "Landmark mapping", finalVal: "13 points" },
-    { name: "Face shape", finalVal: "Oval · 0.93" },
-    { name: "Jawline", finalVal: "Defined · 0.88" },
-    { name: "Hair texture", finalVal: "Wavy · 0.91" },
-    { name: "Beard growth", finalVal: "Classified" },
-    { name: "Undertone and contrast", finalVal: "Warm / Medium" },
+    { name: "Landmark mapping", finalVal: "68 points" },
+    { name: "Face shape architecture", finalVal: "Computed" },
+    { name: "Jawline & gonial angle", finalVal: "Measured" },
+    { name: "Facial thirds", finalVal: "Calculated" },
+    { name: "Proportions vs population norms", finalVal: "Indexed" },
   ];
 
   const steps: StepItem[] = baseSteps.map((s, idx) => {
@@ -76,7 +85,7 @@ export default function Scanning({ url }: ScanningProps) {
         gap: 16,
       }}
     >
-      <StepBar step={3} total={4} />
+      <StepBar step={3} total={3} />
 
       <h1
         style={{
@@ -90,109 +99,120 @@ export default function Scanning({ url }: ScanningProps) {
         }}
       >
         Mapping landmarks and{" "}
-        <span style={{ fontWeight: 600 }}>classifying nine attributes.</span>
+        <span style={{ fontWeight: 600 }}>classifying your architecture.</span>
       </h1>
 
-      {/* Visual scanning frame */}
+      {/* Visual scanning frame — Real user photo with real mapped landmarks, perfectly centered */}
       <div
         style={{
           position: "relative",
           border: "1px solid #ECECEA",
           borderRadius: 14,
-          background: "#FCFCFB",
+          background: "#111111",
           overflow: "hidden",
           aspectRatio: "350/260",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        {url && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={url}
-            alt=""
+        {photo?.img && photo?.det ? (
+          <canvas
+            ref={canvasRef}
             style={{
-              position: "absolute",
-              inset: 0,
               width: "100%",
               height: "100%",
               objectFit: "cover",
-              opacity: 0.18,
-              filter: "grayscale(100%)",
+              display: "block",
             }}
           />
+        ) : (
+          url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={url}
+              alt="Scanning photo"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }}
+            />
+          )
         )}
 
+        {/* Animated Laser Scanline moving down */}
         <div className="scanline" />
 
-        <svg
-          viewBox="0 0 350 260"
-          role="img"
-          aria-label="Line drawing of a face with landmarks and facial thirds being measured"
-          style={{ width: "100%", height: "100%", display: "block", position: "relative" }}
+        {/* Live HUD telemetry badges */}
+        <div
+          style={{
+            position: "absolute",
+            top: 10,
+            left: 12,
+            right: 12,
+            display: "flex",
+            justifyContent: "space-between",
+            pointerEvents: "none",
+          }}
         >
-          <g stroke="#C9BFB3" strokeWidth="1" strokeDasharray="4 5">
-            <line x1="30" y1="46" x2="230" y2="46" />
-            <line x1="30" y1="98" x2="230" y2="98" />
-            <line x1="30" y1="160" x2="230" y2="160" />
-            <line x1="30" y1="232" x2="230" y2="232" />
-            <line x1="130" y1="16" x2="130" y2="246" />
-          </g>
-          <path
-            d="M130 28 C170 28 194 54 198 90 C202 122 198 144 192 162 C184 186 170 208 152 220 C142 227 136 228 130 228 C124 228 118 227 108 220 C90 208 76 186 68 162 C62 144 58 122 62 90 C66 54 90 28 130 28 Z"
-            fill="none"
-            stroke="#1B1815"
-            strokeWidth="1.3"
-          />
-          <g fill="none" stroke="#1B1815" strokeWidth="1" strokeLinecap="round">
-            <path d="M90 98 C102 93 114 94 122 98" />
-            <path d="M138 98 C146 94 158 93 170 98" />
-            <path d="M95 114 C102 109 114 109 120 114 C114 118 102 118 95 114 Z" />
-            <path d="M140 114 C146 109 158 109 165 114 C158 118 146 118 140 114 Z" />
-            <path d="M122 164 C127 169 133 169 138 164" />
-            <path d="M114 190 C124 194 136 194 146 190" />
-          </g>
-          <g stroke="#4F2C1D" strokeWidth="1.2">
-            <line x1="62" y1="130" x2="198" y2="130" />
-          </g>
-          <g fill="#FFFFFF" stroke="#1B1815" strokeWidth="1">
-            <circle cx="130" cy="46" r="3" />
-            <circle cx="62" cy="130" r="3" />
-            <circle cx="198" cy="130" r="3" />
-            <circle cx="130" cy="228" r="3" />
-            <circle cx="96" cy="98" r="2.5" />
-            <circle cx="164" cy="98" r="2.5" />
-          </g>
-          <g stroke="#1B1815" strokeWidth="0.8">
-            <line x1="246" y1="46" x2="246" y2="98" />
-            <line x1="246" y1="100" x2="246" y2="160" />
-            <line x1="246" y1="162" x2="246" y2="232" />
-            <line x1="240" y1="46" x2="252" y2="46" />
-            <line x1="240" y1="98" x2="252" y2="98" />
-            <line x1="240" y1="160" x2="252" y2="160" />
-            <line x1="240" y1="232" x2="252" y2="232" />
-          </g>
-          <g fontFamily="var(--font-body)" fontSize="11.5" fill="#1B1815">
-            <text x="258" y="70">
-              Upper
-            </text>
-            <text x="258" y="128">
-              Middle
-            </text>
-            <text x="258" y="194">
-              Lower
-            </text>
-          </g>
-          <g fontFamily="var(--font-body)" fontSize="10" fill="#4F2C1D">
-            <text x="258" y="84">
-              0.32
-            </text>
-            <text x="258" y="142">
-              0.34
-            </text>
-            <text x="258" y="208">
-              measuring
-            </text>
-          </g>
-        </svg>
+          <span
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 10,
+              letterSpacing: "0.08em",
+              color: "#FFFFFF",
+              background: "rgba(0, 0, 0, 0.68)",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+              padding: "3px 8px",
+              borderRadius: 4,
+              border: "1px solid rgba(255, 255, 255, 0.15)",
+            }}
+          >
+            MAPPING REAL LANDMARKS
+          </span>
+          <span
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 10,
+              letterSpacing: "0.08em",
+              color: "#E0A526",
+              background: "rgba(0, 0, 0, 0.68)",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+              padding: "3px 8px",
+              borderRadius: 4,
+              border: "1px solid rgba(224, 165, 38, 0.3)",
+            }}
+          >
+            {activeStepIndex >= 4 ? "ARCHITECTURE COMPUTED" : "SCANNING"}
+          </span>
+        </div>
+
+        {/* Bottom HUD info */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: 10,
+            left: 12,
+            right: 12,
+            display: "flex",
+            justifyContent: "space-between",
+            pointerEvents: "none",
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 9.5,
+            color: "rgba(255, 255, 255, 0.8)",
+            background: "rgba(0, 0, 0, 0.65)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+            padding: "4px 8px",
+            borderRadius: 4,
+          }}
+        >
+          <span>POINTS: 68 MAPPED</span>
+          <span>FACIAL PROPORTIONS: 100% MATCHED</span>
+        </div>
       </div>
 
       {/* Checklist box */}

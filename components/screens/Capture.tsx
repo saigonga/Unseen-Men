@@ -198,7 +198,7 @@ export default function Capture({
         gap: 14,
       }}
     >
-      <StepBar step={2} total={4} onClose={onClose} />
+      <StepBar step={2} total={3} onClose={onClose} />
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
         <h1

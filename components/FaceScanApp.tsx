@@ -85,9 +85,9 @@ export default function FaceScanApp() {
       const r = p.m ? analyseMeasures(p.m, answers.beard) : analyse(p.det.P, answers.beard);
       setResult(r);
 
-      // Allow 2.4s for scanning animation to complete
-      await new Promise((res) => setTimeout(res, 2400));
-      go("questions");
+      // Allow 2.2s for scanning animation to complete, then reveal the report
+      await new Promise((res) => setTimeout(res, 2200));
+      go("results");
     },
     [answers.beard, go]
   );
@@ -169,7 +169,7 @@ export default function FaceScanApp() {
       {/* 4. Step 3: Analysis in Progress */}
       {screen === "scan" && photo && (
         <div style={{ padding: "20px 16px 40px", display: "grid", placeItems: "center" }}>
-          <Scanning url={photo.url} />
+          <Scanning url={photo.url} photo={photo} />
         </div>
       )}
 
