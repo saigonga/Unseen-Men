@@ -32,7 +32,7 @@ function canvasOf(input: FaceInput, flip: boolean) {
   const { W, H } = inputSize(input);
   const c = document.createElement("canvas");
   c.width = W; c.height = H;
-  const x = c.getContext("2d")!;
+  const x = c.getContext("2d", { willReadFrequently: true })!;
   if (flip) { x.translate(W, 0); x.scale(-1, 1); }
   x.drawImage(input, 0, 0, W, H);
   return c;

@@ -52,7 +52,7 @@ function grab(video: HTMLVideoElement) {
   const c = document.createElement("canvas");
   c.width = video.videoWidth;
   c.height = video.videoHeight;
-  c.getContext("2d")!.drawImage(video, 0, 0); // un-mirrored for face analysis
+  c.getContext("2d", { willReadFrequently: true })!.drawImage(video, 0, 0); // un-mirrored for face analysis
   return c;
 }
 
