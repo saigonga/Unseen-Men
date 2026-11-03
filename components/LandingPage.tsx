@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 interface LandingPageProps {
   onStart: () => void;
@@ -1459,9 +1460,9 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             are sample data.
           </span>
           <span style={{ display: "flex", gap: 20 }}>
-            <a href="#" style={{ color: "#8A8A85" }}>
+            <Link href="/how-we-use-your-data" style={{ color: "#8A8A85" }}>
               Privacy policy
-            </a>
+            </Link>
             <a href="https://noddmen.com" style={{ color: "#8A8A85" }}>
               noddmen.com
             </a>

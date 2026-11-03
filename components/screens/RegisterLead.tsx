@@ -3,6 +3,7 @@
 import { useState } from "react";
 import StepBar from "../StepBar";
 import { checkIndianMobile, isEmail } from "@/lib/phone";
+import DataUseModal from "./DataUseModal";
 
 export interface UserLeadProfile {
   name: string;
@@ -24,8 +25,16 @@ export default function RegisterLead({
   const [name, setName] = useState(initial?.name || "");
   const [phone, setPhone] = useState(initial?.phone || "");
   const [email, setEmail] = useState(initial?.email || "");
-  const [agreed, setAgreed] = useState(true);
-  const [errs, setErrs] = useState<{ name?: string; phone?: string; email?: string; agreed?: string }>({});
+  const [consentAgeAndPhoto, setConsentAgeAndPhoto] = useState(false);
+  const [consentWhatsApp, setConsentWhatsApp] = useState(false);
+  const [showDataModal, setShowDataModal] = useState(false);
+  const [errs, setErrs] = useState<{
+    name?: string;
+    phone?: string;
+    email?: string;
+    consentAgeAndPhoto?: string;
+    consentWhatsApp?: string;
+  }>({});
 
   function validate(): { ok: boolean; cleanPhone?: string } {
     const next: typeof errs = {};
@@ -55,8 +64,12 @@ export default function RegisterLead({
       next.email = "Enter a valid email address.";
     }
 
-    if (!agreed) {
-      next.agreed = "You must agree to continue.";
+    if (!consentAgeAndPhoto) {
+      next.consentAgeAndPhoto = "You must confirm you are 18 or older and consent to photo analysis.";
+    }
+
+    if (!consentWhatsApp) {
+      next.consentWhatsApp = "You must agree to receive your results on WhatsApp.";
     }
 
     setErrs(next);
@@ -187,43 +200,114 @@ export default function RegisterLead({
           {errs.email && <span style={{ color: "#D9735E", fontSize: 12 }}>{errs.email}</span>}
         </label>
 
-        {/* Consent & 18+ Checkbox */}
-        <label
-          style={{
-            display: "flex",
-            gap: 10,
-            alignItems: "flex-start",
-            fontSize: 13,
-            color: "#5F5F5B",
-            cursor: "pointer",
-            marginTop: 2,
-            lineHeight: 1.4,
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={agreed}
-            onChange={(e) => setAgreed(e.target.checked)}
+        {/* Consent Section (Both Unticked by Default, Both Required under DPDP Rules) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+          {/* Box 1: Age & Photo Analysis Consent */}
+          <label
             style={{
-              width: 18,
-              height: 18,
-              margin: "2px 0 0",
-              accentColor: "#111111",
-              flex: "none",
+              display: "flex",
+              gap: 10,
+              alignItems: "flex-start",
+              fontSize: 12.5,
+              color: "#333330",
               cursor: "pointer",
+              lineHeight: 1.4,
             }}
-          />
-          <span>
-            I confirm I am 18+ and agree to facial analysis for style and haircut recommendations.
-          </span>
-        </label>
-        {errs.agreed && <span style={{ color: "#D9735E", fontSize: 12 }}>{errs.agreed}</span>}
+          >
+            <input
+              type="checkbox"
+              checked={consentAgeAndPhoto}
+              onChange={(e) => setConsentAgeAndPhoto(e.target.checked)}
+              style={{
+                width: 18,
+                height: 18,
+                margin: "2px 0 0",
+                accentColor: "#111111",
+                flex: "none",
+                cursor: "pointer",
+              }}
+            />
+            <span>
+              I am 18 or older. Save my photo so Nodd Men can analyse it and create personalised style images for me. I can ask for it to be deleted at any time. <span style={{ color: "#D9735E" }}>*</span>
+            </span>
+          </label>
+          {errs.consentAgeAndPhoto && (
+            <span style={{ color: "#D9735E", fontSize: 11.5, marginLeft: 28 }}>
+              {errs.consentAgeAndPhoto}
+            </span>
+          )}
+
+          {/* Box 2: WhatsApp Results Consent */}
+          <label
+            style={{
+              display: "flex",
+              gap: 10,
+              alignItems: "flex-start",
+              fontSize: 12.5,
+              color: "#333330",
+              cursor: "pointer",
+              lineHeight: 1.4,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={consentWhatsApp}
+              onChange={(e) => setConsentWhatsApp(e.target.checked)}
+              style={{
+                width: 18,
+                height: 18,
+                margin: "2px 0 0",
+                accentColor: "#111111",
+                flex: "none",
+                cursor: "pointer",
+              }}
+            />
+            <span>
+              Send my results and style recommendations on WhatsApp. I can reply STOP to opt out at any time. <span style={{ color: "#D9735E" }}>*</span>
+            </span>
+          </label>
+          {errs.consentWhatsApp && (
+            <span style={{ color: "#D9735E", fontSize: 11.5, marginLeft: 28 }}>
+              {errs.consentWhatsApp}
+            </span>
+          )}
+
+          {/* Short notice under the boxes */}
+          <p
+            style={{
+              margin: "4px 0 0",
+              fontSize: 11.5,
+              lineHeight: 1.45,
+              color: "#6F6E69",
+              paddingLeft: 2,
+            }}
+          >
+            Your photo is used only for your analysis and style images, never shared or sold, and deleted on 31 January 2027 or within 7 days if you ask sooner.{" "}
+            <button
+              type="button"
+              onClick={() => setShowDataModal(true)}
+              style={{
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                color: "#4F2C1D",
+                fontWeight: 600,
+                cursor: "pointer",
+                textDecoration: "underline",
+                fontSize: 11.5,
+                fontFamily: "inherit",
+              }}
+            >
+              [How we use your data]
+            </button>
+          </p>
+        </div>
       </div>
 
       <div
         style={{
           marginTop: "auto",
-          paddingTop: 16,
+          paddingTop: 14,
           display: "flex",
           flexDirection: "column",
           gap: 10,
@@ -261,15 +345,18 @@ export default function RegisterLead({
 
         <div
           style={{
-            fontSize: 12,
+            fontSize: 11.5,
             color: "#8A8A85",
             textAlign: "center",
-            marginTop: 4,
+            marginTop: 2,
           }}
         >
           Men only · Stored securely in your private profile · No spam
         </div>
       </div>
+
+      {/* DPDP How We Use Your Data Modal */}
+      <DataUseModal isOpen={showDataModal} onClose={() => setShowDataModal(false)} />
     </div>
   );
 }
