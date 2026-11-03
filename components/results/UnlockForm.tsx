@@ -44,6 +44,18 @@ function extractJpeg(img: HTMLImageElement): string | null {
   }
 }
 
+function getPhotoBase64(photo?: { img: HTMLImageElement; url: string } | null): string | null {
+  if (!photo) return null;
+  if (photo.img) {
+    const extracted = extractJpeg(photo.img);
+    if (extracted) return extracted;
+  }
+  if (photo.url && photo.url.startsWith("data:image/")) {
+    return photo.url;
+  }
+  return null;
+}
+
 export default function UnlockForm({
   result,
   memberNumber = "0347",
@@ -97,7 +109,7 @@ export default function UnlockForm({
 
     setSubmitting(true);
     try {
-      const photoBase64 = photo?.img ? extractJpeg(photo.img) : null;
+      const photoBase64 = getPhotoBase64(photo);
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

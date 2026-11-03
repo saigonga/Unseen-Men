@@ -138,16 +138,18 @@ export async function POST(req: NextRequest) {
     let photoUrl: string | null = null;
     const photoBase64 = body.photoBase64 ? String(body.photoBase64) : null;
 
-    if (photoBase64 && photoBase64.startsWith("data:image")) {
+    if (photoBase64 && photoBase64.includes("base64")) {
       try {
-        const base64Data = photoBase64.replace(/^data:image\/\w+;base64,/, "");
-        const buffer = Buffer.from(base64Data, "base64");
-        const fileName = `${assignedCode}_${Date.now()}.jpg`;
+        const cleanBase64 = photoBase64.includes(",") ? photoBase64.split(",")[1] : photoBase64;
+        const buffer = Buffer.from(cleanBase64, "base64");
+        const mime = photoBase64.startsWith("data:image/png") ? "image/png" : "image/jpeg";
+        const ext = mime === "image/png" ? "png" : "jpg";
+        const fileName = `${assignedCode}_${Date.now()}.${ext}`;
 
         const { error: uploadError } = await supabase.storage
           .from("scans")
           .upload(fileName, buffer, {
-            contentType: "image/jpeg",
+            contentType: mime,
             upsert: true,
           });
 
