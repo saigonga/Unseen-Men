@@ -118,6 +118,7 @@ export default function UnlockForm({
         throw new Error(data.error || "Failed to join waitlist");
       }
 
+      console.log("Waitlist success:", data);
       onUnlock({
         name: data.name || n,
         mobile: mobileVal || (data.contact?.startsWith("+91") ? data.contact : "+91 98765 43210"),
@@ -128,13 +129,9 @@ export default function UnlockForm({
         referralCount: data.referralCount,
       });
     } catch (err: unknown) {
-      console.warn("Waitlist API fallback:", err);
-      // Fallback: don't block the user from seeing their report if offline or api fails
-      onUnlock({
-        name: n,
-        mobile: mobileVal || "+91 98765 43210",
-        email: emailVal,
-      });
+      const msg = err instanceof Error ? err.message : "Failed to save to database. Please check your connection.";
+      console.error("Waitlist API error:", msg);
+      setErrs((prev) => ({ ...prev, server: msg }));
     } finally {
       setSubmitting(false);
     }
@@ -322,6 +319,22 @@ export default function UnlockForm({
           />
           {errs.contact && <span style={{ color: "#D9735E", fontSize: 12 }}>{errs.contact}</span>}
         </label>
+
+        {errs.server && (
+          <div
+            style={{
+              color: "#D9735E",
+              fontSize: 13,
+              background: "#FDF2F0",
+              border: "1px solid #F6D6D0",
+              padding: "10px 14px",
+              borderRadius: 8,
+              lineHeight: 1.4,
+            }}
+          >
+            {errs.server}
+          </div>
+        )}
 
         <button
           type="submit"
