@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     // 1. Check if contact already exists
     const { data: existing, error: existingErr } = await supabase
       .from("waitlist")
-      .select("id, name, contact, member_number, referral_code, referral_count, created_at")
+      .select("id, name, contact, member_number, referral_code, referral_count, created_at, photo_url")
       .eq("contact", normalizedContact)
       .maybeSingle();
 
@@ -71,6 +71,61 @@ export async function POST(req: NextRequest) {
     }
 
     if (existing) {
+      // User was registered upfront or visited before.
+      // If this call contains the scan photo or face shape, update the existing database row!
+      let updatedPhotoUrl: string | null = existing.photo_url || null;
+      const photoBase64 = body.photoBase64 ? String(body.photoBase64) : null;
+
+      if (photoBase64 && photoBase64.includes("base64")) {
+        try {
+          const cleanBase64 = photoBase64.includes(",") ? photoBase64.split(",")[1] : photoBase64;
+          const buffer = Buffer.from(cleanBase64, "base64");
+          const mime = photoBase64.startsWith("data:image/png") ? "image/png" : "image/jpeg";
+          const ext = mime === "image/png" ? "png" : "jpg";
+          const fileName = `${existing.referral_code}_${Date.now()}.${ext}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("scans")
+            .upload(fileName, buffer, {
+              contentType: mime,
+              upsert: true,
+            });
+
+          if (!uploadError) {
+            const { data: pubData } = supabase.storage.from("scans").getPublicUrl(fileName);
+            updatedPhotoUrl = pubData?.publicUrl || null;
+          } else {
+            console.warn("Storage upload warning during update:", uploadError.message);
+          }
+        } catch (photoErr) {
+          console.warn("Photo upload update error:", photoErr);
+        }
+      }
+
+      const updatePayload: Record<string, unknown> = {};
+      if (faceShape) updatePayload.face_shape = faceShape;
+      if (ageBracket) updatePayload.age_bracket = ageBracket;
+      if (rawName && rawName !== existing.name) updatePayload.name = rawName;
+      if (updatedPhotoUrl) updatePayload.photo_url = updatedPhotoUrl;
+      if (rawEmail) {
+        updatePayload.skin_concern = skinConcern ? `${skinConcern} | email:${rawEmail}` : `email:${rawEmail}`;
+      }
+
+      if (Object.keys(updatePayload).length > 0) {
+        const { error: updateErr } = await supabase
+          .from("waitlist")
+          .update(updatePayload)
+          .eq("id", existing.id);
+
+        if (updateErr) {
+          // If photo_url column caused error, retry without photo_url
+          if (updateErr.message?.includes("photo_url")) {
+            delete updatePayload.photo_url;
+            await supabase.from("waitlist").update(updatePayload).eq("id", existing.id);
+          }
+        }
+      }
+
       // Calculate their existing position
       const { count: priorCount } = await supabase
         .from("waitlist")
@@ -79,15 +134,47 @@ export async function POST(req: NextRequest) {
 
       const waitlistPosition = (priorCount || 0) + 1;
 
+      // Trigger n8n Webhook if completed scan details (face shape or photo) are present
+      const n8nWebhook = process.env.N8N_WEBHOOK_URL;
+      if (n8nWebhook && (faceShape || updatedPhotoUrl)) {
+        try {
+          fetch(n8nWebhook, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              event: "scan_completed",
+              timestamp: new Date().toISOString(),
+              memberNumber: existing.member_number,
+              referralCode: existing.referral_code,
+              referralLink: `https://unseen-men.vercel.app/?ref=${existing.referral_code}`,
+              waitlistPosition,
+              user: {
+                name: rawName || existing.name,
+                phone: prettyContact,
+                email: rawEmail || null,
+                ageBracket,
+                faceShape: faceShape || null,
+                skinConcern,
+                photoUrl: updatedPhotoUrl,
+              },
+              styling: stylingData,
+            }),
+          }).catch((e: Error) => console.warn("[n8n webhook error]:", e.message));
+        } catch (e) {
+          console.warn("[n8n webhook error]:", e);
+        }
+      }
+
       return NextResponse.json({
         ok: true,
         alreadyJoined: true,
-        name: existing.name,
+        name: rawName || existing.name,
         contact: prettyContact,
         memberNumber: existing.member_number,
         waitlistPosition,
         referralCode: existing.referral_code,
         referralCount: existing.referral_count || 0,
+        photoUrl: updatedPhotoUrl,
       });
     }
 

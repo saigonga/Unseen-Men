@@ -133,6 +133,19 @@ export default function FaceScanApp() {
               try {
                 localStorage.setItem("unseen_lead", JSON.stringify(profile));
               } catch {}
+
+              // 1. Details go into database immediately
+              fetch("/api/waitlist", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  name: profile.name,
+                  contact: profile.phone,
+                  phone: profile.phone,
+                  email: profile.email,
+                }),
+              }).catch((e) => console.warn("Upfront lead registration error:", e));
+
               setInitialCaptureMode(mode);
               go("capture");
             }}
