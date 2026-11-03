@@ -6,8 +6,6 @@ import type { FaceResult } from "@/lib/faceShape";
 import { drawOverlay } from "@/lib/overlay";
 import { newCode } from "@/lib/referral";
 import CompareBars from "../results/CompareBars";
-import UnlockForm from "../results/UnlockForm";
-import type { Lead } from "../results/UnlockForm";
 import { TryOnProvider } from "../results/TryOnContext";
 import SkinRead from "../results/SkinRead";
 import ShareSection from "../results/ShareSection";
@@ -19,10 +17,14 @@ import type { Answers } from "./Questions";
 import type { Photo } from "../FaceScanApp";
 import type { UserLeadProfile } from "./RegisterLead";
 
-interface Unlocked extends Lead {
+interface Unlocked {
+  name: string;
+  mobile: string;
+  email: string;
   code: string;
   position: number;
   referrals: number;
+  memberNumber: number;
 }
 
 function extractJpeg(img: HTMLImageElement): string | null {
@@ -58,8 +60,16 @@ export default function Results({
   onRestart: () => void;
 }) {
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
-  const [unlocked, setUnlocked] = useState<Unlocked | null>(null);
   const [surpriseNumber] = useState(() => String(300 + Math.floor(Math.random() * 200)).padStart(4, "0"));
+  const [unlocked, setUnlocked] = useState<Unlocked>(() => ({
+    name: userLead?.name || "Founding Member",
+    mobile: userLead?.phone || "",
+    email: userLead?.email || "",
+    code: newCode(),
+    position: 1,
+    referrals: 0,
+    memberNumber: parseInt(surpriseNumber, 10),
+  }));
   const fullRef = useRef<HTMLDivElement>(null);
 
   const sh = SHAPES[result.key];
@@ -72,7 +82,7 @@ export default function Results({
 
   // Auto-register lead when upfront details were provided
   useEffect(() => {
-    if (userLead && !unlocked) {
+    if (userLead) {
       const photoBase64 = extractJpeg(photo.img) || (photo.url.startsWith("data:") ? photo.url : null);
       fetch("/api/waitlist", {
         method: "POST",
@@ -108,7 +118,7 @@ export default function Results({
         })
         .catch((err) => console.warn("Auto-register fallback:", err));
     }
-  }, [userLead, unlocked, photo, answers, sh.name, result, surpriseNumber]);
+  }, [userLead, photo, answers, sh.name, surpriseNumber]);
 
   useEffect(() => {
     if (unlocked) {
@@ -127,16 +137,6 @@ export default function Results({
     answers.beard === "full"
       ? " Your beard hides part of the jawline, so we weighted the jaw reading less."
       : "";
-
-  function unlock(l: Lead) {
-    setUnlocked({
-      ...l,
-      code: l.referralCode || newCode(),
-      position: l.waitlistPosition || 1,
-      referrals: l.referralCount || 0,
-      memberNumber: l.memberNumber || parseInt(surpriseNumber, 10),
-    });
-  }
 
   return (
     <TryOnProvider photo={photo}>
@@ -350,22 +350,7 @@ export default function Results({
               </div>
             </div>
 
-          {/* UNLOCK GATE (Fallback only if user bypassed lead registration) */}
-          {!unlocked && (
-            <div style={{ marginTop: 8 }}>
-              <UnlockForm
-                result={result}
-                memberNumber={surpriseNumber}
-                ageBracket={answers.age}
-                skinConcern={answers.concern}
-                photo={photo}
-                onUnlock={unlock}
-              />
-            </div>
-          )}
-
-          {/* UNLOCKED FULL SUITE: WhatsApp Concierge, Skin, PDF, Share, Rewards */}
-          {unlocked && (
+            {/* FULL SUITE: WhatsApp Concierge, Skin, PDF, Share, Rewards */}
             <div ref={fullRef} style={{ display: "flex", flexDirection: "column", gap: 24, marginTop: 12 }}>
               {/* WhatsApp Stylist Concierge */}
               <WhatsAppConcierge
@@ -412,7 +397,6 @@ export default function Results({
                 Scan another face
               </button>
             </div>
-          )}
         </div>
       </div>
     </TryOnProvider>
