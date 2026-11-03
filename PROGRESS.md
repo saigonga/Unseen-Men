@@ -106,6 +106,29 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 - **Verification:**
   - Direct database insertion, referral lookup, RPC increment, photo storage upload, and duplicate prevention tested and verified live with 100% pass rate. Test records cleaned up.
 
+## Phase 5.5 — Compulsory Upfront Registration, Full Styling Lookbook & n8n / WhatsApp Automation · BUILT & VERIFIED
+- **Compulsory Upfront Registration (`RegisterLead.tsx`):**
+  - When user clicks "Start facial analysis", they are immediately prompted for:
+    1. **Full Name** (compulsory, min 2 characters)
+    2. **WhatsApp Mobile Number** (compulsory, validated with Indian mobile regex)
+    3. **Email Address** (compulsory, validated with email regex)
+    4. **18+ and Style Recommendations Consent** (compulsory checkbox)
+  - Offers clear options: "Take a photo (Live camera)" or "Upload a photo instead".
+  - Persisted to local storage and passed directly into analysis and report.
+- **Auto-Registration & Seamless Unlock (`Results.tsx`):**
+  - As soon as the analysis completes, the user is automatically registered in Supabase `waitlist` with their photo in bucket `scans`.
+  - The results page instantly renders their unlocked, personalized lookbook without asking them to re-enter information.
+- **5-Pillar Styling Architecture (based on "THE EDIT by Sloosh"):**
+  - **01 The Face (`FacialThirdsSection.tsx`)**: Face Shape match %, Facial Thirds proportions (Upper / Mid / Lower % with visual stacked bar), Direction Objective ("Lift, not width"), and structural highlights.
+  - **02 The Frames (`EyewearSection.tsx`)**: Curated Optical Glasses (Defined D-Frame, Modern Browline, Slim Geometric) + Sunglasses (Flat-Top Square, Angular Navigator, Tapered Rectangular) + Frames to avoid with specific reasons.
+  - **03 The Hair (`BarberGuideSection.tsx`)**: Curated cuts + **Barber Instruction Card** (Exact clipper guards e.g. #3 guard, top cm length e.g. 5.5–7.0 cm, taper type, finishing product, and copyable barber dialogue note).
+  - **04 The Grooming (`BeardSection.tsx`)**: Facial hair contouring advice, beard styles suited to facial width, and tweaks.
+  - **05 The Colour (`ColorPaletteSection.tsx`)**: Skin undertone analysis, 8 Base Neutrals with hex swatches (Ivory, Camel, Deep Navy, Espresso, Olive, etc.), 12 Matching Shirt/Apparel shades, and 4 Colors to avoid with explanations.
+- **WhatsApp Concierge & Automation (`WhatsAppConcierge.tsx` & `n8n-workflow-unseen-men.json`):**
+  - **Inbound 1-Click Concierge**: Direct `wa.me` button pre-filled with user's name, member number, and face shape, establishing an instant private WhatsApp thread with the brand.
+  - **n8n Automation Workflow**: Complete importable `n8n-workflow-unseen-men.json` with Webhook trigger, luxury HTML email formatter, and WhatsApp dispatch node via Evolution API / Web Gateway.
+  - **Detailed Setup Guide**: `N8N_AND_WHATSAPP_GUIDE.md` explaining zero-cost WhatsApp automation without Meta API approval.
+
 ## Next
 - Phase 4: Claude API skin read server route.
 - Phase 6: Privacy policy & terms pages, analytics, rate limiting.

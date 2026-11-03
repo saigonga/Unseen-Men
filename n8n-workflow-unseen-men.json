@@ -1,0 +1,102 @@
+{
+  "name": "UNSEEN MEN - Email & WhatsApp Styling Blueprint",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "unseen-scan",
+        "options": {}
+      },
+      "id": "e5c2d3a1-7789-4fa2-9381-1bfa289e0001",
+      "name": "Webhook Trigger (from Unseen Men App)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "unseen-scan"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare luxury HTML email template and formatted WhatsApp message\nconst item = $input.first().json;\n\nconst memberNum = String(item.memberNumber || '0302').padStart(4, '0');\nconst name = item.user?.name || 'Gentleman';\nconst phone = (item.user?.phone || '').replace(/[^0-9]/g, '');\nconst email = item.user?.email || '';\nconst faceShape = item.user?.faceShape || 'Square';\nconst photoUrl = item.user?.photoUrl || '';\nconst referralCode = item.referralCode || 'UM-VIP';\nconst referralLink = item.referralLink || `https://unseen-men.vercel.app/?ref=${referralCode}`;\n\nconst thirds = item.styling?.facialThirds || { upperPct: 29, midPct: 37, lowerPct: 34 };\nconst barber = item.styling?.barberGuide || {\n  primaryDirection: 'Lift, not width',\n  topLength: '5.5 – 7.0 cm',\n  sidesLength: '1.0 cm (#3 guard) into skin taper',\n  taper: 'Low-to-mid taper',\n  stylingProduct: 'Matte texturizing clay or styling powder',\n  notes: 'Square off the corners at the crown. Do not leave heavy bulk over the ears.'\n};\n\nconst cuts = item.styling?.topCuts || [\n  { name: 'Textured Crop with Mid Fade', why: 'Softens jaw corners while adding clean vertical height.' },\n  { name: 'Modern Pompadour with Low Taper', why: 'Elongates facial structure and keeps sides sleek.' },\n  { name: 'Classic Side Part with Taper', why: 'Highlights masculine bone structure with balanced proportion.' }\n];\n\nconst optical = item.styling?.eyewear?.optical || [\n  { name: 'Defined D-Frame', desc: 'Softens sharp jaw corners with vertical lift.' },\n  { name: 'Modern Browline', desc: 'Strong top rim draws the eye upward to brow.' }\n];\n\n// 1. Clean WhatsApp Text (For WhatsApp Web Gateway or Meta Cloud API)\nconst whatsappMessage = `*UNSEEN MEN · THE ARCHITECTURAL EDIT* 🏛️\\n\\n` +\n  `Hey ${name}, your bespoke Grooming & Style Blueprint is ready!\\n\\n` +\n  `👤 *Member:* #${memberNum}\\n` +\n  `📐 *Face Shape:* ${faceShape}\\n` +\n  `📊 *Proportions:* ${thirds.upperPct}% Upper / ${thirds.midPct}% Mid / ${thirds.lowerPct}% Lower\\n\\n` +\n  `✂️ *YOUR TOP HAIRCUTS:*\\n` +\n  cuts.slice(0, 3).map((c, i) => `${i + 1}. *${c.name}*\\n   _${c.why}_`).join('\\n') + `\\n\\n` +\n  `💈 *BARBER SALON INSTRUCTIONS:*\\n` +\n  `• Top: ${barber.topLength}\\n` +\n  `• Sides: ${barber.sidesLength}\\n` +\n  `• Taper: ${barber.taper}\\n` +\n  `• Product: ${barber.stylingProduct}\\n` +\n  `• Note: \"${barber.notes}\"\\n\\n` +\n  `👓 *RECOMMENDED FRAMES:*\\n` +\n  optical.slice(0, 2).map(o => `• *${o.name}*: ${o.desc}`).join('\\n') + `\\n\\n` +\n  `🎨 *WARDROBE BASE NEUTRALS:*\\n` +\n  `Warm Ivory, Camel, Deep Navy, Espresso, Olive\\n\\n` +\n  `🔗 *View your private interactive Lookbook & referral rewards:*\\n${referralLink}\\n\\n` +\n  `_UNSEEN MEN Concierge · Reply anytime for 1-on-1 styling advice._`;\n\n// 2. Luxury Dark-Mode Editorial HTML Email\nconst emailHtml = `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>UNSEEN MEN · The Architectural Edit</title>\n</head>\n<body style=\"margin:0; padding:0; background-color:#F7F6F3; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#111111;\">\n  <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color:#F7F6F3; padding: 30px 10px;\">\n    <tr>\n      <td align=\"center\">\n        <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width:620px; background:#FFFFFF; border-radius:12px; overflow:hidden; border:1px solid #ECECEA; box-shadow:0 10px 30px rgba(0,0,0,0.06);\">\n          \n          <!-- Header -->\n          <tr>\n            <td style=\"background:#111111; padding:28px 32px; text-align:left;\">\n              <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">\n                <tr>\n                  <td>\n                    <span style=\"font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:#E3BA8F; font-weight:600;\">UNSEEN MEN · THE EDIT</span>\n                    <h1 style=\"margin:6px 0 0; color:#FFFFFF; font-size:24px; font-weight:400; letter-spacing:-0.02em;\">Bespoke Architectural Grooming Report</h1>\n                  </td>\n                  <td align=\"right\" style=\"vertical-align:top;\">\n                    <span style=\"border:1px solid #444; border-radius:999px; padding:4px 12px; color:#E3BA8F; font-size:12px; font-weight:500;\">Member #${memberNum}</span>\n                  </td>\n                </tr>\n              </table>\n            </td>\n          </tr>\n\n          <!-- Intro -->\n          <tr>\n            <td style=\"padding:28px 32px 20px;\">\n              <p style=\"font-size:16px; line-height:1.5; color:#222; margin:0;\">\n                Good day, <strong>${name}</strong>.<br>\n                Based on your facial scanning analysis, here is your curated architectural blueprint for haircuts, eyewear, beard contouring, and wardrobe palettes.\n              </p>\n            </td>\n          </tr>\n\n          <!-- 01 The Face -->\n          <tr>\n            <td style=\"padding:10px 32px;\">\n              <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background:#FAF9F6; border:1px solid #ECECEA; border-radius:8px; padding:18px;\">\n                <tr>\n                  <td>\n                    <span style=\"font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:#4F2C1D; font-weight:700;\">01 THE FACE · ARCHITECTURE</span>\n                    <h2 style=\"margin:4px 0 10px; font-size:18px; font-weight:600; color:#111;\">${faceShape} Face Shape</h2>\n                    <p style=\"margin:0 0 10px; font-size:13.5px; line-height:1.45; color:#555;\">\n                      Facial Thirds Proportions: <strong>${thirds.upperPct}% Upper</strong> (Forehead) · <strong>${thirds.midPct}% Mid</strong> (Brow-Nose) · <strong>${thirds.lowerPct}% Lower</strong> (Nose-Chin).\n                    </p>\n                    <div style=\"background:#FFFFFF; border:1px solid #E2DED8; border-radius:6px; padding:10px 14px; font-size:13px; color:#4F2C1D;\">\n                      <strong>Direction:</strong> ${barber.primaryDirection}\n                    </div>\n                  </td>\n                </tr>\n              </table>\n            </td>\n          </tr>\n\n          <!-- 02 Top Haircuts & Barber Specs -->\n          <tr>\n            <td style=\"padding:14px 32px;\">\n              <span style=\"font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:#4F2C1D; font-weight:700;\">02 THE HAIR · CURATED CUTS & BARBER SPECS</span>\n              <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-top:8px;\">\n                ${cuts.slice(0, 3).map((c, i) => `\n                <tr>\n                  <td style=\"padding:10px 0; border-bottom:1px solid #F0EFEA;\">\n                    <div style=\"font-size:14.5px; font-weight:600; color:#111;\">${i + 1}. ${c.name}</div>\n                    <div style=\"font-size:13px; color:#666; margin-top:2px;\">${c.why}</div>\n                  </td>\n                </tr>\n                `).join('')}\n              </table>\n\n              <!-- Salon Card -->\n              <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-top:14px; background:#FAF7F2; border:1px solid #E6DCCD; border-radius:8px; padding:14px;\">\n                <tr>\n                  <td style=\"font-size:12px; line-height:1.5; color:#3B332B;\">\n                    <strong style=\"color:#4F2C1D; text-transform:uppercase; font-size:11px; letter-spacing:0.08em;\">Salon / Barber Specs:</strong><br>\n                    • <strong>Top:</strong> ${barber.topLength}<br>\n                    • <strong>Sides:</strong> ${barber.sidesLength}<br>\n                    • <strong>Taper:</strong> ${barber.taper}<br>\n                    • <strong>Product:</strong> ${barber.stylingProduct}<br>\n                    • <em>\"${barber.notes}\"</em>\n                  </td>\n                </tr>\n              </table>\n            </td>\n          </tr>\n\n          <!-- 03 Eyewear & Colors -->\n          <tr>\n            <td style=\"padding:14px 32px;\">\n              <span style=\"font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:#4F2C1D; font-weight:700;\">03 THE FRAMES & WARDROBE COLOR</span>\n              <p style=\"font-size:13.5px; color:#444; margin:6px 0 12px;\">\n                Recommended Specs: <strong>${optical.map(o => o.name).join(' · ')}</strong>.<br>\n                Flattering Wardrobe Neutrals: <strong>Ivory, Oatmeal, Camel, Deep Navy, Dark Chocolate, Olive</strong>.\n              </p>\n            </td>\n          </tr>\n\n          <!-- CTA Button -->\n          <tr>\n            <td align=\"center\" style=\"padding:24px 32px 34px;\">\n              <a href=\"${referralLink}\" target=\"_blank\" style=\"display:inline-block; background:#111111; color:#FFFFFF; text-decoration:none; padding:14px 28px; border-radius:8px; font-size:14px; font-weight:600; letter-spacing:0.02em;\">\n                View Your Interactive Lookbook →\n              </a>\n              <div style=\"margin-top:12px; font-size:12px; color:#888;\">\n                Your personal referral code: <strong>${referralCode}</strong> (Invite 3 friends for launch privileges)\n              </div>\n            </td>\n          </tr>\n\n          <!-- Footer -->\n          <tr>\n            <td style=\"background:#FAF9F6; border-top:1px solid #ECECEA; padding:20px 32px; text-align:center; font-size:12px; color:#8A8A85;\">\n              UNSEEN MEN · Private Grooming & Architecture · Confidential<br>\n              Need direct advice? Reply to this email or reach us on WhatsApp.\n            </td>\n          </tr>\n\n        </table>\n      </td>\n    </tr>\n  </table>\n</body>\n</html>\n`;\n\nreturn [{\n  json: {\n    name,\n    phone,\n    email,\n    memberNumber: memberNum,\n    faceShape,\n    referralCode,\n    referralLink,\n    whatsappMessage,\n    emailHtml,\n    emailSubject: `UNSEEN MEN · Your Architectural Grooming Edit (#${memberNum})`\n  }\n}];"
+      },
+      "id": "e5c2d3a1-7789-4fa2-9381-1bfa289e0002",
+      "name": "Format Editorial Email & WhatsApp Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $json.emailSubject }}",
+        "emailType": "html",
+        "message": "={{ $json.emailHtml }}",
+        "options": {}
+      },
+      "id": "e5c2d3a1-7789-4fa2-9381-1bfa289e0003",
+      "name": "Send Luxury HTML Email (Gmail / SMTP)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [720, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8080/message/sendText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "YOUR_EVOLUTION_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $json.phone }}\",\n  \"text\": {{ JSON.stringify($json.whatsappMessage) }}\n}",
+        "options": {}
+      },
+      "id": "e5c2d3a1-7789-4fa2-9381-1bfa289e0004",
+      "name": "Send WhatsApp via Web Gateway (Evolution API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 420]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger (from Unseen Men App)": {
+      "main": [
+        [
+          {
+            "node": "Format Editorial Email & WhatsApp Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Editorial Email & WhatsApp Text": {
+      "main": [
+        [
+          {
+            "node": "Send Luxury HTML Email (Gmail / SMTP)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send WhatsApp via Web Gateway (Evolution API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

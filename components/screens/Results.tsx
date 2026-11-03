@@ -14,8 +14,15 @@ import { TryOnProvider, TryOnConsent, SeeOnMe } from "../results/TryOnContext";
 import SkinRead from "../results/SkinRead";
 import ShareSection from "../results/ShareSection";
 import Rewards from "../results/Rewards";
+import FacialThirdsSection from "../results/FacialThirdsSection";
+import EyewearSection from "../results/EyewearSection";
+import BarberGuideSection from "../results/BarberGuideSection";
+import ColorPaletteSection from "../results/ColorPaletteSection";
+import WhatsAppConcierge from "../results/WhatsAppConcierge";
+import { getFacialThirds, BARBER_GUIDE_BY_SHAPE, EYEWEAR_BY_SHAPE, UNDERTONE_PALETTES } from "@/lib/styling";
 import type { Answers } from "./Questions";
 import type { Photo } from "../FaceScanApp";
+import type { UserLeadProfile } from "./RegisterLead";
 
 interface Unlocked extends Lead {
   code: string;
@@ -23,17 +30,38 @@ interface Unlocked extends Lead {
   referrals: number;
 }
 
-type ReportTab = "all" | "structure" | "haircuts" | "beard" | "routine";
+type ReportTab = "all" | "structure" | "frames" | "haircuts" | "beard" | "colour" | "routine";
+
+function extractJpeg(img: HTMLImageElement): string | null {
+  try {
+    const c = document.createElement("canvas");
+    const nw = img.naturalWidth || img.width;
+    const nh = img.naturalHeight || img.height;
+    if (!nw || !nh) return null;
+    const maxW = 800;
+    const scale = nw > maxW ? maxW / nw : 1;
+    c.width = Math.round(nw * scale);
+    c.height = Math.round(nh * scale);
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.85);
+  } catch {
+    return null;
+  }
+}
 
 export default function Results({
   answers,
   photo,
   result,
+  userLead,
   onRestart,
 }: {
   answers: Answers;
   photo: Photo;
   result: FaceResult;
+  userLead?: UserLeadProfile | null;
   onRestart: () => void;
 }) {
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
@@ -49,6 +77,51 @@ export default function Results({
   useEffect(() => {
     if (canvas) drawOverlay(canvas, photo.img, photo.det, true);
   }, [canvas, photo]);
+
+  // Auto-register lead when upfront details were provided
+  useEffect(() => {
+    if (userLead && !unlocked) {
+      const photoBase64 = extractJpeg(photo.img) || (photo.url.startsWith("data:") ? photo.url : null);
+      fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: userLead.name,
+          contact: userLead.phone,
+          phone: userLead.phone,
+          email: userLead.email,
+          ageBracket: answers.age,
+          faceShape: sh.name,
+          skinConcern: answers.concern,
+          photoBase64,
+          memberNumber: surpriseNumber,
+          styling: {
+            facialThirds: getFacialThirds(photo.det.P),
+            barberGuide: BARBER_GUIDE_BY_SHAPE[result.key],
+            eyewear: EYEWEAR_BY_SHAPE[result.key],
+            palette: UNDERTONE_PALETTES.warm_golden,
+            topCuts: result.cuts,
+            avoidCuts: result.avoid,
+          },
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.ok) {
+            setUnlocked({
+              name: data.name || userLead.name,
+              mobile: userLead.phone,
+              email: userLead.email,
+              code: data.referralCode || newCode(),
+              position: data.waitlistPosition || 1,
+              referrals: data.referralCount || 0,
+              memberNumber: data.memberNumber || parseInt(surpriseNumber, 10),
+            });
+          }
+        })
+        .catch((err) => console.warn("Auto-register fallback:", err));
+    }
+  }, [userLead, unlocked, photo, answers, sh.name, result, surpriseNumber]);
 
   useEffect(() => {
     if (unlocked) {
@@ -115,7 +188,7 @@ export default function Results({
                 fontWeight: 600,
               }}
             >
-              NODD MEN · REPORT
+              UNSEEN MEN · THE EDIT
             </span>
             <span
               style={{
@@ -144,7 +217,7 @@ export default function Results({
                 color: "#111111",
               }}
             >
-              {unlocked ? `${unlocked.name}'s Report` : "Facial Analysis Report"}
+              {unlocked ? `${unlocked.name}'s Lookbook` : "Facial Analysis Lookbook"}
             </h1>
             <div style={{ fontSize: 13, color: "#8A8A85", marginTop: 2 }}>
               {new Date().toLocaleDateString("en-GB", {
@@ -160,21 +233,24 @@ export default function Results({
           <div
             style={{
               display: "flex",
-              gap: 18,
-              fontSize: 13.5,
+              gap: 14,
+              fontSize: 13,
               color: "#8A8A85",
               borderTop: "1px solid #F0F0EE",
               paddingTop: 12,
               overflowX: "auto",
+              scrollbarWidth: "none",
             }}
           >
             {(
               [
-                ["all", "All report"],
-                ["structure", "Face structure"],
-                ["haircuts", "Haircuts"],
-                ["beard", "Beard verdict"],
-                ["routine", "Grooming routine"],
+                ["all", "All Report"],
+                ["structure", "01 Face"],
+                ["frames", "02 Frames"],
+                ["haircuts", "03 Hair"],
+                ["beard", "04 Grooming"],
+                ["colour", "05 Colour"],
+                ["routine", "Routine"],
               ] as [ReportTab, string][]
             ).map(([tab, label]) => {
               const active = activeTab === tab;
@@ -188,11 +264,11 @@ export default function Results({
                     border: "none",
                     paddingBottom: 6,
                     color: active ? "#111111" : "#8A8A85",
-                    fontWeight: active ? 500 : 400,
+                    fontWeight: active ? 600 : 400,
                     borderBottom: active ? "2px solid #111111" : "2px solid transparent",
                     cursor: "pointer",
                     fontFamily: "inherit",
-                    fontSize: 13.5,
+                    fontSize: 13,
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -204,7 +280,7 @@ export default function Results({
         </div>
 
         {/* Tab Content Area */}
-        <div style={{ padding: "24px 24px 32px", display: "flex", flexDirection: "column", gap: 24 }}>
+        <div style={{ padding: "24px 20px 32px", display: "flex", flexDirection: "column", gap: 24 }}>
           {/* SECTION 1: FACE STRUCTURE */}
           {(activeTab === "all" || activeTab === "structure") && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -229,7 +305,7 @@ export default function Results({
                       fontSize: 16,
                     }}
                   >
-                    <span style={{ marginRight: 6 }}>~</span>Face shape
+                    <span style={{ marginRight: 6 }}>~</span>Face Shape
                   </span>
                   <span
                     style={{
@@ -301,11 +377,18 @@ export default function Results({
                 </div>
               </div>
 
+              {/* 01 Facial Thirds & Proportions Section */}
+              <FacialThirdsSection
+                shapeKey={result.key}
+                result={result}
+                points={photo.det.P}
+              />
+
               {/* Facial Mesh Photo Canvas */}
               <div
                 style={{
                   border: "1px solid #DDD9D3",
-                  borderRadius: "6px 40px 6px 6px",
+                  borderRadius: "6px 20px 6px 6px",
                   overflow: "hidden",
                   background: "#FBF8F3",
                   display: "flex",
@@ -332,7 +415,12 @@ export default function Results({
             </div>
           )}
 
-          {/* SECTION 2: TOP RECOMMENDED HAIRCUTS */}
+          {/* SECTION 2: EYEWEAR & FRAMES */}
+          {(activeTab === "all" || activeTab === "frames") && (
+            <EyewearSection shapeKey={result.key} />
+          )}
+
+          {/* SECTION 3: TOP RECOMMENDED HAIRCUTS & BARBER SPECIFICATIONS */}
           {(activeTab === "all" || activeTab === "haircuts") && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
@@ -345,7 +433,7 @@ export default function Results({
                     color: "#4F2C1D",
                   }}
                 >
-                  Hair
+                  03 THE HAIR · HAIRCUTS
                 </span>
                 <h3
                   style={{
@@ -355,7 +443,7 @@ export default function Results({
                     fontSize: 20,
                   }}
                 >
-                  Top 3 cuts for your face
+                  Curated Cuts for Your Architecture
                 </h3>
               </div>
 
@@ -364,8 +452,11 @@ export default function Results({
                 tryOn
               />
 
+              {/* Barber Instruction Card */}
+              <BarberGuideSection shapeKey={result.key} />
+
               {unlocked && (
-                <div style={{ marginTop: 12 }}>
+                <div style={{ marginTop: 8 }}>
                   <div
                     style={{
                       fontFamily: "var(--font-heading)",
@@ -375,7 +466,7 @@ export default function Results({
                       marginBottom: 10,
                     }}
                   >
-                    Cuts to avoid
+                    Haircuts to Avoid
                   </div>
                   <PairList
                     items={result.avoid}
@@ -387,7 +478,7 @@ export default function Results({
             </div>
           )}
 
-          {/* SECTION 3: BEARD VERDICT (Available in All when unlocked, or directly in Beard tab) */}
+          {/* SECTION 4: BEARD VERDICT */}
           {(activeTab === "beard" || (activeTab === "all" && unlocked)) && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
@@ -400,7 +491,7 @@ export default function Results({
                     color: "#4F2C1D",
                   }}
                 >
-                  Facial Hair
+                  04 THE GROOMING · FACIAL HAIR
                 </span>
                 <h3
                   style={{
@@ -422,8 +513,13 @@ export default function Results({
             </div>
           )}
 
-          {/* SECTION 4: ROUTINE TAB DIRECT VIEW */}
-          {activeTab === "routine" && (
+          {/* SECTION 5: COLOUR & WARDROBE PALETTES */}
+          {(activeTab === "colour" || (activeTab === "all" && unlocked)) && (
+            <ColorPaletteSection palette={UNDERTONE_PALETTES.warm_golden} />
+          )}
+
+          {/* SECTION 6: ROUTINE */}
+          {(activeTab === "routine" || (activeTab === "all" && unlocked)) && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
                 <span
@@ -474,7 +570,7 @@ export default function Results({
             </div>
           )}
 
-          {/* UNLOCK GATE (If not unlocked yet) */}
+          {/* UNLOCK GATE (Fallback only if user bypassed lead registration) */}
           {!unlocked && (
             <div style={{ marginTop: 8 }}>
               <UnlockForm
@@ -488,43 +584,16 @@ export default function Results({
             </div>
           )}
 
-          {/* UNLOCKED FULL SUITE: Routine, Skin, PDF, Share, Rewards */}
+          {/* UNLOCKED FULL SUITE: WhatsApp Concierge, Skin, PDF, Share, Rewards */}
           {unlocked && (
             <div ref={fullRef} style={{ display: "flex", flexDirection: "column", gap: 24, marginTop: 12 }}>
-              {/* Daily Routine */}
-              <div
-                style={{
-                  border: "1px solid #DDD9D3",
-                  borderRadius: "3px 14px 3px 3px",
-                  padding: 18,
-                  background: "#FFFFFF",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <h3
-                    style={{
-                      margin: 0,
-                      fontFamily: "var(--font-heading)",
-                      fontWeight: 500,
-                      fontSize: 17,
-                      color: "#4F2C1D",
-                    }}
-                  >
-                    Your age-bracket routine
-                  </h3>
-                  <span style={{ fontSize: 12, color: "#7A6A60" }}>Bracket: {answers.age}</span>
-                </div>
-                <ol style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 8, fontSize: 14 }}>
-                  {ROUTINES[answers.age].map((r) => (
-                    <li key={r}>
-                      <span>{r}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
+              {/* WhatsApp Stylist Concierge */}
+              <WhatsAppConcierge
+                name={unlocked.name}
+                memberNumber={unlocked.memberNumber || surpriseNumber}
+                faceShape={sh.name}
+                referralCode={unlocked.code}
+              />
 
               <SkinRead data={null} />
 

@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import LandingPage from "./LandingPage";
-import Consent from "./screens/Consent";
+import RegisterLead from "./screens/RegisterLead";
+import type { UserLeadProfile } from "./screens/RegisterLead";
 import Capture from "./screens/Capture";
 import Scanning from "./screens/Scanning";
 import Questions from "./screens/Questions";
@@ -18,7 +19,7 @@ import dynamic from "next/dynamic";
 
 const DebugPanel = dynamic(() => import("./DebugPanel"), { ssr: false });
 
-export type ScreenId = "landing" | "consent" | "capture" | "scan" | "questions" | "results";
+export type ScreenId = "landing" | "register" | "capture" | "scan" | "questions" | "results";
 
 export interface Photo {
   img: HTMLImageElement;
@@ -40,6 +41,15 @@ export default function FaceScanApp() {
     beard: "stubble",
     concern: null,
     haircutFrequency: "3-4weeks",
+  });
+  const [userLead, setUserLead] = useState<UserLeadProfile | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const saved = localStorage.getItem("unseen_lead");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [result, setResult] = useState<FaceResult | null>(null);
@@ -103,26 +113,27 @@ export default function FaceScanApp() {
       return null;
     });
     setResult(null);
-    go("consent");
+    go("register");
   }, [go]);
 
   return (
     <div style={{ minHeight: "100vh", background: "#FFFFFF" }}>
       {/* 1. Full Editorial Landing Page */}
       {screen === "landing" && (
-        <LandingPage onStart={() => go("consent")} />
+        <LandingPage onStart={() => go("register")} />
       )}
 
-      {/* 2. Step 1: Consent */}
-      {screen === "consent" && (
+      {/* 2. Step 1: Upfront Compulsory Lead Registration (Name, WhatsApp, Email) */}
+      {screen === "register" && (
         <div style={{ padding: "20px 16px 40px", display: "grid", placeItems: "center" }}>
-          <Consent
-            onAllowCamera={() => {
-              setInitialCaptureMode("live");
-              go("capture");
-            }}
-            onUploadPhoto={() => {
-              setInitialCaptureMode("choose");
+          <RegisterLead
+            initial={userLead || undefined}
+            onProceed={(profile, mode) => {
+              setUserLead(profile);
+              try {
+                localStorage.setItem("unseen_lead", JSON.stringify(profile));
+              } catch {}
+              setInitialCaptureMode(mode);
               go("capture");
             }}
             onClose={() => go("landing")}
@@ -167,6 +178,7 @@ export default function FaceScanApp() {
             answers={answers}
             photo={photo}
             result={result}
+            userLead={userLead}
             onRestart={restart}
           />
         </div>

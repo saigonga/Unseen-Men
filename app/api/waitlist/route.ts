@@ -15,10 +15,13 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const rawName = String(body.name || "").trim().replace(/\s+/g, " ");
-    const rawContact = String(body.contact || "").trim();
+    const rawContact = String(body.contact || body.phone || "").trim();
+    const rawPhone = String(body.phone || body.contact || "").trim();
+    const rawEmail = String(body.email || "").trim().toLowerCase();
     const ageBracket = body.ageBracket ? String(body.ageBracket) : null;
     const faceShape = body.faceShape ? String(body.faceShape) : null;
     const skinConcern = body.skinConcern ? String(body.skinConcern) : null;
+    const stylingData = body.styling || null;
     const requestedMemberNumber = body.memberNumber ? parseInt(String(body.memberNumber), 10) : null;
     let referredBy = body.referredBy ? String(body.referredBy).trim().toUpperCase() : null;
 
@@ -30,11 +33,19 @@ export async function POST(req: NextRequest) {
     let normalizedContact = "";
     let prettyContact = "";
 
-    if (rawContact.includes("@")) {
-      if (!isEmail(rawContact)) {
+    if (rawPhone && !rawPhone.includes("@")) {
+      const phoneCheck = checkIndianMobile(rawPhone);
+      if (!phoneCheck.ok) {
+        return NextResponse.json({ ok: false, error: phoneCheck.error }, { status: 400 });
+      }
+      normalizedContact = phoneCheck.e164;
+      prettyContact = phoneCheck.pretty;
+    } else if (rawContact.includes("@") || rawEmail) {
+      const em = rawEmail || rawContact;
+      if (!isEmail(em)) {
         return NextResponse.json({ ok: false, error: "Please enter a valid email address." }, { status: 400 });
       }
-      normalizedContact = rawContact.toLowerCase();
+      normalizedContact = em.toLowerCase();
       prettyContact = normalizedContact;
     } else {
       const phoneCheck = checkIndianMobile(rawContact);
@@ -165,12 +176,16 @@ export async function POST(req: NextRequest) {
     }
 
     // 6. Insert new waitlist row
+    const storedSkinConcern = rawEmail
+      ? (skinConcern ? `${skinConcern} | email:${rawEmail}` : `email:${rawEmail}`)
+      : skinConcern;
+
     const insertPayload: Record<string, unknown> = {
       name: rawName,
       contact: normalizedContact,
       age_bracket: ageBracket,
       face_shape: faceShape,
-      skin_concern: skinConcern,
+      skin_concern: storedSkinConcern,
       referral_code: assignedCode,
       referred_by: validReferrerCode,
       member_number: assignedMemberNumber,
@@ -213,6 +228,37 @@ export async function POST(req: NextRequest) {
       .from("waitlist")
       .select("*", { count: "exact", head: true });
 
+    // 8. Trigger n8n Webhook (if N8N_WEBHOOK_URL is configured in .env.local)
+    const n8nWebhook = process.env.N8N_WEBHOOK_URL;
+    if (n8nWebhook) {
+      try {
+        fetch(n8nWebhook, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "scan_completed",
+            timestamp: new Date().toISOString(),
+            memberNumber: assignedMemberNumber,
+            referralCode: assignedCode,
+            referralLink: `https://unseen-men.vercel.app/?ref=${assignedCode}`,
+            waitlistPosition: totalWaitlist || 1,
+            user: {
+              name: rawName,
+              phone: normalizedContact,
+              email: rawEmail || (rawContact.includes("@") ? rawContact : null),
+              ageBracket,
+              faceShape,
+              skinConcern,
+              photoUrl,
+            },
+            styling: stylingData,
+          }),
+        }).catch((e: Error) => console.warn("[n8n webhook error]:", e.message));
+      } catch (e) {
+        console.warn("[n8n webhook call failed]:", e);
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       alreadyJoined: false,
@@ -222,6 +268,7 @@ export async function POST(req: NextRequest) {
       waitlistPosition: totalWaitlist || 1,
       referralCode: assignedCode,
       referralCount: 0,
+      photoUrl,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal Server Error";
