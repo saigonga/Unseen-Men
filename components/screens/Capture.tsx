@@ -96,13 +96,25 @@ export default function Capture({
         return;
       }
       const q = checkQuality(p.img, d);
-      if (!q.blocking) {
-        setMeasures((await robustMeasures(p.img, d, p.frames ?? []))?.m ?? null);
-      }
+      const mRes = (await robustMeasures(p.img, d, p.frames ?? []))?.m ?? null;
+      setMeasures(mRes);
       setDet(d);
       setReport(q);
+
+      // If taken via live camera and quality checks pass, move ahead automatically to analysis!
+      if (p.source === "camera" && !q.blocking && q.failed === 0) {
+        handedOff.current = true;
+        onAnalyse({
+          img: p.img,
+          url: p.url,
+          det: d,
+          m: mRes ?? undefined,
+        });
+        return;
+      }
+
       if (q.blocking) {
-        setMsg({ text: q.blocking, bad: true });
+        setMsg({ text: `${q.blocking} You can still tap "Analyse anyway" or retake.`, bad: false });
       } else if (q.failed) {
         setMsg({
           text: `${q.failed} quality check${q.failed > 1 ? "s" : ""} need attention. You can proceed anyway or retake.`,
@@ -115,7 +127,7 @@ export default function Capture({
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [onAnalyse]);
 
   useEffect(() => {
     if (model === "ready" && pending && !det && !report && !busy && !msg?.bad) {
@@ -168,7 +180,7 @@ export default function Capture({
     }
   };
 
-  const canAnalyse = Boolean(pending && det && report && !report.blocking);
+  const canAnalyse = Boolean(pending && det && report);
 
   return (
     <div
@@ -435,7 +447,7 @@ export default function Capture({
                 }}
                 style={{ minHeight: 52 }}
               >
-                {report?.failed ? "Analyse anyway" : "Continue to analysis"}
+                {report?.blocking || report?.failed ? "Analyse anyway" : "Continue to analysis"}
               </button>
             )}
 
