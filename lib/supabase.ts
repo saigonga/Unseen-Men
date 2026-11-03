@@ -9,11 +9,15 @@ function ensureEnvLoaded() {
     return;
   }
 
-  // Fallback to load directly from .env.local or .env in case dev server didn't reload environment
+  if (process.env.NODE_ENV === "production") {
+    return;
+  }
+
+  // Fallback in local development to load directly from .env.local or .env
   const candidates = [".env.local", ".env"];
   for (const file of candidates) {
     try {
-      const p = path.resolve(process.cwd(), file);
+      const p = path.resolve(/* turbopackIgnore: true */ process.cwd(), file);
       if (fs.existsSync(p)) {
         const text = fs.readFileSync(p, "utf8");
         for (const line of text.split("\n")) {

@@ -13,6 +13,7 @@ import Rewards from "../results/Rewards";
 import FacialThirdsSection from "../results/FacialThirdsSection";
 import WhatsAppConcierge from "../results/WhatsAppConcierge";
 import { getFacialThirds } from "@/lib/styling";
+import { getPhotoDataUrl } from "@/lib/photoData";
 import type { Answers } from "./Questions";
 import type { Photo } from "../FaceScanApp";
 import type { UserLeadProfile } from "./RegisterLead";
@@ -25,25 +26,6 @@ interface Unlocked {
   position: number;
   referrals: number;
   memberNumber: number;
-}
-
-function extractJpeg(img: HTMLImageElement): string | null {
-  try {
-    const c = document.createElement("canvas");
-    const nw = img.naturalWidth || img.width;
-    const nh = img.naturalHeight || img.height;
-    if (!nw || !nh) return null;
-    const maxW = 800;
-    const scale = nw > maxW ? maxW / nw : 1;
-    c.width = Math.round(nw * scale);
-    c.height = Math.round(nh * scale);
-    const ctx = c.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return null;
-    ctx.drawImage(img, 0, 0, c.width, c.height);
-    return c.toDataURL("image/jpeg", 0.85);
-  } catch {
-    return null;
-  }
 }
 
 export default function Results({
@@ -83,40 +65,41 @@ export default function Results({
   // Auto-register lead when upfront details were provided
   useEffect(() => {
     if (userLead) {
-      const photoBase64 = extractJpeg(photo.img) || (photo.url.startsWith("data:") ? photo.url : null);
-      fetch("/api/waitlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: userLead.name,
-          contact: userLead.phone,
-          phone: userLead.phone,
-          email: userLead.email,
-          ageBracket: answers.age,
-          faceShape: sh.name,
-          skinConcern: answers.concern,
-          photoBase64,
-          memberNumber: surpriseNumber,
-          styling: {
-            facialThirds: getFacialThirds(photo.det.P),
-          },
-        }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.ok) {
-            setUnlocked({
-              name: data.name || userLead.name,
-              mobile: userLead.phone,
-              email: userLead.email,
-              code: data.referralCode || newCode(),
-              position: data.waitlistPosition || 1,
-              referrals: data.referralCount || 0,
-              memberNumber: data.memberNumber || parseInt(surpriseNumber, 10),
-            });
-          }
+      getPhotoDataUrl(photo).then((photoBase64) => {
+        fetch("/api/waitlist", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: userLead.name,
+            contact: userLead.phone,
+            phone: userLead.phone,
+            email: userLead.email,
+            ageBracket: answers.age,
+            faceShape: sh.name,
+            skinConcern: answers.concern,
+            photoBase64,
+            memberNumber: surpriseNumber,
+            styling: {
+              facialThirds: getFacialThirds(photo.det.P),
+            },
+          }),
         })
-        .catch((err) => console.warn("Auto-register fallback:", err));
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.ok) {
+              setUnlocked({
+                name: data.name || userLead.name,
+                mobile: userLead.phone,
+                email: userLead.email,
+                code: data.referralCode || newCode(),
+                position: data.waitlistPosition || 1,
+                referrals: data.referralCount || 0,
+                memberNumber: data.memberNumber || parseInt(surpriseNumber, 10),
+              });
+            }
+          })
+          .catch((err) => console.warn("Auto-register fallback:", err));
+      });
     }
   }, [userLead, photo, answers, sh.name, surpriseNumber]);
 

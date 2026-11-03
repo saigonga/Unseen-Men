@@ -15,6 +15,7 @@ import type { Detection } from "@/lib/detector";
 import { analyse, analyseMeasures } from "@/lib/faceShape";
 import type { FaceResult, Measures } from "@/lib/faceShape";
 import { captureReferral } from "@/lib/referral";
+import { getPhotoDataUrl } from "@/lib/photoData";
 import dynamic from "next/dynamic";
 
 const DebugPanel = dynamic(() => import("./DebugPanel"), { ssr: false });
@@ -78,6 +79,25 @@ export default function FaceScanApp() {
         return p;
       });
 
+      // Sync photo immediately to waitlist in background as soon as capture finishes
+      if (userLead) {
+        getPhotoDataUrl(p).then((photoBase64) => {
+          if (photoBase64) {
+            fetch("/api/waitlist", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: userLead.name,
+                contact: userLead.phone,
+                phone: userLead.phone,
+                email: userLead.email,
+                photoBase64,
+              }),
+            }).catch((err) => console.warn("Background photo sync:", err));
+          }
+        });
+      }
+
       // Show the animated landmark mapping analysis
       go("scan");
 
@@ -89,7 +109,7 @@ export default function FaceScanApp() {
       await new Promise((res) => setTimeout(res, 2200));
       go("results");
     },
-    [answers.beard, go]
+    [answers.beard, go, userLead]
   );
 
   const handleQuestionsDone = useCallback(
