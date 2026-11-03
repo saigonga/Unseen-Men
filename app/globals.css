@@ -192,6 +192,81 @@ details summary::-webkit-details-marker {
   input, select, textarea {
     font-size: 16px !important;
   }
+
+  .desktop-nav {
+    display: none !important;
+  }
+
+  .desktop-domain {
+    display: none !important;
+  }
+
+  .sample-report-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sample-report-sidebar {
+    border-right: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 12px 14px !important;
+    gap: 8px !important;
+  }
+
+  .sample-report-sidebar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sample-report-sidebar > div:first-child {
+    display: none !important;
+  }
+
+  .sample-report-sidebar > div:last-child {
+    display: none !important;
+  }
+
+  .sample-report-body {
+    padding: 18px 16px !important;
+  }
+
+  .privacy-table-row {
+    grid-template-columns: 1fr !important;
+    gap: 4px !important;
+    padding: 14px 16px !important;
+  }
+
+  .hero-buttons {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .hero-buttons > button,
+  .hero-buttons > a {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-bottom-bar {
+    display: none !important;
+  }
+}
+
+.mobile-bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 80;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
 }
 
 /* Touch-optimized horizontal scrolling without ugly scrollbars */

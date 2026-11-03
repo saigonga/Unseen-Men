@@ -23,7 +23,7 @@ const MORE_ATTRS = [
   { code: "A04", name: "Hair texture", value: "Wavy" },
   { code: "A05", name: "Hair density", value: "Full" },
   { code: "A06", name: "Beard growth", value: "Medium" },
-  { code: "A08", name: "Face width", value: "Medium, 135 to 140 mm frames" },
+  { code: "A08", name: "Face width", value: "Medium, 135 to 140 mm" },
   { code: "A09", name: "Visible skin cues", value: "T-zone shine" },
 ];
 
@@ -50,6 +50,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           top: 0,
           background: "rgba(255,255,255,0.96)",
           backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
           zIndex: 50,
         }}
       >
@@ -57,15 +58,15 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           style={{
             maxWidth: 1200,
             margin: "0 auto",
-            padding: "0 32px",
-            height: 64,
+            padding: "0 clamp(16px, 4vw, 32px)",
+            height: 60,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 20,
+            gap: 16,
           }}
         >
-          <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
             <span
               style={{
                 fontFamily: "'Sora', sans-serif",
@@ -77,13 +78,13 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             >
               NODD MEN
             </span>
-            <span style={{ fontSize: 13, color: "#8A8A85" }}>Facial Analysis</span>
+            <span className="desktop-nav" style={{ fontSize: 12.5, color: "#8A8A85" }}>Facial Analysis</span>
           </div>
 
           <nav
+            className="desktop-nav"
             style={{
               display: "flex",
-              flexWrap: "wrap",
               gap: 28,
               fontSize: 14,
               color: "#5F5F5B",
@@ -106,8 +107,8 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             </a>
           </nav>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 14 }}>
-            <a href="https://noddmen.com" style={{ color: "inherit" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <a href="https://noddmen.com" className="desktop-domain" style={{ color: "inherit", fontSize: 13.5 }}>
               noddmen.com
             </a>
             <button
@@ -115,11 +116,13 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               onClick={onStart}
               className="btn-primary"
               style={{
-                padding: "10px 18px",
-                fontSize: 14,
+                padding: "8px 14px",
+                fontSize: 13.5,
+                borderRadius: 8,
+                whiteSpace: "nowrap",
               }}
             >
-              Start analysis
+              Start<span className="desktop-nav"> analysis</span>
             </button>
           </div>
         </div>
@@ -130,12 +133,12 @@ export default function LandingPage({ onStart }: LandingPageProps) {
         style={{
           maxWidth: 1200,
           margin: "0 auto",
-          padding: "72px 32px 40px",
+          padding: "clamp(36px, 7vw, 72px) clamp(16px, 4vw, 32px) clamp(24px, 5vw, 40px)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           textAlign: "center",
-          gap: 20,
+          gap: 18,
         }}
       >
         <span
@@ -145,9 +148,10 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             gap: 8,
             border: "1px solid #ECECEA",
             borderRadius: 999,
-            padding: "6px 14px",
-            fontSize: 13,
+            padding: "5px 12px",
+            fontSize: "clamp(11px, 3.2vw, 13px)",
             color: "#5F5F5B",
+            maxWidth: "100%",
           }}
         >
           <span
@@ -156,9 +160,10 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               height: 6,
               borderRadius: 999,
               background: "#E0A526",
+              flexShrink: 0,
             }}
           />
-          Free for Founding Members until 13 December 2026
+          Free for Founding Members
         </span>
 
         <h1
@@ -166,8 +171,8 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             margin: 0,
             fontFamily: "'Sora', sans-serif",
             fontWeight: 400,
-            fontSize: "clamp(34px, 5vw, 60px)",
-            lineHeight: 1.06,
+            fontSize: "clamp(28px, 6.5vw, 58px)",
+            lineHeight: 1.12,
             letterSpacing: "-0.035em",
             maxWidth: 900,
           }}
@@ -176,18 +181,21 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           <span style={{ fontWeight: 600, color: "#4F2C1D" }}>built for men's grooming.</span>
         </h1>
 
-        <p style={{ margin: 0, fontSize: 18, color: "#5F5F5B", maxWidth: 640 }}>
+        <p style={{ margin: 0, fontSize: "clamp(14.5px, 3.8vw, 17.5px)", lineHeight: 1.5, color: "#5F5F5B", maxWidth: 640 }}>
           One front-facing photo. Facial landmarks are mapped and nine structural attributes classified,
-          then matched to the haircuts, frames, colours and beard styles that suit you.
+          then matched to the haircuts, beard styles and grooming routine that suit you.
         </p>
 
         <div
+          className="hero-buttons"
           style={{
             display: "flex",
             flexWrap: "wrap",
             justifyContent: "center",
-            gap: 12,
+            gap: 10,
             marginTop: 4,
+            width: "100%",
+            maxWidth: 420,
           }}
         >
           <button
@@ -195,8 +203,9 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             onClick={onStart}
             className="btn-primary"
             style={{
-              padding: "15px 26px",
+              padding: "14px 24px",
               fontSize: 15,
+              minHeight: 48,
             }}
           >
             Start my analysis
@@ -205,8 +214,9 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             href="#report"
             className="btn-secondary"
             style={{
-              padding: "14px 22px",
-              fontSize: 15,
+              padding: "13px 20px",
+              fontSize: 14.5,
+              minHeight: 46,
             }}
           >
             View a sample report
@@ -218,29 +228,29 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             display: "flex",
             flexWrap: "wrap",
             justifyContent: "center",
-            gap: "8px 28px",
-            fontSize: 13,
+            gap: "6px 20px",
+            fontSize: 12,
             color: "#8A8A85",
             marginTop: 4,
           }}
         >
-          <span>Photo saved to your private profile</span>
-          <span>No age, ethnicity or attractiveness scoring</span>
-          <span>Takes about 60 seconds</span>
+          <span>✓ Private & confidential</span>
+          <span>✓ No age or attractiveness scoring</span>
+          <span>✓ Takes about 60 seconds</span>
         </div>
       </section>
 
       {/* 3. Facial Architecture Diagram */}
-      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px 80px" }}>
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 clamp(16px, 4vw, 32px) clamp(40px, 8vw, 80px)" }}>
         <div style={{ border: "1px solid #ECECEA", borderRadius: 16, overflow: "hidden" }}>
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              padding: "14px 20px",
+              padding: "10px 14px",
               borderBottom: "1px solid #ECECEA",
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 11,
+              fontSize: "clamp(9px, 2.5vw, 11px)",
               letterSpacing: "0.08em",
               color: "#8A8A85",
             }}
@@ -350,10 +360,10 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           style={{
             maxWidth: 1200,
             margin: "0 auto",
-            padding: "88px 32px",
+            padding: "clamp(44px, 8vw, 88px) clamp(16px, 4vw, 32px)",
             display: "flex",
             flexDirection: "column",
-            gap: 40,
+            gap: 32,
           }}
         >
           <div
@@ -362,10 +372,10 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               flexWrap: "wrap",
               justifyContent: "space-between",
               alignItems: "flex-end",
-              gap: 20,
+              gap: 16,
             }}
           >
-            <div style={{ maxWidth: 640, display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ maxWidth: 640, display: "flex", flexDirection: "column", gap: 10 }}>
               <span style={{ fontSize: 13, color: "#8A8A85", letterSpacing: "0.04em" }}>
                 The analysis
               </span>
@@ -374,8 +384,8 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                   margin: 0,
                   fontFamily: "'Sora', sans-serif",
                   fontWeight: 400,
-                  fontSize: "clamp(28px, 4vw, 40px)",
-                  lineHeight: 1.12,
+                  fontSize: "clamp(24px, 5vw, 40px)",
+                  lineHeight: 1.15,
                   letterSpacing: "-0.03em",
                 }}
               >
@@ -383,7 +393,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 <span style={{ fontWeight: 600 }}>a clear role</span> in your recommendations.
               </h2>
             </div>
-            <p style={{ margin: 0, maxWidth: 380, color: "#5F5F5B" }}>
+            <p style={{ margin: 0, maxWidth: 380, color: "#5F5F5B", fontSize: 14 }}>
               Every result is shown against its full range, so it is clear where you sit and why a
               recommendation follows from it.
             </p>
@@ -393,8 +403,8 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-              gap: 20,
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
+              gap: 16,
             }}
           >
             {/* Card 1: Jawline */}
@@ -732,7 +742,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                   paddingTop: 12,
                 }}
               >
-                Drives haircuts and frames. Oval proportions take most cuts; textured crops and side parts suit
+                Drives haircuts and styling. Oval proportions take most cuts; textured crops and side parts suit
                 best.
               </p>
             </div>
@@ -742,7 +752,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
               border: "1px solid #ECECEA",
               borderRadius: 14,
               background: "#FFFFFF",
@@ -753,7 +763,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               <div
                 key={m.code}
                 style={{
-                  padding: "16px 20px",
+                  padding: "14px 16px",
                   borderTop: "1px solid #F0F0EE",
                   borderRight: "1px solid #F0F0EE",
                   display: "flex",
@@ -788,21 +798,21 @@ export default function LandingPage({ onStart }: LandingPageProps) {
         style={{
           maxWidth: 1200,
           margin: "0 auto",
-          padding: "88px 32px",
+          padding: "clamp(44px, 8vw, 88px) clamp(16px, 4vw, 32px)",
           display: "flex",
           flexDirection: "column",
-          gap: 36,
+          gap: 28,
         }}
       >
-        <div style={{ maxWidth: 640, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ maxWidth: 640, display: "flex", flexDirection: "column", gap: 10 }}>
           <span style={{ fontSize: 13, color: "#8A8A85", letterSpacing: "0.04em" }}>Sample report</span>
           <h2
             style={{
               margin: 0,
               fontFamily: "'Sora', sans-serif",
               fontWeight: 400,
-              fontSize: "clamp(28px, 4vw, 40px)",
-              lineHeight: 1.12,
+              fontSize: "clamp(24px, 5vw, 40px)",
+              lineHeight: 1.15,
               letterSpacing: "-0.03em",
             }}
           >
@@ -812,6 +822,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
         </div>
 
         <div
+          className="sample-report-grid"
           style={{
             border: "1px solid #ECECEA",
             borderRadius: 16,
@@ -823,6 +834,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
         >
           {/* Sidebar */}
           <aside
+            className="sample-report-sidebar"
             style={{
               background: "#FAFAF9",
               borderRight: "1px solid #ECECEA",
@@ -888,7 +900,10 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           </aside>
 
           {/* Report Content Body */}
-          <div style={{ padding: "28px 32px", display: "flex", flexDirection: "column", gap: 24 }}>
+          <div
+            className="sample-report-body"
+            style={{ padding: "28px 32px", display: "flex", flexDirection: "column", gap: 24 }}
+          >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
               <h3
                 style={{
@@ -1147,10 +1162,10 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           style={{
             maxWidth: 1200,
             margin: "0 auto",
-            padding: "88px 32px",
+            padding: "clamp(44px, 8vw, 88px) clamp(16px, 4vw, 32px)",
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: 64,
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
+            gap: "clamp(32px, 6vw, 64px)",
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1160,8 +1175,8 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 margin: 0,
                 fontFamily: "'Sora', sans-serif",
                 fontWeight: 400,
-                fontSize: "clamp(28px, 4vw, 40px)",
-                lineHeight: 1.12,
+                fontSize: "clamp(24px, 5vw, 40px)",
+                lineHeight: 1.15,
                 letterSpacing: "-0.03em",
               }}
             >
@@ -1169,16 +1184,16 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             </h2>
             <div
               style={{
-                marginTop: 16,
+                marginTop: 12,
                 border: "1px dashed #D9D9D6",
                 borderRadius: 14,
-                padding: 22,
+                padding: "16px 18px",
                 display: "flex",
-                gap: 18,
+                gap: 16,
                 alignItems: "center",
               }}
             >
-              <svg width="64" height="80" viewBox="0 0 64 80" aria-hidden="true">
+              <svg width="60" height="76" viewBox="0 0 64 80" aria-hidden="true" style={{ flexShrink: 0 }}>
                 <rect x="1" y="1" width="62" height="78" rx="8" fill="#FAFAF9" stroke="#D9D9D6" />
                 <path
                   d="M32 16 C44 16 49 25 49 36 C49 49 41 60 32 60 C23 60 15 49 15 36 C15 25 20 16 32 16 Z"
@@ -1198,13 +1213,13 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 >
                   POSE REQUIRED
                 </div>
-                <div style={{ fontWeight: 500 }}>Front face, neutral expression</div>
+                <div style={{ fontWeight: 500, fontSize: 14.5 }}>Front face, neutral expression</div>
                 <div style={{ fontSize: 13, color: "#5F5F5B" }}>Natural light, glasses off, forehead clear.</div>
               </div>
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             {[
               {
                 num: "01",
@@ -1219,10 +1234,10 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               {
                 num: "03",
                 title: "Grooming report",
-                desc: "Your face shape, top three haircuts, beard guide, frame styles and colour recommendations.",
+                desc: "Your face shape, top three haircuts, barber specifications, beard guide and grooming routine.",
               },
             ].map((step) => (
-              <div key={step.num} style={{ display: "flex", gap: 20 }}>
+              <div key={step.num} style={{ display: "flex", gap: 18 }}>
                 <span
                   style={{
                     fontFamily: "'JetBrains Mono', monospace",
@@ -1234,10 +1249,10 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                   {step.num}
                 </span>
                 <div>
-                  <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 500, fontSize: 18 }}>
+                  <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 500, fontSize: 17 }}>
                     {step.title}
                   </div>
-                  <p style={{ margin: "4px 0 0", color: "#5F5F5B" }}>{step.desc}</p>
+                  <p style={{ margin: "4px 0 0", color: "#5F5F5B", fontSize: 13.5 }}>{step.desc}</p>
                 </div>
               </div>
             ))}
@@ -1258,10 +1273,10 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           style={{
             maxWidth: 1200,
             margin: "0 auto",
-            padding: "72px 32px",
+            padding: "clamp(44px, 8vw, 72px) clamp(16px, 4vw, 32px)",
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: 64,
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
+            gap: "clamp(32px, 6vw, 64px)",
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1271,8 +1286,8 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 margin: 0,
                 fontFamily: "'Sora', sans-serif",
                 fontWeight: 400,
-                fontSize: 36,
-                lineHeight: 1.14,
+                fontSize: "clamp(24px, 5vw, 36px)",
+                lineHeight: 1.15,
                 letterSpacing: "-0.03em",
               }}
             >
@@ -1287,10 +1302,11 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               border: "1px solid #ECECEA",
               borderRadius: 14,
               overflow: "hidden",
-              fontSize: 14.5,
+              fontSize: 14,
             }}
           >
             <div
+              className="privacy-table-row"
               style={{
                 display: "grid",
                 gridTemplateColumns: "180px minmax(0, 1fr)",
@@ -1302,6 +1318,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               <span>Stored securely in your private Founding Member profile.</span>
             </div>
             <div
+              className="privacy-table-row"
               style={{
                 display: "grid",
                 gridTemplateColumns: "180px minmax(0, 1fr)",
@@ -1313,6 +1330,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               <span>Written results only, such as "oval face, wavy hair".</span>
             </div>
             <div
+              className="privacy-table-row"
               style={{
                 display: "grid",
                 gridTemplateColumns: "180px minmax(0, 1fr)",
@@ -1324,6 +1342,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               <span>No account required for the analysis.</span>
             </div>
             <div
+              className="privacy-table-row"
               style={{
                 display: "grid",
                 gridTemplateColumns: "180px minmax(0, 1fr)",
@@ -1343,27 +1362,27 @@ export default function LandingPage({ onStart }: LandingPageProps) {
         style={{
           maxWidth: 1200,
           margin: "0 auto",
-          padding: "72px 32px",
+          padding: "clamp(44px, 8vw, 72px) clamp(16px, 4vw, 32px)",
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          gap: 64,
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
+          gap: "clamp(24px, 5vw, 64px)",
         }}
       >
-        <h2 style={{ margin: 0, fontFamily: "'Sora', sans-serif", fontWeight: 400, fontSize: 36, letterSpacing: "-0.03em" }}>
+        <h2 style={{ margin: 0, fontFamily: "'Sora', sans-serif", fontWeight: 400, fontSize: "clamp(24px, 5vw, 36px)", letterSpacing: "-0.03em" }}>
           Questions
         </h2>
 
         <div>
           <details style={{ borderTop: "1px solid #ECECEA", padding: "18px 0" }}>
             <summary style={{ fontWeight: 500, fontSize: 16 }}>Is the analysis free?</summary>
-            <p style={{ margin: "8px 0 0", color: "#5F5F5B" }}>
+            <p style={{ margin: "8px 0 0", color: "#5F5F5B", fontSize: 14 }}>
               Yes. The analysis, the report and every recommendation until launch cost nothing.
             </p>
           </details>
 
           <details style={{ borderTop: "1px solid #ECECEA", padding: "18px 0" }}>
             <summary style={{ fontWeight: 500, fontSize: 16 }}>How accurate is it?</summary>
-            <p style={{ margin: "8px 0 0", color: "#5F5F5B" }}>
+            <p style={{ margin: "8px 0 0", color: "#5F5F5B", fontSize: 14 }}>
               Each result shows a confidence level. If a photo is unclear, a retake is requested rather than
               a guess.
             </p>
@@ -1371,28 +1390,28 @@ export default function LandingPage({ onStart }: LandingPageProps) {
 
           <details style={{ borderTop: "1px solid #ECECEA", padding: "18px 0" }}>
             <summary style={{ fontWeight: 500, fontSize: 16 }}>Can I join without the camera?</summary>
-            <p style={{ margin: "8px 0 0", color: "#5F5F5B" }}>
+            <p style={{ margin: "8px 0 0", color: "#5F5F5B", fontSize: 14 }}>
               Yes. Select a face shape from a reference chart and receive the same program.
             </p>
           </details>
 
           <details style={{ borderTop: "1px solid #ECECEA", padding: "18px 0" }}>
             <summary style={{ fontWeight: 500, fontSize: 16 }}>What happens to my photo?</summary>
-            <p style={{ margin: "8px 0 0", color: "#5F5F5B" }}>
+            <p style={{ margin: "8px 0 0", color: "#5F5F5B", fontSize: 14 }}>
               It is discarded the moment landmarks are measured. We retain written proportions only.
             </p>
           </details>
 
           <details style={{ borderTop: "1px solid #ECECEA", padding: "18px 0" }}>
             <summary style={{ fontWeight: 500, fontSize: 16 }}>When does Nodd Men launch?</summary>
-            <p style={{ margin: "8px 0 0", color: "#5F5F5B" }}>
+            <p style={{ margin: "8px 0 0", color: "#5F5F5B", fontSize: 14 }}>
               The store opens to everyone at 10 am on Sunday 13 December 2026.
             </p>
           </details>
 
           <details style={{ borderTop: "1px solid #ECECEA", borderBottom: "1px solid #ECECEA", padding: "18px 0" }}>
             <summary style={{ fontWeight: 500, fontSize: 16 }}>What are Founding Members?</summary>
-            <p style={{ margin: "8px 0 0", color: "#5F5F5B" }}>
+            <p style={{ margin: "8px 0 0", color: "#5F5F5B", fontSize: 14 }}>
               Men who complete the analysis receive a permanent member number and priority access to the product pre-order.
             </p>
           </details>
@@ -1405,7 +1424,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           style={{
             maxWidth: 1200,
             margin: "0 auto",
-            padding: "72px 32px",
+            padding: "clamp(48px, 8vw, 72px) clamp(16px, 4vw, 32px) clamp(64px, 10vw, 80px)",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -1418,21 +1437,24 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               margin: 0,
               fontFamily: "'Sora', sans-serif",
               fontWeight: 400,
-              fontSize: 40,
+              fontSize: "clamp(24px, 6vw, 40px)",
               letterSpacing: "-0.03em",
             }}
           >
             Know your face{" "}
             <span style={{ fontWeight: 600, color: "#4F2C1D" }}>before you style it.</span>
           </h2>
-          <p style={{ margin: 0, color: "#5F5F5B" }}>Founding Member numbers close on 13 December 2026.</p>
+          <p style={{ margin: 0, color: "#5F5F5B", fontSize: "clamp(13.5px, 3.5vw, 15px)" }}>
+            Founding Member numbers close on 13 December 2026.
+          </p>
           <button
             type="button"
             onClick={onStart}
             className="btn-primary"
             style={{
-              padding: "15px 28px",
+              padding: "14px 28px",
               fontSize: 15,
+              width: "min(100%, 320px)",
             }}
           >
             Start my analysis
@@ -1446,11 +1468,11 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           style={{
             maxWidth: 1200,
             margin: "0 auto",
-            padding: "24px 32px 36px",
+            padding: "24px clamp(16px, 4vw, 32px) 96px",
             display: "flex",
             flexWrap: "wrap",
             justifyContent: "space-between",
-            gap: 12,
+            gap: 14,
             fontSize: 12.5,
             color: "#8A8A85",
           }}
@@ -1470,6 +1492,30 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           </span>
         </div>
       </footer>
+
+      {/* Floating Bottom Sticky Bar for Mobile */}
+      <div className="mobile-bottom-bar">
+        <button
+          type="button"
+          onClick={onStart}
+          className="btn-primary"
+          style={{
+            width: "100%",
+            padding: "14px 20px",
+            fontSize: 15,
+            fontWeight: 500,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            boxShadow: "0 4px 16px rgba(79, 44, 29, 0.25)",
+            borderRadius: 8,
+          }}
+        >
+          Start facial analysis
+          <span aria-hidden="true">→</span>
+        </button>
+      </div>
     </div>
   );
 }

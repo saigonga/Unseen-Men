@@ -15,11 +15,9 @@ import SkinRead from "../results/SkinRead";
 import ShareSection from "../results/ShareSection";
 import Rewards from "../results/Rewards";
 import FacialThirdsSection from "../results/FacialThirdsSection";
-import EyewearSection from "../results/EyewearSection";
 import BarberGuideSection from "../results/BarberGuideSection";
-import ColorPaletteSection from "../results/ColorPaletteSection";
 import WhatsAppConcierge from "../results/WhatsAppConcierge";
-import { getFacialThirds, BARBER_GUIDE_BY_SHAPE, EYEWEAR_BY_SHAPE, UNDERTONE_PALETTES } from "@/lib/styling";
+import { getFacialThirds, BARBER_GUIDE_BY_SHAPE } from "@/lib/styling";
 import type { Answers } from "./Questions";
 import type { Photo } from "../FaceScanApp";
 import type { UserLeadProfile } from "./RegisterLead";
@@ -30,7 +28,7 @@ interface Unlocked extends Lead {
   referrals: number;
 }
 
-type ReportTab = "all" | "structure" | "frames" | "haircuts" | "beard" | "colour" | "routine";
+type ReportTab = "all" | "structure" | "haircuts" | "beard" | "routine";
 
 function extractJpeg(img: HTMLImageElement): string | null {
   try {
@@ -98,8 +96,6 @@ export default function Results({
           styling: {
             facialThirds: getFacialThirds(photo.det.P),
             barberGuide: BARBER_GUIDE_BY_SHAPE[result.key],
-            eyewear: EYEWEAR_BY_SHAPE[result.key],
-            palette: UNDERTONE_PALETTES.warm_golden,
             topCuts: result.cuts,
             avoidCuts: result.avoid,
           },
@@ -248,11 +244,9 @@ export default function Results({
               [
                 ["all", "All Report"],
                 ["structure", "01 Face"],
-                ["frames", "02 Frames"],
-                ["haircuts", "03 Hair"],
-                ["beard", "04 Grooming"],
-                ["colour", "05 Colour"],
-                ["routine", "Routine"],
+                ["haircuts", "02 Hair"],
+                ["beard", "03 Grooming"],
+                ["routine", "04 Routine"],
               ] as [ReportTab, string][]
             ).map(([tab, label]) => {
               const active = activeTab === tab;
@@ -418,12 +412,7 @@ export default function Results({
             </div>
           )}
 
-          {/* SECTION 2: EYEWEAR & FRAMES */}
-          {(activeTab === "all" || activeTab === "frames") && (
-            <EyewearSection shapeKey={result.key} />
-          )}
-
-          {/* SECTION 3: TOP RECOMMENDED HAIRCUTS & BARBER SPECIFICATIONS */}
+          {/* SECTION 2: TOP RECOMMENDED HAIRCUTS & BARBER SPECIFICATIONS */}
           {(activeTab === "all" || activeTab === "haircuts") && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
@@ -436,7 +425,7 @@ export default function Results({
                     color: "#4F2C1D",
                   }}
                 >
-                  03 THE HAIR · HAIRCUTS
+                  02 THE HAIR · HAIRCUTS
                 </span>
                 <h3
                   style={{
@@ -481,7 +470,7 @@ export default function Results({
             </div>
           )}
 
-          {/* SECTION 4: BEARD VERDICT */}
+          {/* SECTION 3: BEARD VERDICT */}
           {(activeTab === "beard" || (activeTab === "all" && unlocked)) && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
@@ -494,7 +483,7 @@ export default function Results({
                     color: "#4F2C1D",
                   }}
                 >
-                  04 THE GROOMING · FACIAL HAIR
+                  03 THE GROOMING · FACIAL HAIR
                 </span>
                 <h3
                   style={{
@@ -516,12 +505,7 @@ export default function Results({
             </div>
           )}
 
-          {/* SECTION 5: COLOUR & WARDROBE PALETTES */}
-          {(activeTab === "colour" || (activeTab === "all" && unlocked)) && (
-            <ColorPaletteSection palette={UNDERTONE_PALETTES.warm_golden} />
-          )}
-
-          {/* SECTION 6: ROUTINE */}
+          {/* SECTION 4: ROUTINE */}
           {(activeTab === "routine" || (activeTab === "all" && unlocked)) && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
@@ -534,7 +518,7 @@ export default function Results({
                     color: "#4F2C1D",
                   }}
                 >
-                  Grooming Routine
+                  04 THE ROUTINE · DAILY CARE
                 </span>
                 <h3
                   style={{

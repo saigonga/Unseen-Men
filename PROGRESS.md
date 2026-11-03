@@ -129,6 +129,19 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
   - **n8n Automation Workflow**: Complete importable `n8n-workflow-unseen-men.json` with Webhook trigger, luxury HTML email formatter, and WhatsApp dispatch node via Evolution API / Web Gateway.
   - **Detailed Setup Guide**: `N8N_AND_WHATSAPP_GUIDE.md` explaining zero-cost WhatsApp automation without Meta API approval.
 
+## Phase 5.6 — Mobile UI Overhaul & Streamlined Facial Architecture Focus · BUILT & VERIFIED
+- **Mobile UI Overhaul (Tested on iPhone Viewports):**
+  - **Header Cleanup**: Verbose desktop navigation and domain links hidden on mobile; compact "NODD MEN" and "Start" button preserved with ample margin and zero clipping.
+  - **Fluid Responsive Grids**: Sample report transformed from fixed 240px desktop sidebar into swipeable category tabs; privacy comparison changed to stacked 1-column layout; attribute cards use fluid `minmax(min(100%, 300px), 1fr)`.
+  - **iOS Viewport Protection**: Enforced `font-size: 16px !important` on all mobile form inputs to permanently eliminate involuntary iOS Safari auto-zoom.
+  - **Floating Sticky Action Pill**: Pinned bottom bar with frosted backdrop and one-tap "Start facial analysis →".
+  - **Typography & Layout**: Fluid clamp headings with `wordBreak: normal` and `overflowWrap: break-word` eliminating mid-word line breaks.
+- **Streamlined Facial Architecture & Grooming Specs (Colour & Eyewear Removed):**
+  - Removed added colour/wardrobe palettes (`ColorPaletteSection`) and eyewear/frames (`EyewearSection`) per request.
+  - Streamlined Report Navigation Tabs into 4 dedicated grooming pillars: `01 Face`, `02 Hair`, `03 Grooming`, `04 Routine`.
+  - Retained all facial architecture analysis: Face Shape match % and traits, Facial Thirds & Ratios, Nine Structural Proportions vs Population Norms, Landmark Canvas, Curated Haircuts, Barber Guide Specifications (guard lengths, taper, clipper blend), Haircuts to Avoid, Beard verdict & tweaks, Age-bracket routine, WhatsApp Concierge, PDF report, and Story Card.
+  - Cleaned Landing Page copy to align strictly with haircuts, barber specs, beard guide, and daily grooming routine.
+
 ## Next
 - Phase 4: Claude API skin read server route.
 - Phase 6: Privacy policy & terms pages, analytics, rate limiting.
