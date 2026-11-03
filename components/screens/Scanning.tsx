@@ -302,7 +302,7 @@ export default function Scanning({ url }: ScanningProps) {
           }}
         >
           <span>{Math.min(9, Math.round((progressPct / 100) * 9))} of 9 attributes</span>
-          <span>Photo deleted on completion</span>
+          <span>Photo saved to your profile</span>
         </div>
       </div>
     </div>

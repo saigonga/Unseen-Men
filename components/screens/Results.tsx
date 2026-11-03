@@ -482,6 +482,7 @@ export default function Results({
                 memberNumber={surpriseNumber}
                 ageBracket={answers.age}
                 skinConcern={answers.concern}
+                photo={photo}
                 onUnlock={unlock}
               />
             </div>

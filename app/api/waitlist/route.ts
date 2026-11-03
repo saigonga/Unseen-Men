@@ -134,8 +134,36 @@ export async function POST(req: NextRequest) {
       assignedMemberNumber = maxRow?.member_number ? maxRow.member_number + 1 : 348;
     }
 
-    // 5. Insert new waitlist row
-    const { error: insertErr } = await supabase.from("waitlist").insert({
+    // 5. Upload photo to Supabase Storage if provided
+    let photoUrl: string | null = null;
+    const photoBase64 = body.photoBase64 ? String(body.photoBase64) : null;
+
+    if (photoBase64 && photoBase64.startsWith("data:image")) {
+      try {
+        const base64Data = photoBase64.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, "base64");
+        const fileName = `${assignedCode}_${Date.now()}.jpg`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("scans")
+          .upload(fileName, buffer, {
+            contentType: "image/jpeg",
+            upsert: true,
+          });
+
+        if (!uploadError) {
+          const { data: pubData } = supabase.storage.from("scans").getPublicUrl(fileName);
+          photoUrl = pubData?.publicUrl || null;
+        } else {
+          console.warn("Storage upload warning:", uploadError.message);
+        }
+      } catch (photoErr) {
+        console.warn("Failed to process photo upload:", photoErr);
+      }
+    }
+
+    // 6. Insert new waitlist row
+    const insertPayload: Record<string, unknown> = {
       name: rawName,
       contact: normalizedContact,
       age_bracket: ageBracket,
@@ -145,7 +173,20 @@ export async function POST(req: NextRequest) {
       referred_by: validReferrerCode,
       member_number: assignedMemberNumber,
       referral_count: 0,
-    });
+    };
+
+    if (photoUrl) {
+      insertPayload.photo_url = photoUrl;
+    }
+
+    let { error: insertErr } = await supabase.from("waitlist").insert(insertPayload);
+
+    // If photo_url column doesn't exist yet, retry without photo_url so user flow never breaks
+    if (insertErr && photoUrl && insertErr.message?.includes("photo_url")) {
+      delete insertPayload.photo_url;
+      const retry = await supabase.from("waitlist").insert(insertPayload);
+      insertErr = retry.error;
+    }
 
     if (insertErr) {
       console.error("Waitlist insertion error:", insertErr);

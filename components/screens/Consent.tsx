@@ -53,8 +53,8 @@ export default function Consent({
             letterSpacing: "-0.03em",
           }}
         >
-          Your photo is analysed once,{" "}
-          <span style={{ fontWeight: 600 }}>then deleted.</span>
+          Your photo is analysed and{" "}
+          <span style={{ fontWeight: 600 }}>saved to your private profile.</span>
         </h1>
         <p style={{ margin: 0, color: "#5F5F5B", fontSize: 14.5 }}>
           The analysis maps face shape, jaw, hair, beard and undertone to match style

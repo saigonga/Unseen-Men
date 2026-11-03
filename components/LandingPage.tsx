@@ -223,7 +223,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             marginTop: 4,
           }}
         >
-          <span>Photo deleted after analysis</span>
+          <span>Photo saved to your private profile</span>
           <span>No age, ethnicity or attractiveness scoring</span>
           <span>Takes about 60 seconds</span>
         </div>
@@ -1275,8 +1275,8 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 letterSpacing: "-0.03em",
               }}
             >
-              Your photo is used once,{" "}
-              <span style={{ fontWeight: 600 }}>then deleted.</span>
+              Your photo is private,{" "}
+              <span style={{ fontWeight: 600 }}>and securely stored.</span>
             </h2>
           </div>
 
@@ -1298,7 +1298,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               }}
             >
               <span style={{ color: "#8A8A85" }}>Photo</span>
-              <span>Analysed once, then discarded. Never stored.</span>
+              <span>Stored securely in your private Founding Member profile.</span>
             </div>
             <div
               style={{
