@@ -166,6 +166,32 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
   - Retained all facial architecture analysis: Face Shape match % and traits, Facial Thirds & Ratios, Nine Structural Proportions vs Population Norms, Landmark Canvas, Curated Haircuts, Barber Guide Specifications (guard lengths, taper, clipper blend), Haircuts to Avoid, Beard verdict & tweaks, Age-bracket routine, WhatsApp Concierge, PDF report, and Story Card.
   - Cleaned Landing Page copy to align strictly with haircuts, barber specs, beard guide, and daily grooming routine.
 
+## Phase 5.7 — Exact Facial Analysis Page Mockup Alignment (Photographic Face Hero & Attribute Overhauls) · BUILT & VERIFIED
+- **Photographic Hero Showcase Card (`hero-desktop-card` & `hero-mobile-card`):**
+  - Replaced the abstract vector head wireframe with the real high-resolution photograph of an Indian man (`hero-face.jpg`).
+  - Added SVG landmark measurement lines: vertical dashed midline, cheekbone width line (`409.6` to `726.4`), and jaw width line (`442.2` to `695.8`).
+  - Integrated 10 concentric target circles marking key facial landmarks (forehead, pupils, nose, lips/chin, cheekbones, and jaw corners).
+  - Overlayed 4 frosted glass telemetry HUD cards with backdrop blur:
+    - **Top-Left**: `01 Face shape: Oval`, `02 Jawline: Defined`, `03 Facial thirds: Balanced`.
+    - **Top-Right**: `Widths · relative to cheekbones` (Forehead `0.85`, Cheekbones `1.00`, Jaw `0.80`).
+    - **Bottom-Left**: `Length to width` large `1.27` display with interactive range marker `Rounder 1.10 --- 1.27 (You) --- Longer 1.60`.
+    - **Bottom-Right**: `Gonial angle · jaw` large `132°` display with interactive range marker `Sharper 110° --- 132° (You) --- Softer 145°`.
+    - **Bottom Center**: `AI-GENERATED SAMPLE FACE · NOT A REAL PERSON`.
+  - Added the 4-column summary bar below:
+    - `Face shape: Oval` (CONFIDENCE 0.93)
+    - `Length to width: 1.27` (HAIRLINE TO CHIN ÷ CHEEKBONES)
+    - `Jaw definition: Defined` (BIGONIAL 0.80 OF CHEEKS)
+    - `Undertone: Warm` (MEDIUM CONTRAST)
+- **Attribute Visuals in Section 2 ("The Analysis"):**
+  - **Card 1 (Jawline)**: Cropped lower jaw photographic preview with measured jaw contour bezier curve, Gonial angle `132°` and Jaw ÷ cheeks `0.80` badges, plus Soft/Average/Defined slider.
+  - **Card 2 (Facial Thirds)**: Profile photo crop with horizontal dashed lines, Upper (`0.26`), Middle (`0.37`), Lower (`0.37`) sliders, and `Typical range 0.30 to 0.36 · You` legend.
+  - **Card 3 (Face Shape)**: 6 real photographic previews (`Round`, `Oval`, `Square`, `Oblong`, `Heart`, `Diamond`) with SVG contour overlay paths, interactive selection, Length-to-width `1.27`, and Confidence `0.93`.
+- **Sample Report Enhancements:**
+  - Updated Width Profile chart to Forehead `0.83`, Cheekbones `1.00`, Jaw `0.80`, and matching explanation text.
+  - Updated actions to Textured Crop, Rectangular Frames, and Short Boxed Beard.
+- **Verification:**
+  - Tested on both desktop (1440px) and mobile (390px) viewports with headless Chrome screenshots matching `new_wireframe_desktop.png` and `new_wireframe_mobile.png`.
+
 ## Next
 - Phase 4: Claude API skin read server route.
 - Phase 6: Privacy policy & terms pages, analytics, rate limiting.

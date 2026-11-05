@@ -249,9 +249,33 @@ details summary::-webkit-details-marker {
   }
 }
 
+.hero-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 @media (min-width: 769px) {
   .mobile-bottom-bar {
     display: none !important;
+  }
+  .hero-mobile-card {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-desktop-card {
+    display: none !important;
+  }
+  .hero-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .hero-summary-grid > div:nth-child(2) {
+    border-right: none !important;
+  }
+  .hero-summary-grid > div:nth-child(1),
+  .hero-summary-grid > div:nth-child(2) {
+    border-bottom: 1px solid var(--border) !important;
   }
 }
 
