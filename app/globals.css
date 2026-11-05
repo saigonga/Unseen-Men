@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Sora:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
 :root {
   --brand: #4F2C1D;
   --brand-light: #F4EDE4;
@@ -12,9 +14,12 @@
   --border-strong: #D9D9D6;
   --status-gold: #E0A526;
   --status-green: #2F7D4F;
-  --font-heading: var(--font-sora), 'Sora', sans-serif;
-  --font-body: var(--font-space-grotesk), 'Space Grotesk', system-ui, -apple-system, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
+  --font-sora: 'Sora', sans-serif;
+  --font-space-grotesk: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-jetbrains-mono: 'JetBrains Mono', monospace;
+  --font-heading: 'Sora', sans-serif;
+  --font-body: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 * {
