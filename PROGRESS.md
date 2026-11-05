@@ -192,8 +192,21 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 - **Verification:**
   - Tested on both desktop (1440px) and mobile (390px) viewports with headless Chrome screenshots matching `new_wireframe_desktop.png` and `new_wireframe_mobile.png`.
 
+## Phase 5.8 — Vercel CI Deployment Fix & Live Verification · READY & DEPLOYED
+- **Vercel Account & Project Verification**:
+  - Authenticated and verified Vercel team project `prj_7CSufnSB2XGLKKn7SSyIeqrawZQu` (`unseen-men`).
+  - Confirmed production environment variables (`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`) are properly configured.
+- **Turbopack Font Build Failure Resolved**:
+  - Issue: Turbopack in CI failed with `next/font/google queries have exactly one entry` on variable fonts (`Sora`, `Space Grotesk`, `JetBrains Mono`) with weight arrays.
+  - Fix: Replaced `next/font/google` in `app/layout.tsx` with preconnected Google Fonts stylesheets and updated `globals.css` with font fallbacks.
+  - Local build passed (`Compiled successfully`, `Generating static pages (9/9)`).
+- **Live Production Deployment**:
+  - Pushed to `main` branch (commit `81fc37c`).
+  - Vercel automatically built and deployed `dpl_C8VMDrPdtja9UpL5vZPoq19HhQGf` to `READY` state.
+  - Verified live URL `https://unseen-men.vercel.app` (HTTP 200, PRERENDER cache).
+  - Verified high-res photographic assets (`hero-face.jpg`, `shape-*.jpg`) serving with HTTP 200 on `https://unseen-men.vercel.app`.
+
 ## Next
 - Phase 4: Claude API skin read server route.
 - Phase 6: Privacy policy & terms pages, analytics, rate limiting.
 - Phase 7: Calibration with 50+ labelled Indian male selfies.
-- Phase 8: Deploy to Vercel.
