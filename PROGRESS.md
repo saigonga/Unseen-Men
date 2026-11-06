@@ -206,6 +206,19 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
   - Verified live URL `https://unseen-men.vercel.app` (HTTP 200, PRERENDER cache).
   - Verified high-res photographic assets (`hero-face.jpg`, `shape-*.jpg`) serving with HTTP 200 on `https://unseen-men.vercel.app`.
 
+## Phase 5.9 — Higgsfield AI Creative Studio Setup · BUILT & INTEGRATED
+- **Server Route (`app/api/creative/route.ts`)**:
+  - Connects to Higgsfield AI (`https://api.higgsfield.ai/higgsfield-ai/soul/standard`).
+  - Supports flexible API key configuration via `HIGGSFIELD_API_KEY` (format: `key_id:key_secret`) or individual `HF_API_KEY_ID` + `HF_API_KEY_SECRET`.
+  - Also accepts `x-higgsfield-key` header for instant in-browser test generation before setting server environment variables.
+  - Generates 2K luxury editorial campaign portraits styled to the user's face shape and haircut, with server-side polling and status feedback.
+- **Client Component (`components/results/CreativeStudio.tsx`)**:
+  - Embedded in `components/screens/Results.tsx` directly above Share/Download.
+  - Offers 3 editorial visual styles: Nordman Luxury, GQ Magazine Cover, and Cinematic 35mm.
+  - Shows real-time generation progress, interactive API key input for instant testing, 2K image preview, and 1-click download.
+- **Configuration**:
+  - Updated `.env.example` and `.env.local` with `HIGGSFIELD_API_KEY` placeholders.
+
 ## Next
 - Phase 4: Claude API skin read server route.
 - Phase 6: Privacy policy & terms pages, analytics, rate limiting.
