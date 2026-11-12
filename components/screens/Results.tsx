@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SHAPES } from "@/lib/content";
-import { rawProportions, shapeHeadline, isBorderline } from "@/lib/faceShape";
+import { rawProportions, shapeHeadline } from "@/lib/faceShape";
 import type { FaceResult } from "@/lib/faceShape";
 import { drawOverlay } from "@/lib/overlay";
 import { newCode } from "@/lib/referral";
@@ -58,9 +58,7 @@ export default function Results({
 
   const sh = SHAPES[result.key];
   const headline = shapeHeadline(result);
-  const borderline = isBorderline(result);
-  const props3d = rawProportions(photo.det, result.m);
-  const p1 = result.ranked[0][1];
+  const props3d = rawProportions(photo.det, photo.measurements.raw3D);
   const beardStyle = sh.beard.styles[0][0];
 
   useEffect(() => {
@@ -72,7 +70,7 @@ export default function Results({
     if (userLead && !syncedRef.current) {
       syncedRef.current = true;
       const effectiveBeard = userLead.beard || answers.beard || null;
-      const faceData = buildFaceDataPayload(result, photo.det, effectiveBeard);
+      const faceData = buildFaceDataPayload(result, photo.det, effectiveBeard, photo.measurements);
       const getBase64 = async () => photo.dataUrl || (await getPhotoDataUrl(photo));
       getBase64().then((photoBase64) => {
         fetch("/api/waitlist", {
@@ -127,7 +125,7 @@ export default function Results({
         .slice(0, 3)
         .map((t) => t.label.toLowerCase())
         .join(", ")}.`
-    : "Nothing stands out strongly, which is what makes a face oval and balanced.";
+    : "The measured proportions are close to the scan reference values.";
 
   const beardNote =
     answers.beard === "full"
@@ -207,14 +205,7 @@ export default function Results({
                 day: "numeric",
                 month: "long",
                 year: "numeric",
-              })}{" "}
-              · {Math.round(p1 * 100)}% {sh.name} match
-              {result.lean && (
-                <span>
-                  {" "}
-                  · {borderline ? `close blend with ${SHAPES[result.lean].name}` : `leaning ${SHAPES[result.lean].name}`}
-                </span>
-              )}
+              })}
             </div>
           </div>
         </div>
@@ -295,7 +286,7 @@ export default function Results({
                     </div>
                   </div>
                   <div>
-                    <div style={{ color: "#7A6A60" }}>Confidence</div>
+                    <div style={{ color: "#7A6A60" }}>Forehead : cheek</div>
                     <div
                       style={{
                         fontFamily: "var(--font-body)",
@@ -304,13 +295,13 @@ export default function Results({
                         fontWeight: 500,
                       }}
                     >
-                      {Math.round(p1 * 100)}%
+                      {props3d.foreheadToCheek.toFixed(2)}
                     </div>
                   </div>
                 </div>
 
                 <div style={{ fontSize: 13.5, color: "#5C4F47", lineHeight: 1.5 }}>
-                  {sh.desc} {why}
+                  {result.lean ? `Your measurements are close to both ${sh.name} and ${SHAPES[result.lean].name}.` : sh.desc} {why}
                   {beardNote}
                 </div>
 
@@ -330,9 +321,7 @@ export default function Results({
                       HOW WE MEASURED YOU ({props3d.is3D ? "3D MESH" : "2D MESH"})
                     </span>
                     <span style={{ fontSize: 11, color: "#7A6A60" }}>
-                      {photo.frameCount && photo.frameCount > 2
-                        ? `${photo.frameCount} 3D frames fused`
-                        : "Check in a mirror"}
+                      {photo.measurements.n} measurement {photo.measurements.n === 1 ? "pass" : "passes"}
                     </span>
                   </div>
                   <div
@@ -363,7 +352,7 @@ export default function Results({
                       </strong>
                     </div>
                     <div>
-                      <span style={{ color: "#8A8A85" }}>Jaw corner angle: </span>
+                      <span style={{ color: "#8A8A85" }}>Front-view jaw angle: </span>
                       <strong style={{ color: "#111111", fontWeight: 500 }}>
                         {props3d.jawAngleDeg}°
                       </strong>
@@ -403,7 +392,7 @@ export default function Results({
               {/* Compare Bars */}
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "#4F2C1D" }}>
-                  Nine structural attributes vs population norms
+                  Five proportions compared with scan reference values
                 </span>
                 <CompareBars z={result.z} />
               </div>

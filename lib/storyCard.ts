@@ -1,13 +1,12 @@
-/* 9:16 story card (1080×1920): his photo + face shape + match % + referral code.
+/* 9:16 story card (1080×1920): his photo + face shape + referral code.
    Never put skin observations on this card. Everything is drawn on the device. */
-import { SHAPES } from "./content";
 import type { ShapeKey } from "./content";
 import type { Detection } from "./detector";
 import { cropFaceMapped } from "./crop";
 
 export interface CardData {
   shape: ShapeKey;
-  match: number;          // 0–1
+  headline: string;
   cut?: string;
   beard?: string;
   code: string;
@@ -68,7 +67,7 @@ export async function drawCard(c: HTMLCanvasElement, d: CardData) {
   } catch { /* system fonts */ }
 
   c.width = 1080; c.height = 1920;
-  const x = c.getContext("2d")!, sh = SHAPES[d.shape];
+  const x = c.getContext("2d")!;
   x.fillStyle = C.bg; x.fillRect(0, 0, 1080, 1920);
 
   const PH = 1220; // photo block height
@@ -113,13 +112,12 @@ export async function drawCard(c: HTMLCanvasElement, d: CardData) {
   if (d.tryOn) { x.textAlign = "right"; x.fillStyle = C.fg; x.fillText("AI PREVIEW", 980, 132); x.textAlign = "left"; }
 
   // Verdict
-  let y = PH + 20;
+  const y = PH + 20;
   x.fillStyle = C.muted; x.font = `500 34px ${F.mono}`; x.fillText("MY FACE SHAPE IS", 80, y);
   x.fillStyle = C.brass;
-  const fs = fitFont(x, sh.name.toUpperCase(), 900, F.display, 240, 920);
-  x.fillText(sh.name.toUpperCase(), 72, y + fs * 0.92);
-  y += fs * 0.92 + 64;
-  x.fillStyle = C.fg; x.font = `500 36px ${F.mono}`; x.fillText(`${Math.round(d.match * 100)}% MATCH`, 80, y);
+  const headline = d.headline.toUpperCase();
+  const fs = fitFont(x, headline, 900, F.display, 240, 920);
+  x.fillText(headline, 72, y + Math.max(120, fs * 0.92), 920);
 
   // Footer
   const fy = 1920 - 230;

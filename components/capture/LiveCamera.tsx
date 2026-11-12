@@ -1,19 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { detectFast, averageDetections } from "@/lib/detector";
+import { detectFast } from "@/lib/detector";
 import type { Detection } from "@/lib/detector";
 import { liveInstruction, metrics, isFemale, headYawDeg } from "@/lib/quality";
 import { LIVE, LIVE_Q } from "@/lib/capture.config";
 import { measureDetection } from "@/lib/faceShape";
-import type { Measures } from "@/lib/faceShape";
 import { drawLiveScannerHud } from "@/lib/overlay";
 
 export type CameraProblem = "denied" | "nocamera" | "unsupported" | "insecure" | "inapp" | "female";
 export interface LiveShot {
   canvas: HTMLCanvasElement;
   det: Detection;
-  frames: Measures[];
+  frames: Detection[];
 }
 
 type Phase = "intro" | "starting" | "tracking" | "capturing" | "sweep";
@@ -107,20 +106,18 @@ export default function LiveCamera({
     for (let i = 0; i < LIVE.frames * 2 && shots.length < LIVE.frames; i++) {
       if (runId.current !== id) return null;
       const c = grab(video);
-      const d = await detectFast(c, i === 0);
+      const d = await detectFast(c, shots.length === 0);
       if (d && hudCanvasRef.current) {
         drawLiveScannerHud(hudCanvasRef.current, video, d, true, "capturing");
       }
-      if (d && (manual.current || liveInstruction(c, d) === null)) {
+      if (d && liveInstruction(c, d) === null) {
         const m = metrics(c, d);
-        if (m.mouth < LIVE_Q.mouthMax && m.smile < LIVE_Q.smileMax && m.roll < 12) {
-          shots.push({
-            c,
-            d,
-            score: m.yaw * 100 + m.roll + m.mouth * 100,
-            yaw: headYawDeg(d) ?? 0,
-          });
-        }
+        shots.push({
+          c,
+          d,
+          score: m.yaw * 100 + m.roll + m.mouth * 100,
+          yaw: headYawDeg(d) ?? 0,
+        });
       }
       setRingCoverage({ top: Math.min(1, shots.length / LIVE.frames), left: 0, right: 0 });
       await sleep(45);
@@ -133,8 +130,8 @@ export default function LiveCamera({
       frontYaw,
       shot: {
         canvas: best.c,
-        det: averageDetections(shots.map((s) => s.d)),
-        frames: shots.map((s) => measureDetection(s.d)),
+        det: { ...best.d, femaleP: shots[0].d.femaleP },
+        frames: shots.map((s) => s.d),
       },
     };
   }
@@ -143,10 +140,8 @@ export default function LiveCamera({
   async function guided3DSweep(
     video: HTMLVideoElement,
     id: number,
-    shot: LiveShot,
     frontYaw: number
-  ): Promise<LiveShot> {
-    const allDets: Detection[] = [];
+  ): Promise<void> {
     let leftCount = 0;
     let rightCount = 0;
     let firstDir: "left" | "right" | null = null;
@@ -179,8 +174,6 @@ export default function LiveCamera({
           if (Math.abs(dyaw) >= LIVE.turnDeg && cleanExpr) {
             if (!firstDir) firstDir = dyaw < 0 ? "left" : "right";
             if ((firstDir === "left" && dyaw <= -LIVE.turnDeg) || (firstDir === "right" && dyaw >= LIVE.turnDeg)) {
-              shot.frames.push(measureDetection(sd));
-              allDets.push(sd);
               if (firstDir === "left") leftCount++;
               else rightCount++;
             }
@@ -195,8 +188,6 @@ export default function LiveCamera({
           const oppDir = firstDir === "right" ? "left" : "right";
           const hitOpp = oppDir === "left" ? dyaw <= -LIVE.turnDeg : dyaw >= LIVE.turnDeg;
           if (hitOpp && cleanExpr) {
-            shot.frames.push(measureDetection(sd));
-            allDets.push(sd);
             if (oppDir === "left") leftCount++;
             else rightCount++;
           }
@@ -208,7 +199,6 @@ export default function LiveCamera({
           }
         } else {
           if (Math.abs(dyaw) <= 8 && cleanExpr) {
-            shot.frames.push(measureDetection(sd));
             centerCount++;
           }
           if (centerCount >= 3 || elapsed > 2500) break;
@@ -228,7 +218,7 @@ export default function LiveCamera({
           g: `${Math.round(mm.G)}°`,
           yaw: `${yawInt >= 0 ? "+" : ""}${yawInt}°`,
           pts: sd.P478 ? 478 : 68,
-          frames: shot.frames.length,
+          frames: leftCount + rightCount,
         });
 
         if (!cleanExpr && sm.mouth >= LIVE_Q.mouthMax) {
@@ -252,10 +242,6 @@ export default function LiveCamera({
       await sleep(45);
     }
 
-    if (allDets.length > 0) {
-      shot.det = averageDetections([shot.det, ...allDets]);
-    }
-    return shot;
   }
 
   const run = useCallback(
@@ -305,19 +291,19 @@ export default function LiveCamera({
         }
 
         let ins = liveInstruction(video, d);
-        if (!ins && d) {
+        if (!ins && d && !manual.current) {
           const cx = (d.box.x + d.box.width / 2) / video.videoWidth;
           if (Math.abs(cx - lastCx) > 0.04) ins = "Hold still";
           lastCx = cx;
         }
 
-        const isAligned = !ins || manual.current;
         if (hudCanvasRef.current) {
-          drawLiveScannerHud(hudCanvasRef.current, video, d, Boolean(d && isAligned), "tracking");
+          drawLiveScannerHud(hudCanvasRef.current, video, d, Boolean(d && !ins), "tracking");
         }
 
         const now = performance.now();
-        if (ins && !manual.current) {
+        if (ins) {
+          manual.current = false;
           okSince = 0;
           setGreen(false);
           setCount(null);
@@ -341,14 +327,15 @@ export default function LiveCamera({
           const captured = await captureFrames(video, id);
           if (runId.current !== id) return;
           if (!captured) {
+            manual.current = false;
             okSince = 0;
             setPhase("tracking");
             continue;
           }
-          const finalShot = await guided3DSweep(video, id, captured.shot, captured.frontYaw);
+          await guided3DSweep(video, id, captured.frontYaw);
           if (runId.current !== id) return;
           stop();
-          onShotRef.current(finalShot);
+          onShotRef.current(captured.shot);
           return;
         }
       }

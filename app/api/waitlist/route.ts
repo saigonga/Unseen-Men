@@ -85,7 +85,6 @@ function buildFallbackSkinConcern(
     const m = (faceData.measurements || {}) as Record<string, unknown>;
     const t = (faceData.facialThirds || {}) as Record<string, unknown>;
     const summary = [
-      faceData.confidencePct != null ? `${faceData.confidencePct}%` : "",
       m.lengthToWidth != null ? `L:W=${m.lengthToWidth}` : "",
       m.jawToCheek != null ? `J:C=${m.jawToCheek}` : "",
       m.jawAngleDeg != null ? `ang=${m.jawAngleDeg}` : "",
@@ -199,28 +198,6 @@ export async function POST(req: NextRequest) {
     const photoBase64 = body.photoBase64 ? String(body.photoBase64) : null;
 
     if (existing) {
-      // When starting a new scan before faceData is submitted, read prior baseline measures so
-      // repeat scans for the same member settle smoothly rather than jumping between close shapes.
-      let priorMeasures: Record<string, number> | null = null;
-      let scanCount = 1;
-      if (!faceData) {
-        try {
-          const { data: blob } = await supabase.storage
-            .from("scans")
-            .download(`${existing.referral_code}_face_data.json`);
-          if (blob) {
-            const parsed = JSON.parse(await blob.text());
-            const prev = parsed?.faceData;
-            if (prev?.rawMeasures && typeof prev.rawMeasures.R === "number") {
-              priorMeasures = prev.rawMeasures;
-              scanCount = typeof prev.scanCount === "number" ? prev.scanCount : 1;
-            }
-          }
-        } catch {
-          // Non-fatal: first-time scan or legacy JSON format
-        }
-      }
-
       const shouldUploadPhoto = Boolean(photoBase64) && !(skipPhotoIfPresent && existing.photo_url);
       const { photoUrl: newPhotoUrl, faceDataUrl } = await uploadScanAssets(
         supabase,
@@ -312,8 +289,6 @@ export async function POST(req: NextRequest) {
         referralCount: existing.referral_count || 0,
         photoUrl: updatedPhotoUrl,
         faceDataUrl,
-        priorMeasures,
-        scanCount,
       });
     }
 

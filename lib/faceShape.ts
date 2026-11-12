@@ -2,7 +2,7 @@
    Landmark indices are face-api 68-point; MediaPipe 478 uses pose-normalised 3D craniofacial mapping. */
 import { dist, mid, angle, avgPts } from "./geometry.ts";
 import type { Pt } from "./geometry.ts";
-import { NORM, MP_NORM, MP3D_NORM, MP_PITCH_COMP, BORDERLINE_RATIO, Z_CLAMP, FULL_BEARD_WEIGHT, SHAPE_OFFSET, SOFTMAX_T, TRAIT_Z, LEAN_RATIO } from "./faceShape.config.ts";
+import { NORM, MP_NORM, MP3D_NORM, MP_PITCH_COMP, Z_CLAMP, FULL_BEARD_WEIGHT, SHAPE_OFFSET, SOFTMAX_T, TRAIT_Z, LEAN_RATIO } from "./faceShape.config.ts";
 import type { MeasureKey } from "./faceShape.config.ts";
 import { MP_TO_68 } from "./landmarkMap.ts";
 import { canonicalize, measureCanonical } from "./mesh3d.ts";
@@ -47,11 +47,21 @@ function mapRawToNorm(raw: Raw3D, srcNorm: Record<MeasureKey, [number, number]>)
 }
 
 /** Pose-normalised 3D craniofacial measurements mapped to canonical NORM scale.
- *  Removes camera pitch/yaw/roll foreshortening before comparing ratios. */
+ *  Uses estimated depth to reduce the effect of head pose. */
 export function measure3D(P3pts: P3[]): Measures {
-  const C = canonicalize(P3pts);
-  if (!C) return measureMP(P3pts.map(p => ({ x: p.x, y: p.y })));
-  return mapRawToNorm(measureCanonical(C), MP3D_NORM);
+  const raw = measure3DRaw(P3pts);
+  return raw ? score3DMeasures(raw) : measureMP(P3pts);
+}
+
+export function measure3DRaw(points?: P3[] | null): Measures | null {
+  const canonical = points && canonicalize(points);
+  if (!canonical) return null;
+  const raw = measureCanonical(canonical);
+  return Object.values(raw).every(Number.isFinite) ? raw : null;
+}
+
+export function score3DMeasures(raw: Measures, norms = MP3D_NORM): Measures {
+  return mapRawToNorm(raw, norms);
 }
 
 /** Calibrated MediaPipe 478-point 2D fallback measurements mapped to canonical NORM scale. */
@@ -95,52 +105,25 @@ export function measureDetection(det: { P: Pt[]; P478?: Pt[] | null; P3?: P3[] |
   return det.P478 && det.P478.length >= 468 ? measureMP(det.P478) : measure(det.P);
 }
 
-/** Blend two measure sets (used to settle returning users across repeat scans). */
-export function blendMeasures(prev: Measures, curr: Measures, prevWeight = 0.4): Measures {
-  const w = Math.max(0, Math.min(0.65, prevWeight));
-  const out = {} as Measures;
-  for (const k of Object.keys(NORM) as MeasureKey[]) {
-    out[k] = prev[k] * w + curr[k] * (1 - w);
-  }
-  return out;
-}
-
-/** Extract true craniofacial ratios for human inspection ("How we measured you"). */
-export function rawProportions(det: { P: Pt[]; P478?: Pt[] | null; P3?: P3[] | null }, m?: Measures) {
-  if (det.P3 && det.P3.length >= 468) {
-    const C = canonicalize(det.P3);
-    if (C) {
-      const r = measureCanonical(C);
-      return {
-        lengthToWidth: Number(r.R.toFixed(2)),
-        jawToCheek: Number(r.J.toFixed(2)),
-        foreheadToCheek: Number(r.F.toFixed(2)),
-        chinToCheek: Number(r.K.toFixed(2)),
-        jawAngleDeg: Math.round(r.G),
-        is3D: true,
-      };
-    }
-  }
-  const mm = m ?? measureDetection(det);
+/** Ratios from the accepted mesh measurements, before scoring. */
+export function rawProportions(det: { P: Pt[]; P3?: P3[] | null }, raw3D?: Measures | null) {
+  const mesh = raw3D ?? measure3DRaw(det.P3);
+  const raw = mesh ?? measure(det.P);
   return {
-    lengthToWidth: Number((1.198 + ((mm.R - NORM.R[0]) / NORM.R[1]) * MP3D_NORM.R[1]).toFixed(2)),
-    jawToCheek: Number((0.725 + ((mm.J - NORM.J[0]) / NORM.J[1]) * MP3D_NORM.J[1]).toFixed(2)),
-    foreheadToCheek: Number((0.799 + ((mm.F - NORM.F[0]) / NORM.F[1]) * MP3D_NORM.F[1]).toFixed(2)),
-    chinToCheek: Number((0.319 + ((mm.K - NORM.K[0]) / NORM.K[1]) * MP3D_NORM.K[1]).toFixed(2)),
-    jawAngleDeg: Math.round(mm.G),
-    is3D: false,
+    lengthToWidth: Number(raw.R.toFixed(2)),
+    jawToCheek: Number(raw.J.toFixed(2)),
+    foreheadToCheek: Number(raw.F.toFixed(2)),
+    chinToCheek: Number(raw.K.toFixed(2)),
+    jawAngleDeg: Math.round(raw.G),
+    is3D: Boolean(mesh),
   };
-}
-
-export function isBorderline(r: FaceResult): boolean {
-  return r.ranked.length >= 2 && r.ranked[1][1] >= r.ranked[0][1] * BORDERLINE_RATIO;
 }
 
 export function shapeHeadline(r: FaceResult): string {
   const s1 = SHAPES[r.key].name;
   if (!r.lean) return s1;
   const s2 = SHAPES[r.lean].name;
-  return isBorderline(r) ? `${s1}–${s2} Blend` : `${s1} · leaning ${s2}`;
+  return `${[s1, s2].sort().join("–")} Blend`;
 }
 
 const clampZ = (v: number) => Math.max(-Z_CLAMP, Math.min(Z_CLAMP, v));
@@ -153,8 +136,8 @@ export function zScores(m: Measures, beard: Beard | null): ZScores {
   return z;
 }
 
-export function shapeScores(z: ZScores): Record<ShapeKey, number> {
-  const { R, J, F, K, A } = z, o = SHAPE_OFFSET;
+export function shapeScores(z: ZScores, o = SHAPE_OFFSET): Record<ShapeKey, number> {
+  const { R, J, F, K, A } = z;
   return {
     rectangle: R + 0.5 * J + 0.4 * A + o.rectangle,
     square: -0.8 * R + J + 0.6 * A + o.square,
@@ -165,8 +148,8 @@ export function shapeScores(z: ZScores): Record<ShapeKey, number> {
   };
 }
 
-export function classify(z: ZScores): Ranked {
-  const ex = (Object.entries(shapeScores(z)) as [ShapeKey, number][]).map(([k, v]) => [k, Math.exp(v / SOFTMAX_T)] as [ShapeKey, number]);
+export function classify(z: ZScores, offsets = SHAPE_OFFSET): Ranked {
+  const ex = (Object.entries(shapeScores(z, offsets)) as [ShapeKey, number][]).map(([k, v]) => [k, Math.exp(v / SOFTMAX_T)] as [ShapeKey, number]);
   const tot = ex.reduce((a, [, v]) => a + v, 0);
   return ex.map(([k, v]) => [k, v / tot] as [ShapeKey, number]).sort((a, b) => b[1] - a[1]);
 }

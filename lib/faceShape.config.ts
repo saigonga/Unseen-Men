@@ -23,9 +23,7 @@ export const MP_NORM: Record<MeasureKey, [number, number]> = {
   G: [147.8, 3.60],
 };
 
-/** Calibrated 3D pose-normalised craniofacial norms [mean, sd] from lib/mesh3d.ts (`measureCanonical`).
- *  Because `canonicalize` rotates every frame (front, left, right) to a straight-on canonical frame,
- *  yaw/pitch/distance distortions are removed prior to z-score mapping. */
+/** Reference 3D mesh norms [mean, sd], pending validation with barber-labelled photos. */
 export const MP3D_NORM: Record<MeasureKey, [number, number]> = {
   R: [1.198, 0.052],
   J: [0.725, 0.024],
@@ -41,9 +39,6 @@ export const MP_PITCH_COMP = {
   softDeadzone: 0.68,
   softGain: 0.30,
 };
-
-/** Show an honest "ShapeA–ShapeB Blend" when the second shape reaches this share of the top shape. */
-export const BORDERLINE_RATIO = 0.72;
 
 /** z-scores are clamped to ±Z_CLAMP. */
 export const Z_CLAMP = 3;
@@ -64,7 +59,7 @@ export const SHAPE_OFFSET = {
 /** Softmax temperature for turning shape scores into match %. */
 export const SOFTMAX_T = 0.6;
 
-/** Show "Leaning X" when the second shape's probability is at least this share of the first. */
+/** Show both shapes when the runner-up's score weight is at least this share of the top shape. */
 export const LEAN_RATIO = 0.6;
 
 /** A measurement beyond ±TRAIT_Z SD becomes a trait. */

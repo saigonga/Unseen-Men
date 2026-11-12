@@ -1,9 +1,4 @@
-/* 3D face mesh: pose normalisation + measurements on a straight-on face.
-
-   Why: measuring a flat photo means camera angle changes the answer. Tilt the phone down and the jaw
-   reads sharper; turn the head and the face reads narrower. MediaPipe gives every one of its 478 points a
-   depth value, so we can rotate each frame back to a perfectly straight-on pose before measuring, then
-   combine many frames (front + turned left + turned right) into one steady set of numbers. */
+/* Use MediaPipe's estimated depth to align the face mesh before measuring its proportions. */
 
 export interface P3 { x: number; y: number; z: number }
 

@@ -1,4 +1,3 @@
-import { pct } from "@/lib/faceShape";
 import type { ZScores } from "@/lib/faceShape";
 import { TRAIT_Z } from "@/lib/faceShape.config";
 
@@ -17,8 +16,7 @@ export default function CompareBars({ z }: { z: ZScores }) {
         const v = z[k];
         const pos = Math.max(5, Math.min(95, 50 + v * 16));
         const strong = Math.abs(v) >= TRAIT_Z;
-        const share = Math.max(1, v > 0 ? 100 - pct(v) : pct(v));
-        const tag = !strong ? "Average" : `${v > 0 ? hi : lo} · ${v > 0 ? "top" : "bottom"} ${share}%`;
+        const tag = strong ? (v > 0 ? hi : lo) : "Near reference";
 
         return (
           <div
@@ -103,7 +101,7 @@ export default function CompareBars({ z }: { z: ZScores }) {
               }}
             >
               <span>{lo}</span>
-              <span>Average</span>
+              <span>Reference</span>
               <span>{hi}</span>
             </div>
           </div>

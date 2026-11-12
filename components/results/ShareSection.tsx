@@ -6,6 +6,7 @@ import { buildPdf, preloadPdf } from "@/lib/pdf";
 import type { PdfData } from "@/lib/pdf";
 import { saveFile, canvasToBlob } from "@/lib/download";
 import { loadImage } from "@/lib/image";
+import { shapeHeadline } from "@/lib/faceShape";
 import type { Photo } from "../FaceScanApp";
 import { useTryOn, lookKey } from "./TryOnContext";
 
@@ -48,7 +49,7 @@ export default function ShareSection({
       if (cancelled || !cardRef.current) return;
       await drawCard(cardRef.current, {
         shape: result.key,
-        match: result.ranked[0][1],
+        headline: shapeHeadline(result),
         code,
         photo: showPhoto ? { img: photo.img, det: photo.det } : null,
         tryOn: tryOnImg,

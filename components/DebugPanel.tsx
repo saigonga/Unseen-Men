@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Detection } from "@/lib/detector";
-import type { FaceResult, Measures, ZScores } from "@/lib/faceShape";
-import { measureDetection, zScores, shapeScores } from "@/lib/faceShape";
+import type { FaceResult } from "@/lib/faceShape";
 import type { RobustMeasures } from "@/lib/robust";
 import { drawOverlay } from "@/lib/overlay";
 import { isMediaPipeReady } from "@/lib/mediapipe";
@@ -14,11 +13,10 @@ interface Props {
   img: HTMLImageElement;
   det: Detection;
   result: FaceResult;
-  robust?: RobustMeasures | null;
-  beard: "none" | "stubble" | "full" | null;
+  robust: RobustMeasures;
 }
 
-export default function DebugPanel({ img, det, result, robust, beard }: Props) {
+export default function DebugPanel({ img, det, result, robust }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [show478, setShow478] = useState(true);
 
@@ -26,9 +24,8 @@ export default function DebugPanel({ img, det, result, robust, beard }: Props) {
     if (canvasRef.current) drawOverlay(canvasRef.current, img, det, false, show478);
   }, [img, det, show478]);
 
-  const m: Measures = robust?.m ?? measureDetection(det);
-  const z: ZScores = zScores(m, beard);
-  const scores = shapeScores(z);
+  const m = robust.raw3D ?? result.m;
+  const { z, scores } = result;
   const sorted = (Object.entries(scores) as [ShapeKey, number][]).sort((a, b) => b[1] - a[1]);
 
   const fmt = (v: number) => v.toFixed(4);
@@ -59,7 +56,7 @@ export default function DebugPanel({ img, det, result, robust, beard }: Props) {
       )}
 
       <div style={{ marginBottom: 8 }}>
-        <b style={{ color: "#c9a46a" }}>Raw Measurements</b>
+        <b style={{ color: "#c9a46a" }}>{robust.raw3D ? "Raw 3D measurements" : "Scoring measurements"} ({robust.n} passes)</b>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead><tr style={{ borderBottom: "1px solid #444" }}><th style={{ textAlign: "left" }}>Key</th><th>Value</th><th>z-score</th></tr></thead>
           <tbody>
@@ -77,15 +74,6 @@ export default function DebugPanel({ img, det, result, robust, beard }: Props) {
           </tbody>
         </table>
       </div>
-
-      {robust && (
-        <div style={{ marginBottom: 8 }}>
-          <b style={{ color: "#c9a46a" }}>Robust (n={robust.n})</b>
-          <div style={{ color: "#888" }}>
-            Spread: {(["R", "J", "F", "K", "G"] as const).map(k => `${k}=${robust.spread[k].toFixed(4)}`).join(" ")}
-          </div>
-        </div>
-      )}
 
       <div style={{ marginBottom: 8 }}>
         <b style={{ color: "#c9a46a" }}>Shape Scores (raw → softmax)</b>

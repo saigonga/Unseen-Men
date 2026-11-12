@@ -272,6 +272,14 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 - **Repeat Stability Verification (`app/dev/stability` in headless Chrome):**
   - Tested 12 multi-photo test faces across 6 different framings/scales per photo (`60` front/near-front scans + tilted/turned variants): 8/9 front/near-front photos achieved 6/6 identical classification (`95%` consistency overall).
 
+## Face shape accuracy update — local build
+- Live scoring uses clean frontal frames, with the landmarks from the saved frame used for its overlay. The left/right sweep still guides the capture experience. Its frames are excluded from scoring pending a paired comparison with barber labels.
+- Uploads ask for a retake when the head is turned or the mouth is open. Other quality warnings can still be accepted. MediaPipe measures three crops scaled by the distance between the outer eye corners, in both directions, then uses the median. Each result uses only the current scan.
+- Close shapes share one blend label. The report, PDF and story card omit the uncalibrated match percentage. Comparison bars describe differences against the scan reference.
+- Browser stability check across 12 bundled photos × 6 framings: 11/12 had the same top shape in all six framings (previously 8/12). Nine photos passed the blocking checks at all six framings. All nine kept the same top shape and eight kept the same report headline. The three other photos were blocked at every framing.
+- Browser smoke checks used bundled photos and an isolated local server: the open-mouth upload requested a retake, an allowed upload reached the report, and both exports reported success. The real phone camera still needs a test.
+- `/dev/calibration` reads consented photos locally and uses a JSON manifest with anonymous participant IDs and barber labels. It fits candidate norms and score offsets on the fit group, then compares both settings on people in the test group. The bundled-photo smoke test used illustrative labels. Calibration needs real barber labels across all six shapes and repeat phone captures.
+
 ## Next
 - Phase 4: Claude API skin read server route.
 - Phase 6: Privacy policy & terms pages, analytics, rate limiting.

@@ -72,7 +72,8 @@ export function checkQuality(input: FaceInput, det: Detection): QualityReport {
     { id: "distance", ok: m.size >= Q.sizeMin && m.size <= Q.sizeMax, text: m.size < Q.sizeMin ? "Move closer" : m.size > Q.sizeMax ? "Too close" : "Good distance" },
     { id: "centred", ok: m.offX < Q.offMax, text: m.offX < Q.offMax ? "Centred" : "Off-centre" },
     { id: "straight", ok: m.yaw < Q.yawMax, text: m.yaw < Q.yawMax ? "Facing camera" : "Head turned" },
-    { id: "level", ok: m.roll < Q.rollMax, text: m.roll < Q.rollMax ? "Head level" : "Head tilted" },
+    { id: "level", ok: m.roll < Q.rollMax && m.pitch >= Q.pitchMin && m.pitch <= Q.pitchMax,
+      text: m.roll >= Q.rollMax ? "Head tilted" : m.pitch < Q.pitchMin ? "Chin up" : m.pitch > Q.pitchMax ? "Chin down" : "Head level" },
     { id: "lighting", ok: m.lum > Q.lumMin, text: m.lum > Q.lumMin ? "Good light" : "Too dark" },
     { id: "expression", ok: m.mouth < Q.mouthMax, text: m.mouth < Q.mouthMax ? "Neutral" : "Mouth open" },
   ];

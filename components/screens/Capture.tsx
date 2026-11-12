@@ -9,7 +9,7 @@ import { drawOverlay } from "@/lib/overlay";
 import { canvasToBlob } from "@/lib/download";
 import { loadImage } from "@/lib/image";
 import { robustMeasures } from "@/lib/robust";
-import type { Measures } from "@/lib/faceShape";
+import type { RobustMeasures } from "@/lib/robust";
 import LiveCamera, { cameraSupport } from "../capture/LiveCamera";
 import type { CameraProblem, LiveShot } from "../capture/LiveCamera";
 import type { ModelState, Photo } from "../FaceScanApp";
@@ -21,7 +21,7 @@ interface Pending {
   dataUrl?: string;
   source: "camera" | "upload";
   det?: Detection;
-  frames?: Measures[];
+  frames?: Detection[];
 }
 
 type Msg = { text: string; bad: boolean } | null;
@@ -55,17 +55,17 @@ export default function Capture({
   const [report, setReport] = useState<QualityReport | null>(null);
   const [msg, setMsg] = useState<Msg>(null);
   const [busy, setBusy] = useState(false);
-  const [measures, setMeasures] = useState<Measures | null>(null);
-  const [frameCount, setFrameCount] = useState<number>(1);
+  const [measurements, setMeasurements] = useState<RobustMeasures | null>(null);
   const handedOff = useRef(false);
 
   const pendingRef = useRef<Pending | null>(null);
-  pendingRef.current = pending;
 
   useEffect(
     () => () => {
-      if (!handedOff.current && pendingRef.current) {
-        URL.revokeObjectURL(pendingRef.current.url);
+      const current = pendingRef.current;
+      pendingRef.current = null;
+      if (!handedOff.current && current) {
+        URL.revokeObjectURL(current.url);
       }
     },
     []
@@ -86,10 +86,11 @@ export default function Capture({
     setMsg(null);
     setReport(null);
     setDet(null);
-    setMeasures(null);
+    setMeasurements(null);
 
     try {
-      const d = p.det?.P478 ? p.det : ((await detect(p.img)) ?? p.det);
+      const d = p.det ?? await detect(p.img);
+      if (pendingRef.current !== p) return;
       if (!d) {
         setMsg({
           text: "No face found. Hold the phone straight and try again.",
@@ -98,41 +99,46 @@ export default function Capture({
         return;
       }
       const q = checkQuality(p.img, d);
-      const robust = await robustMeasures(p.img, d, p.frames ?? []);
-      const mRes = robust?.m ?? null;
-      const fCount = robust?.n ?? (p.frames?.length || 1);
-      setMeasures(mRes);
-      setFrameCount(fCount);
       setDet(d);
       setReport(q);
 
+      if (q.blocking) {
+        setMsg({ text: q.blocking, bad: true });
+        return;
+      }
+      const robust = await robustMeasures(p.img, d, p.frames);
+      if (pendingRef.current !== p) return;
+      if (!robust) {
+        setMsg({ text: "Could not measure this face clearly. Try another photo.", bad: true });
+        return;
+      }
+      setMeasurements(robust);
+
       // If taken via live camera and quality checks pass, move ahead automatically to analysis!
-      if (p.source === "camera" && !q.blocking && q.failed === 0) {
+      if (p.source === "camera" && q.failed === 0) {
         handedOff.current = true;
         onAnalyse({
           img: p.img,
           url: p.url,
           dataUrl: p.dataUrl,
           det: d,
-          m: mRes ?? undefined,
-          frameCount: fCount,
+          measurements: robust,
         });
         return;
       }
 
-      if (q.blocking) {
-        setMsg({ text: `${q.blocking} You can still tap "Analyse anyway" or retake.`, bad: false });
-      } else if (q.failed) {
+      if (q.failed) {
         setMsg({
-          text: `${q.failed} quality check${q.failed > 1 ? "s" : ""} need attention. You can proceed anyway or retake.`,
+          text: `${q.failed} quality ${q.failed === 1 ? "check needs" : "checks need"} attention. You can proceed anyway or retake.`,
           bad: false,
         });
       }
     } catch (e) {
+      if (pendingRef.current !== p) return;
       console.error(e);
       setMsg({ text: "Could not read this photo. Try another one.", bad: true });
     } finally {
-      setBusy(false);
+      if (pendingRef.current === p) setBusy(false);
     }
   }, [onAnalyse]);
 
@@ -150,6 +156,7 @@ export default function Capture({
 
   function setNew(p: Pending) {
     if (pendingRef.current) URL.revokeObjectURL(pendingRef.current.url);
+    pendingRef.current = p;
     setPending(p);
     setDet(null);
     setReport(null);
@@ -202,7 +209,7 @@ export default function Capture({
     }
   };
 
-  const canAnalyse = Boolean(pending && det && report);
+  const canAnalyse = pending && det && measurements && report && !report.blocking && !busy;
 
   return (
     <div
@@ -461,17 +468,16 @@ export default function Capture({
                 onClick={() => {
                   handedOff.current = true;
                   onAnalyse({
-                    img: pending!.img,
-                    url: pending!.url,
-                    dataUrl: pending!.dataUrl,
-                    det: det!,
-                    m: measures ?? undefined,
-                    frameCount,
+                    img: pending.img,
+                    url: pending.url,
+                    dataUrl: pending.dataUrl,
+                    det,
+                    measurements,
                   });
                 }}
                 style={{ minHeight: 52 }}
               >
-                {report?.blocking || report?.failed ? "Analyse anyway" : "Continue to analysis"}
+                {report.failed ? "Analyse anyway" : "Continue to analysis"}
               </button>
             )}
 
@@ -480,6 +486,10 @@ export default function Capture({
                 <button
                   type="button"
                   onClick={() => {
+                    if (pendingRef.current) URL.revokeObjectURL(pendingRef.current.url);
+                    pendingRef.current = null;
+                    setPending(null);
+                    setBusy(false);
                     setMsg(null);
                     setMode("live");
                   }}

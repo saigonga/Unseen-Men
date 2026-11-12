@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { detect, loadDetector } from "@/lib/detector";
-import { analyse, analyseMeasures } from "@/lib/faceShape";
+import { analyseMeasures, shapeHeadline } from "@/lib/faceShape";
 import { robustMeasures } from "@/lib/robust";
 import { loadImage } from "@/lib/image";
+import { checkQuality } from "@/lib/quality";
 
 const DEFAULT = "leonard1.png leonard2.png leonard3.png raj1.png raj2.png raj3.png sheldon1.png sheldon2.png sheldon3.png howard1.png howard2.png howard3.png";
 
@@ -24,7 +25,7 @@ function variant(img: HTMLImageElement, pad: number, scale: number) {
   return c;
 }
 
-interface Row { file: string; baseline: string[]; robust: string[] }
+interface Row { file: string; primary: string[]; report: string[]; blocked: number }
 
 export default function StabilityLab() {
   const [files, setFiles] = useState(DEFAULT);
@@ -38,13 +39,15 @@ export default function StabilityLab() {
     for (const f of files.split(/\s+/).filter(Boolean)) {
       setStatus(`Scanning ${f}…`);
       const img = await loadImage(`/_test/${f}`);
-      const row: Row = { file: f, baseline: [], robust: [] };
+      const row: Row = { file: f, primary: [], report: [], blocked: 0 };
       for (const v of VARIANTS) {
         const c = variant(img, v.pad, v.scale);
         const d = await detect(c);
-        row.baseline.push(d ? analyse(d.P, "none").key : "-");
-        const r = await robustMeasures(c);
-        row.robust.push(r ? analyseMeasures(r.m, "none").key : "-");
+        if (d && checkQuality(c, d).blocking) row.blocked++;
+        const r = d ? await robustMeasures(c, d) : null;
+        const result = r && analyseMeasures(r.m, "none");
+        row.primary.push(result?.key ?? "-");
+        row.report.push(result ? shapeHeadline(result) : "-");
       }
       out.push(row); setRows([...out]);
     }
@@ -56,18 +59,19 @@ export default function StabilityLab() {
   return (
     <div className="wrap" style={{ maxWidth: 900 }}>
       <h2>Stability lab</h2>
-      <p className="small muted">Each test photo is re-scanned with 6 different framings. A stable model gives one shape per photo. Files are read from /public/_test.</p>
+      <p className="small muted">Each photo is measured at six framings. The retake column counts failed quality gates. Both shape columns include all measurable variants so retakes cannot hide changes.</p>
       <textarea value={files} onChange={e => setFiles(e.target.value)} rows={3} style={{ width: "100%", font: "inherit", background: "var(--panel)", color: "var(--fg)" }} />
       <button className="primary" onClick={run}>Run</button>
       <p className="mono small" id="status">{status}</p>
       <table className="mono small" style={{ borderCollapse: "collapse" }}>
-        <thead><tr><th align="left">Photo</th><th align="left">Old (1 pass)</th><th align="left">New (median of 8)</th></tr></thead>
+        <thead><tr><th align="left">Photo</th><th align="left">Top shape</th><th align="left">Report headline</th><th align="left">Retakes</th></tr></thead>
         <tbody>
           {rows.map(r => (
             <tr key={r.file} style={{ borderTop: "1px solid var(--line)" }}>
               <td>{r.file}</td>
-              <td>{flips(r.baseline)} shape(s): {r.baseline.join(" ")}</td>
-              <td>{flips(r.robust)} shape(s): {r.robust.join(" ")}</td>
+              <td>{flips(r.primary)} shape(s): {r.primary.join(" ")}</td>
+              <td>{flips(r.report)} headline(s): {r.report.join(" / ")}</td>
+              <td>{r.blocked}</td>
             </tr>
           ))}
         </tbody>

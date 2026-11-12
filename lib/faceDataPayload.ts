@@ -1,8 +1,9 @@
 import { SHAPES } from "./content";
 import type { Beard } from "./content";
 import type { Detection } from "./detector";
-import { pct, rawProportions, isBorderline, shapeHeadline } from "./faceShape";
+import { pct, rawProportions, shapeHeadline } from "./faceShape";
 import type { FaceResult, Measures, ZScores } from "./faceShape";
+import type { RobustMeasures } from "./robust";
 import { TRAIT_Z } from "./faceShape.config";
 import { BARBER_GUIDE_BY_SHAPE, getFacialThirds } from "./styling";
 
@@ -19,10 +20,10 @@ export interface FaceDataPayload {
   headline: string;
   borderline: boolean;
   shapeKey: string;
-  confidencePct: number;
   leaning: string | null;
   rankedShapes: { shape: string; score: number }[];
   rawMeasures: Measures;
+  frameCount: number;
   measurements: {
     lengthToWidth: number;
     jawToCheek: number;
@@ -57,10 +58,11 @@ export interface FaceDataPayload {
 export function buildFaceDataPayload(
   result: FaceResult,
   det: Detection,
-  beard: Beard | null
+  beard: Beard | null,
+  measurements: RobustMeasures
 ): FaceDataPayload {
   const sh = SHAPES[result.key];
-  const props = rawProportions(det, result.m);
+  const props = rawProportions(det, measurements.raw3D);
   const barber = BARBER_GUIDE_BY_SHAPE[result.key];
   const populationNorms: Record<string, { label: string; tag: string; z: number; percentile: number }> = {};
 
@@ -80,10 +82,10 @@ export function buildFaceDataPayload(
   return {
     faceShape: sh.name,
     headline: shapeHeadline(result),
-    borderline: isBorderline(result),
+    borderline: Boolean(result.lean),
     shapeKey: result.key,
-    confidencePct: Math.round(result.ranked[0][1] * 100),
     leaning: result.lean || null,
+    frameCount: measurements.n,
     rankedShapes: result.ranked.map(([shape, score]) => ({
       shape,
       score: Number(score.toFixed(4)),

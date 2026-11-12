@@ -3,7 +3,7 @@
 import { SHAPES, SKIN_AREAS, ROUTINES, REWARD } from "./content";
 import type { AgeBracket, Beard, Pair } from "./content";
 import type { FaceResult } from "./faceShape";
-import { TRAIT_LABEL, pct } from "./faceShape";
+import { TRAIT_LABEL, shapeHeadline } from "./faceShape";
 import { TRAIT_Z } from "./faceShape.config";
 import type { SkinRead } from "./skin";
 import { cutSvg, beardSvg, svgToImage } from "./illustrations";
@@ -58,7 +58,7 @@ export async function buildPdf(d: PdfData): Promise<Blob> {
   };
   const footer = () => {
     font(7.5, "normal", K.muted);
-    doc.text("NODD MEN · Founding Member Program · Grooming guidance, not medical advice. Photo analysed on device and not stored.", L, 820);
+    doc.text("NODD MEN · Founding Member Program · Grooming guidance, not medical advice.", L, 820);
   };
   const newPage = () => { footer(); doc.addPage(); y = 50; };
   const ensure = (h: number) => { if (y + h > BOTTOM) newPage(); };
@@ -92,25 +92,24 @@ export async function buildPdf(d: PdfData): Promise<Blob> {
   }
   const vx = L + photoW + 24, vw = R - vx;
   font(8, "bold", K.muted); doc.text("YOUR FACE SHAPE", vx, y + 14);
-  font(44, "bold", K.brass); doc.text(sh.name.toUpperCase(), vx, y + 56);
-  const p1 = Math.round(r.ranked[0][1] * 100);
-  font(9.5, "bold", K.ink); doc.text(`${p1}% ${sh.name.toUpperCase()} MATCH${r.lean ? `  ·  SOME ${SHAPES[r.lean].name.toUpperCase()} FEATURES` : ""}`, vx, y + 76);
+  font(r.lean ? 21 : 44, "bold", K.brass);
+  const headingHeight = text(shapeHeadline(r).toUpperCase(), vx, y + 50, vw, 25);
+  const descY = y + Math.max(86, 55 + headingHeight);
   font(10, "normal", K.ink);
-  let vy = y + 96 + text(sh.desc, vx, y + 96, vw, 13.5);
+  let vy = descY + text(r.lean ? `Your measurements are close to both ${sh.name} and ${SHAPES[r.lean].name}.` : sh.desc, vx, descY, vw, 13.5);
   const apart = r.traits.length ? `What sets your face apart: ${r.traits.slice(0, 3).map(t => t.label.toLowerCase()).join(", ")}.` : "Balanced proportions: nothing stands out strongly.";
   font(10, "italic", K.muted); vy += 6 + text(apart, vx, vy + 6, vw, 13.5);
   y = Math.max(y + photoH, vy) + 10;
 
   // ---------- Compare bars ----------
-  section("How your face compares");
+  section("How your face compares with the scan reference");
   const BARS: [keyof typeof r.z, string, string, string][] = [["R", "Face length", "Shorter", "Longer"], ["J", "Jaw width", "Narrower", "Wider"], ["F", "Forehead width", "Narrower", "Wider"], ["K", "Chin", "Pointed", "Broad"], ["A", "Jaw angle", "Soft", "Sharp"]];
   BARS.forEach(([k, label, lo, hi]) => {
     ensure(30);
     const v = r.z[k], strong = Math.abs(v) >= TRAIT_Z;
-    const share = Math.max(1, v > 0 ? 100 - pct(v) : pct(v));
     font(9.5, "normal", K.ink); doc.text(label, L, y);
     font(8.5, "bold", strong ? K.brass : K.muted);
-    doc.text(strong ? `${v > 0 ? hi : lo} · ${v > 0 ? "top" : "bottom"} ${share}%` : "Average", R, y, { align: "right" });
+    doc.text(strong ? (v > 0 ? hi : lo) : "Near reference", R, y, { align: "right" });
     const ty = y + 8;
     doc.setFillColor(...K.line); doc.roundedRect(L, ty, Wd, 4, 2, 2, "F");
     doc.setDrawColor(...K.muted); doc.setLineWidth(0.6); doc.line(L + Wd / 2, ty - 2, L + Wd / 2, ty + 6);
