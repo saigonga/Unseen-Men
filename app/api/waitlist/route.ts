@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { checkIndianMobile, isEmail } from "@/lib/phone";
 
@@ -9,6 +10,123 @@ function generateReferralCode(): string {
   const bytes = new Uint8Array(4);
   crypto.getRandomValues(bytes);
   return "UM-" + Array.from(bytes, (b) => ABC[b % ABC.length]).join("");
+}
+
+/** Upload captured selfie and full face-analysis JSON to Supabase Storage `scans` bucket. */
+async function uploadScanAssets(
+  supabase: SupabaseClient,
+  referralCode: string,
+  photoBase64: string | null,
+  faceDataRecord: Record<string, unknown> | null
+): Promise<{ photoUrl: string | null; faceDataUrl: string | null }> {
+  let photoUrl: string | null = null;
+  let faceDataUrl: string | null = null;
+
+  if (photoBase64 && photoBase64.includes("base64")) {
+    try {
+      const cleanBase64 = photoBase64.includes(",") ? photoBase64.split(",")[1] : photoBase64;
+      const buffer = Buffer.from(cleanBase64, "base64");
+      const mime = photoBase64.startsWith("data:image/png") ? "image/png" : "image/jpeg";
+      const ext = mime === "image/png" ? "png" : "jpg";
+      const fileName = `${referralCode}_${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("scans")
+        .upload(fileName, buffer, { contentType: mime, upsert: true });
+
+      if (!uploadError) {
+        const { data: pubData } = supabase.storage.from("scans").getPublicUrl(fileName);
+        photoUrl = pubData?.publicUrl || null;
+      } else {
+        console.warn("Storage photo upload warning:", uploadError.message);
+      }
+    } catch (photoErr) {
+      console.warn("Failed to process photo upload:", photoErr);
+    }
+  }
+
+  if (faceDataRecord) {
+    try {
+      const jsonName = `${referralCode}_face_data.json`;
+      const { error: jsonErr } = await supabase.storage
+        .from("scans")
+        .upload(jsonName, Buffer.from(JSON.stringify(faceDataRecord, null, 2), "utf8"), {
+          contentType: "application/json",
+          upsert: true,
+        });
+
+      if (!jsonErr) {
+        const { data: pubJson } = supabase.storage.from("scans").getPublicUrl(jsonName);
+        faceDataUrl = pubJson?.publicUrl || null;
+      } else {
+        console.warn("Storage face_data JSON warning:", jsonErr.message);
+      }
+    } catch (jsonErr) {
+      console.warn("Failed to upload face_data JSON:", jsonErr);
+    }
+  }
+
+  return { photoUrl, faceDataUrl };
+}
+
+/** Encode complete summary into skin_concern if optional schema columns are absent. */
+function buildFallbackSkinConcern(
+  skinConcern: string | null,
+  rawEmail: string,
+  beard: string | null,
+  faceData: Record<string, unknown> | null,
+  faceDataUrl: string | null
+): string | null {
+  const parts: string[] = [];
+  if (skinConcern) parts.push(skinConcern);
+  if (rawEmail) parts.push(`email:${rawEmail}`);
+  if (beard) parts.push(`beard:${beard}`);
+  if (faceData) {
+    const m = (faceData.measurements || {}) as Record<string, unknown>;
+    const t = (faceData.facialThirds || {}) as Record<string, unknown>;
+    const summary = [
+      faceData.confidencePct != null ? `${faceData.confidencePct}%` : "",
+      m.lengthToWidth != null ? `L:W=${m.lengthToWidth}` : "",
+      m.jawToCheek != null ? `J:C=${m.jawToCheek}` : "",
+      m.jawAngleDeg != null ? `ang=${m.jawAngleDeg}` : "",
+      t.upperPct != null ? `3rds=${t.upperPct}/${t.midPct}/${t.lowerPct}` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    if (summary) parts.push(`metrics:[${summary}]`);
+  }
+  if (faceDataUrl) parts.push(`face_json:${faceDataUrl}`);
+  return parts.length ? parts.join(" | ") : null;
+}
+
+/** Persist waitlist row, stripping missing optional columns cleanly if schema hasn't migrated yet. */
+async function writeWaitlistWithFallback(
+  supabase: SupabaseClient,
+  mode: "insert" | "update",
+  payload: Record<string, unknown>,
+  fallbackConcern: string | null,
+  rowId?: string
+) {
+  const exec = (data: Record<string, unknown>) =>
+    mode === "insert"
+      ? supabase.from("waitlist").insert(data)
+      : supabase.from("waitlist").update(data).eq("id", rowId!);
+
+  const first = await exec(payload);
+  if (!first.error) return first;
+
+  const fallback = { ...payload };
+  delete fallback.email;
+  delete fallback.beard;
+  delete fallback.face_data;
+  if (first.error.message?.includes("photo_url")) {
+    delete fallback.photo_url;
+  }
+  if (fallbackConcern) {
+    fallback.skin_concern = fallbackConcern;
+  }
+
+  return exec(fallback);
 }
 
 export async function POST(req: NextRequest) {
@@ -23,6 +141,13 @@ export async function POST(req: NextRequest) {
     const skinConcern = body.skinConcern ? String(body.skinConcern) : null;
     const beard = body.beard ? String(body.beard) : null;
     const stylingData = body.styling || null;
+    const faceData =
+      body.faceData && typeof body.faceData === "object"
+        ? (body.faceData as Record<string, unknown>)
+        : stylingData && typeof stylingData === "object"
+          ? { facialThirds: stylingData.facialThirds, faceShape }
+          : null;
+    const skipPhotoIfPresent = Boolean(body.skipPhotoIfPresent);
     const requestedMemberNumber = body.memberNumber ? parseInt(String(body.memberNumber), 10) : null;
     let referredBy = body.referredBy ? String(body.referredBy).trim().toUpperCase() : null;
 
@@ -71,38 +196,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Database error during lookup." }, { status: 500 });
     }
 
+    const photoBase64 = body.photoBase64 ? String(body.photoBase64) : null;
+
     if (existing) {
-      // User was registered upfront or visited before.
-      // If this call contains the scan photo or face shape, update the existing database row!
-      let updatedPhotoUrl: string | null = existing.photo_url || null;
-      const photoBase64 = body.photoBase64 ? String(body.photoBase64) : null;
+      const shouldUploadPhoto = Boolean(photoBase64) && !(skipPhotoIfPresent && existing.photo_url);
+      const { photoUrl: newPhotoUrl, faceDataUrl } = await uploadScanAssets(
+        supabase,
+        existing.referral_code,
+        shouldUploadPhoto ? photoBase64 : null,
+        faceData
+          ? {
+              memberNumber: existing.member_number,
+              referralCode: existing.referral_code,
+              name: rawName || existing.name,
+              contact: prettyContact,
+              email: rawEmail || null,
+              ageBracket,
+              beard,
+              skinConcern,
+              photoUrl: existing.photo_url || null,
+              faceData,
+              savedAt: new Date().toISOString(),
+            }
+          : null
+      );
 
-      if (photoBase64 && photoBase64.includes("base64")) {
-        try {
-          const cleanBase64 = photoBase64.includes(",") ? photoBase64.split(",")[1] : photoBase64;
-          const buffer = Buffer.from(cleanBase64, "base64");
-          const mime = photoBase64.startsWith("data:image/png") ? "image/png" : "image/jpeg";
-          const ext = mime === "image/png" ? "png" : "jpg";
-          const fileName = `${existing.referral_code}_${Date.now()}.${ext}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from("scans")
-            .upload(fileName, buffer, {
-              contentType: mime,
-              upsert: true,
-            });
-
-          if (!uploadError) {
-            const { data: pubData } = supabase.storage.from("scans").getPublicUrl(fileName);
-            updatedPhotoUrl = pubData?.publicUrl || null;
-          } else {
-            console.warn("Storage upload warning during update:", uploadError.message);
-          }
-        } catch (photoErr) {
-          console.warn("Photo upload update error:", photoErr);
-        }
-      }
-
+      const updatedPhotoUrl = newPhotoUrl || existing.photo_url || null;
       const updatePayload: Record<string, unknown> = {};
       if (faceShape) updatePayload.face_shape = faceShape;
       if (ageBracket) updatePayload.age_bracket = ageBracket;
@@ -111,28 +230,15 @@ export async function POST(req: NextRequest) {
       if (updatedPhotoUrl) updatePayload.photo_url = updatedPhotoUrl;
       if (rawEmail) updatePayload.email = rawEmail;
       if (skinConcern) updatePayload.skin_concern = skinConcern;
-
-      if (Object.keys(updatePayload).length > 0) {
-        let { error: updateErr } = await supabase
-          .from("waitlist")
-          .update(updatePayload)
-          .eq("id", existing.id);
-
-        if (updateErr) {
-          // If optional email or beard columns do not exist in table schema, cleanly strip and retry
-          delete updatePayload.email;
-          delete updatePayload.beard;
-          if (rawEmail) {
-            updatePayload.skin_concern = skinConcern ? `${skinConcern} | email:${rawEmail}` : `email:${rawEmail}`;
-          }
-          if (updateErr.message?.includes("photo_url")) {
-            delete updatePayload.photo_url;
-          }
-          await supabase.from("waitlist").update(updatePayload).eq("id", existing.id);
-        }
+      if (faceData) {
+        updatePayload.face_data = faceDataUrl ? { ...faceData, faceDataUrl } : faceData;
       }
 
-      // Calculate their existing position
+      if (Object.keys(updatePayload).length > 0) {
+        const fallbackConcern = buildFallbackSkinConcern(skinConcern, rawEmail, beard, faceData, faceDataUrl);
+        await writeWaitlistWithFallback(supabase, "update", updatePayload, fallbackConcern, existing.id);
+      }
+
       const { count: priorCount } = await supabase
         .from("waitlist")
         .select("*", { count: "exact", head: true })
@@ -140,7 +246,6 @@ export async function POST(req: NextRequest) {
 
       const waitlistPosition = (priorCount || 0) + 1;
 
-      // Trigger n8n Webhook if completed scan details (face shape or photo) are present
       const n8nWebhook = process.env.N8N_WEBHOOK_URL;
       if (n8nWebhook && (faceShape || updatedPhotoUrl)) {
         try {
@@ -159,10 +264,13 @@ export async function POST(req: NextRequest) {
                 phone: prettyContact,
                 email: rawEmail || null,
                 ageBracket,
+                beard,
                 faceShape: faceShape || null,
                 skinConcern,
                 photoUrl: updatedPhotoUrl,
+                faceDataUrl,
               },
+              faceData,
               styling: stylingData,
             }),
           }).catch((e: Error) => console.warn("[n8n webhook error]:", e.message));
@@ -181,20 +289,16 @@ export async function POST(req: NextRequest) {
         referralCode: existing.referral_code,
         referralCount: existing.referral_count || 0,
         photoUrl: updatedPhotoUrl,
+        faceDataUrl,
       });
     }
 
-    // 2. Validate referral code format if present
-    if (referredBy && !CODE_RE.test(referredBy)) {
-      referredBy = null;
-    }
-
-    // Check if referrer exists in waitlist
+    // 2. Validate referred_by if provided
     let validReferrerCode: string | null = null;
-    if (referredBy) {
+    if (referredBy && CODE_RE.test(referredBy)) {
       const { data: referrerUser } = await supabase
         .from("waitlist")
-        .select("id, referral_code")
+        .select("referral_code")
         .eq("referral_code", referredBy)
         .maybeSingle();
 
@@ -219,7 +323,6 @@ export async function POST(req: NextRequest) {
     // 4. Assign Member Number
     let assignedMemberNumber = requestedMemberNumber && requestedMemberNumber > 0 ? requestedMemberNumber : 347;
 
-    // Check if the requested number is taken
     const { data: numCheck } = await supabase
       .from("waitlist")
       .select("id")
@@ -227,7 +330,6 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (numCheck) {
-      // Find highest member_number and increment
       const { data: maxRow } = await supabase
         .from("waitlist")
         .select("member_number")
@@ -238,35 +340,26 @@ export async function POST(req: NextRequest) {
       assignedMemberNumber = maxRow?.member_number ? maxRow.member_number + 1 : 348;
     }
 
-    // 5. Upload photo to Supabase Storage if provided
-    let photoUrl: string | null = null;
-    const photoBase64 = body.photoBase64 ? String(body.photoBase64) : null;
-
-    if (photoBase64 && photoBase64.includes("base64")) {
-      try {
-        const cleanBase64 = photoBase64.includes(",") ? photoBase64.split(",")[1] : photoBase64;
-        const buffer = Buffer.from(cleanBase64, "base64");
-        const mime = photoBase64.startsWith("data:image/png") ? "image/png" : "image/jpeg";
-        const ext = mime === "image/png" ? "png" : "jpg";
-        const fileName = `${assignedCode}_${Date.now()}.${ext}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("scans")
-          .upload(fileName, buffer, {
-            contentType: mime,
-            upsert: true,
-          });
-
-        if (!uploadError) {
-          const { data: pubData } = supabase.storage.from("scans").getPublicUrl(fileName);
-          photoUrl = pubData?.publicUrl || null;
-        } else {
-          console.warn("Storage upload warning:", uploadError.message);
-        }
-      } catch (photoErr) {
-        console.warn("Failed to process photo upload:", photoErr);
-      }
-    }
+    // 5. Upload photo + complete face data JSON to Supabase Storage
+    const { photoUrl, faceDataUrl } = await uploadScanAssets(
+      supabase,
+      assignedCode,
+      photoBase64,
+      faceData
+        ? {
+            memberNumber: assignedMemberNumber,
+            referralCode: assignedCode,
+            name: rawName,
+            contact: prettyContact,
+            email: rawEmail || null,
+            ageBracket,
+            beard,
+            skinConcern,
+            faceData,
+            savedAt: new Date().toISOString(),
+          }
+        : null
+    );
 
     // 6. Insert new waitlist row
     const insertPayload: Record<string, unknown> = {
@@ -283,50 +376,34 @@ export async function POST(req: NextRequest) {
       referral_count: 0,
     };
 
-    if (photoUrl) {
-      insertPayload.photo_url = photoUrl;
+    if (photoUrl) insertPayload.photo_url = photoUrl;
+    if (faceData) {
+      insertPayload.face_data = faceDataUrl ? { ...faceData, faceDataUrl } : faceData;
     }
 
-    let { error: insertErr } = await supabase.from("waitlist").insert(insertPayload);
-
-    // If email, beard, or photo_url column doesn't exist yet, retry with clean fallback
-    if (insertErr) {
-      delete insertPayload.email;
-      delete insertPayload.beard;
-      if (rawEmail) {
-        insertPayload.skin_concern = skinConcern ? `${skinConcern} | email:${rawEmail}` : `email:${rawEmail}`;
-      }
-      if (insertErr.message?.includes("photo_url")) {
-        delete insertPayload.photo_url;
-      }
-      const retry = await supabase.from("waitlist").insert(insertPayload);
-      insertErr = retry.error;
-    }
+    const fallbackConcern = buildFallbackSkinConcern(skinConcern, rawEmail, beard, faceData, faceDataUrl);
+    const { error: insertErr } = await writeWaitlistWithFallback(supabase, "insert", insertPayload, fallbackConcern);
 
     if (insertErr) {
       console.error("Waitlist insertion error:", insertErr);
       return NextResponse.json({ ok: false, error: "Failed to join waitlist. Please try again." }, { status: 500 });
     }
 
-    // 6. Atomically increment referrer's count if applicable
+    // 7. Atomically increment referrer's count if applicable
     if (validReferrerCode) {
       try {
         await supabase.rpc("increment_referral_count", { ref_code: validReferrerCode });
-      } catch (rpcErr) {
-        // Fallback update if RPC fails
-        await supabase
-          .from("waitlist")
-          .update({ referral_count: supabase.rpc("increment_referral_count", { ref_code: validReferrerCode }) })
-          .eq("referral_code", validReferrerCode);
+      } catch {
+        // Ignore fallback RPC error
       }
     }
 
-    // 7. Calculate waitlist position
+    // 8. Calculate waitlist position
     const { count: totalWaitlist } = await supabase
       .from("waitlist")
       .select("*", { count: "exact", head: true });
 
-    // 8. Trigger n8n Webhook (if N8N_WEBHOOK_URL is configured in .env.local)
+    // 9. Trigger n8n Webhook if configured
     const n8nWebhook = process.env.N8N_WEBHOOK_URL;
     if (n8nWebhook) {
       try {
@@ -345,10 +422,13 @@ export async function POST(req: NextRequest) {
               phone: normalizedContact,
               email: rawEmail || (rawContact.includes("@") ? rawContact : null),
               ageBracket,
+              beard,
               faceShape,
               skinConcern,
               photoUrl,
+              faceDataUrl,
             },
+            faceData,
             styling: stylingData,
           }),
         }).catch((e: Error) => console.warn("[n8n webhook error]:", e.message));
@@ -367,6 +447,7 @@ export async function POST(req: NextRequest) {
       referralCode: assignedCode,
       referralCount: 0,
       photoUrl,
+      faceDataUrl,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal Server Error";

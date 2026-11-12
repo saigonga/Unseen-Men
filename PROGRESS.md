@@ -228,6 +228,16 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
   - Removed `MY CUT` and `MY BEARD` panels from the 9:16 Instagram story card.
   - Expanded the scanned photo / face glyph hero area (`PH = 1220`) to balance the card proportions cleanly around the user's face, face shape, match %, and referral code.
 
+## Phase 5.11 — Complete Face Data Database Persistence · BUILT & VERIFIED
+- **Structured Payload Builder (`lib/faceDataPayload.ts`)**:
+  - Aggregates all facial architecture outputs into `FaceDataPayload`: face shape, confidence %, leaning shape, all 6 ranked shape scores, raw ratios (`R`, `J`, `F`, `K`, `G`), z-scores & population norm percentiles, facial thirds (`upperPct/midPct/lowerPct`), barber direction & specs, structural highlights (`traits`), top 3 recommended cuts, cuts to avoid, beard verdict & styles, detection engine (`mediapipe` / `face-api`), head pose, and timestamp.
+- **Immediate & Results Sync (`components/FaceScanApp.tsx` & `components/screens/Results.tsx`)**:
+  - Computes face analysis immediately on capture completion and dispatches `photoBase64` + full `faceData` in background, then ensures `faceData` + `memberNumber` sync on Results with `skipPhotoIfPresent` to avoid duplicate image uploads.
+- **Supabase Persistence (`app/api/waitlist/route.ts`)**:
+  - Uploads full structured JSON (`${referral_code}_face_data.json`) to Supabase Storage `scans` bucket.
+  - Saves `face_data` (JSONB), `email`, and `beard` directly into `waitlist` when those columns exist, and cleanly preserves compact metrics + `face_json` URL inside `skin_concern` when using the base schema.
+  - Verified end-to-end against live Supabase database and storage.
+
 ## Next
 - Phase 4: Claude API skin read server route.
 - Phase 6: Privacy policy & terms pages, analytics, rate limiting.

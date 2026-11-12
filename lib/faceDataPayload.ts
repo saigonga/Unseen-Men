@@ -1,0 +1,125 @@
+import { SHAPES } from "./content";
+import type { Beard } from "./content";
+import type { Detection } from "./detector";
+import { pct } from "./faceShape";
+import type { FaceResult, ZScores } from "./faceShape";
+import { TRAIT_Z } from "./faceShape.config";
+import { BARBER_GUIDE_BY_SHAPE, getFacialThirds } from "./styling";
+
+const NORM_BARS: [keyof ZScores, string, string, string, string][] = [
+  ["R", "faceLength", "Face length", "Shorter", "Longer"],
+  ["J", "jawWidth", "Jaw width", "Narrower", "Wider"],
+  ["F", "foreheadWidth", "Forehead width", "Narrower", "Wider"],
+  ["K", "chinContour", "Chin contour", "Pointed", "Broad"],
+  ["A", "jawlineAngle", "Jawline angle", "Soft", "Defined"],
+];
+
+export interface FaceDataPayload {
+  faceShape: string;
+  shapeKey: string;
+  confidencePct: number;
+  leaning: string | null;
+  rankedShapes: { shape: string; score: number }[];
+  measurements: {
+    lengthToWidth: number;
+    jawToCheek: number;
+    foreheadToCheek: number;
+    chinToCheek: number;
+    jawAngleDeg: number;
+  };
+  zScores: Record<keyof ZScores, number>;
+  populationNorms: Record<string, { label: string; tag: string; z: number; percentile: number }>;
+  facialThirds: ReturnType<typeof getFacialThirds>;
+  barberDirection: {
+    primaryDirection: string;
+    topLength: string;
+    sidesLength: string;
+    taper: string;
+    stylingProduct: string;
+  };
+  structuralHighlights: { key: string; label: string; z: number }[];
+  topCuts: { name: string; reason: string }[];
+  avoidCuts: { name: string; desc: string }[];
+  beardVerdict: {
+    verdict: string;
+    currentBeard: Beard | null;
+    recommendedStyles: { name: string; desc: string }[];
+  };
+  engine: "mediapipe" | "face-api";
+  pose: Detection["pose"] | null;
+  scannedAt: string;
+}
+
+/** Build the complete structured facial architecture payload for database persistence. */
+export function buildFaceDataPayload(
+  result: FaceResult,
+  det: Detection,
+  beard: Beard | null
+): FaceDataPayload {
+  const sh = SHAPES[result.key];
+  const barber = BARBER_GUIDE_BY_SHAPE[result.key];
+  const populationNorms: Record<string, { label: string; tag: string; z: number; percentile: number }> = {};
+
+  for (const [k, keyName, label, lo, hi] of NORM_BARS) {
+    const v = result.z[k];
+    const strong = Math.abs(v) >= TRAIT_Z;
+    const share = Math.max(1, v > 0 ? 100 - pct(v) : pct(v));
+    const tag = !strong ? "Average" : `${v > 0 ? hi : lo} · ${v > 0 ? "top" : "bottom"} ${share}%`;
+    populationNorms[keyName] = {
+      label,
+      tag,
+      z: Number(v.toFixed(3)),
+      percentile: pct(v),
+    };
+  }
+
+  return {
+    faceShape: sh.name,
+    shapeKey: result.key,
+    confidencePct: Math.round(result.ranked[0][1] * 100),
+    leaning: result.lean || null,
+    rankedShapes: result.ranked.map(([shape, score]) => ({
+      shape,
+      score: Number(score.toFixed(4)),
+    })),
+    measurements: {
+      lengthToWidth: Number(result.m.R.toFixed(3)),
+      jawToCheek: Number(result.m.J.toFixed(3)),
+      foreheadToCheek: Number(result.m.F.toFixed(3)),
+      chinToCheek: Number(result.m.K.toFixed(3)),
+      jawAngleDeg: Number(result.m.G.toFixed(2)),
+    },
+    zScores: {
+      R: Number(result.z.R.toFixed(3)),
+      J: Number(result.z.J.toFixed(3)),
+      F: Number(result.z.F.toFixed(3)),
+      K: Number(result.z.K.toFixed(3)),
+      G: Number(result.z.G.toFixed(3)),
+      A: Number(result.z.A.toFixed(3)),
+    },
+    populationNorms,
+    facialThirds: getFacialThirds(det.P),
+    barberDirection: {
+      primaryDirection: barber.primaryDirection,
+      topLength: barber.topLength,
+      sidesLength: barber.sidesLength,
+      taper: barber.taper,
+      stylingProduct: barber.stylingProduct,
+    },
+    structuralHighlights: result.traits.map((t) => ({
+      key: t.key,
+      label: t.label,
+      z: Number(t.z.toFixed(2)),
+    })),
+    topCuts: result.cuts.slice(0, 3).map((c) => ({ name: c.n, reason: c.why })),
+    avoidCuts: result.avoid.map(([name, desc]) => ({ name, desc })),
+    beardVerdict: {
+      verdict: sh.beard.v,
+      currentBeard: beard,
+      recommendedStyles: sh.beard.styles.map(([name, desc]) => ({ name, desc })),
+    },
+    engine: det.P478 ? "mediapipe" : "face-api",
+    pose: det.pose || null,
+    scannedAt: new Date().toISOString(),
+  };
+}

@@ -14,6 +14,8 @@ import { loadDetector } from "@/lib/detector";
 import type { Detection } from "@/lib/detector";
 import { analyse, analyseMeasures } from "@/lib/faceShape";
 import type { FaceResult, Measures } from "@/lib/faceShape";
+import { SHAPES } from "@/lib/content";
+import { buildFaceDataPayload } from "@/lib/faceDataPayload";
 import { captureReferral } from "@/lib/referral";
 import { getPhotoDataUrl } from "@/lib/photoData";
 import dynamic from "next/dynamic";
@@ -109,35 +111,38 @@ export default function FaceScanApp() {
         return p;
       });
 
-      // Sync photo immediately to waitlist in background as soon as capture finishes
-      if (userLead) {
-        const getBase64 = async () => p.dataUrl || (await getPhotoDataUrl(p));
-        getBase64().then((photoBase64) => {
-          if (photoBase64) {
-            fetch("/api/waitlist", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                name: userLead.name,
-                contact: userLead.phone,
-                phone: userLead.phone,
-                email: userLead.email,
-                ageBracket: userLead.age,
-                beard: userLead.beard,
-                skinConcern: userLead.concern,
-                photoBase64,
-              }),
-            }).catch((err) => console.warn("Background photo sync:", err));
-          }
-        });
-      }
-
       // Show the animated landmark mapping analysis
       go("scan");
 
-      // Compute measurements
-      const r = p.m ? analyseMeasures(p.m, answers.beard) : analyse(p.det.P, answers.beard);
+      // Compute measurements immediately
+      const effectiveBeard = userLead?.beard || answers.beard;
+      const r = p.m ? analyseMeasures(p.m, effectiveBeard) : analyse(p.det.P, effectiveBeard);
       setResult(r);
+
+      // Sync photo + complete face data immediately to waitlist in background
+      if (userLead) {
+        const faceData = buildFaceDataPayload(r, p.det, effectiveBeard);
+        const getBase64 = async () => p.dataUrl || (await getPhotoDataUrl(p));
+        getBase64().then((photoBase64) => {
+          fetch("/api/waitlist", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            keepalive: true,
+            body: JSON.stringify({
+              name: userLead.name,
+              contact: userLead.phone,
+              phone: userLead.phone,
+              email: userLead.email,
+              ageBracket: userLead.age,
+              beard: effectiveBeard,
+              faceShape: SHAPES[r.key].name,
+              skinConcern: userLead.concern,
+              photoBase64: photoBase64 || undefined,
+              faceData,
+            }),
+          }).catch((err) => console.warn("Background face sync:", err));
+        });
+      }
 
       // Allow 2.2s for scanning animation to complete, then reveal the report
       await new Promise((res) => setTimeout(res, 2200));

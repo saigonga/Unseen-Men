@@ -12,6 +12,7 @@ import ShareSection from "../results/ShareSection";
 import Rewards from "../results/Rewards";
 import FacialThirdsSection from "../results/FacialThirdsSection";
 import { getFacialThirds } from "@/lib/styling";
+import { buildFaceDataPayload } from "@/lib/faceDataPayload";
 import { getPhotoDataUrl } from "@/lib/photoData";
 import type { Answers } from "./Questions";
 import type { Photo } from "../FaceScanApp";
@@ -52,6 +53,7 @@ export default function Results({
     memberNumber: parseInt(surpriseNumber, 10),
   }));
   const fullRef = useRef<HTMLDivElement>(null);
+  const syncedRef = useRef(false);
 
   const sh = SHAPES[result.key];
   const p1 = result.ranked[0][1];
@@ -61,27 +63,33 @@ export default function Results({
     if (canvas) drawOverlay(canvas, photo.img, photo.det, true);
   }, [canvas, photo]);
 
-  // Auto-register lead when upfront details were provided
+  // Auto-register lead & persist full face architecture data to database
   useEffect(() => {
-    if (userLead) {
+    if (userLead && !syncedRef.current) {
+      syncedRef.current = true;
+      const effectiveBeard = userLead.beard || answers.beard || null;
+      const faceData = buildFaceDataPayload(result, photo.det, effectiveBeard);
       const getBase64 = async () => photo.dataUrl || (await getPhotoDataUrl(photo));
       getBase64().then((photoBase64) => {
         fetch("/api/waitlist", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          keepalive: true,
           body: JSON.stringify({
             name: userLead.name,
             contact: userLead.phone,
             phone: userLead.phone,
             email: userLead.email,
             ageBracket: userLead.age || answers.age,
-            beard: userLead.beard || answers.beard,
+            beard: effectiveBeard,
             faceShape: sh.name,
             skinConcern: userLead.concern || answers.concern,
             photoBase64,
+            skipPhotoIfPresent: true,
             memberNumber: surpriseNumber,
+            faceData,
             styling: {
-              facialThirds: getFacialThirds(photo.det.P),
+              facialThirds: faceData.facialThirds,
             },
           }),
         })
@@ -102,7 +110,7 @@ export default function Results({
           .catch((err) => console.warn("Auto-register fallback:", err));
       });
     }
-  }, [userLead, photo, answers, sh.name, surpriseNumber]);
+  }, [userLead, photo, answers, result, sh.name, surpriseNumber]);
 
   useEffect(() => {
     if (unlocked) {
