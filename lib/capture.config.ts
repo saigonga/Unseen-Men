@@ -18,9 +18,24 @@ export const Q = {
   smileMax: 0.55,     // mouth width ÷ cheek width
 };
 
+/** Stricter framing envelope for live 3D lock so every user is captured at uniform distance & straight-on pose. */
+export const LIVE_Q = {
+  sizeMin: 0.26,
+  sizeMax: 0.78,
+  offMax: 0.18,
+  offYMax: 0.20,
+  yawMax: 0.08,       // ~8 degrees max during straight-on baseline lock
+  rollMax: 7,         // level head within 7 degrees
+  lumMin: 60,
+  mouthMax: 0.085,
+  smileMax: 0.52,
+};
+
 export const LIVE = {
-  holdMs: 1000,       // face must hold steady this long before auto-capture
-  countdown: 3,       // seconds shown on screen
-  frames: 9,          // frames averaged for the measurement
-  sweepMs: 3000,      // "turn slowly left… now right"
+  holdMs: 900,        // straight-on hold duration before capturing frontal baseline
+  countdown: 2,
+  frames: 10,         // frontal 3D frames averaged
+  sideFrames: 8,      // target 3D frames collected on each side turn
+  turnDeg: 11,        // minimum head yaw (degrees from baseline) to count left/right sweep
+  turnTimeoutMs: 6500,// fallback timeout per turn stage if user holds still
 };

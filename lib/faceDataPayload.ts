@@ -1,8 +1,8 @@
 import { SHAPES } from "./content";
 import type { Beard } from "./content";
 import type { Detection } from "./detector";
-import { pct } from "./faceShape";
-import type { FaceResult, ZScores } from "./faceShape";
+import { pct, rawProportions, isBorderline, shapeHeadline } from "./faceShape";
+import type { FaceResult, Measures, ZScores } from "./faceShape";
 import { TRAIT_Z } from "./faceShape.config";
 import { BARBER_GUIDE_BY_SHAPE, getFacialThirds } from "./styling";
 
@@ -16,10 +16,13 @@ const NORM_BARS: [keyof ZScores, string, string, string, string][] = [
 
 export interface FaceDataPayload {
   faceShape: string;
+  headline: string;
+  borderline: boolean;
   shapeKey: string;
   confidencePct: number;
   leaning: string | null;
   rankedShapes: { shape: string; score: number }[];
+  rawMeasures: Measures;
   measurements: {
     lengthToWidth: number;
     jawToCheek: number;
@@ -57,6 +60,7 @@ export function buildFaceDataPayload(
   beard: Beard | null
 ): FaceDataPayload {
   const sh = SHAPES[result.key];
+  const props = rawProportions(det, result.m);
   const barber = BARBER_GUIDE_BY_SHAPE[result.key];
   const populationNorms: Record<string, { label: string; tag: string; z: number; percentile: number }> = {};
 
@@ -75,6 +79,8 @@ export function buildFaceDataPayload(
 
   return {
     faceShape: sh.name,
+    headline: shapeHeadline(result),
+    borderline: isBorderline(result),
     shapeKey: result.key,
     confidencePct: Math.round(result.ranked[0][1] * 100),
     leaning: result.lean || null,
@@ -82,12 +88,19 @@ export function buildFaceDataPayload(
       shape,
       score: Number(score.toFixed(4)),
     })),
+    rawMeasures: {
+      R: Number(result.m.R.toFixed(4)),
+      J: Number(result.m.J.toFixed(4)),
+      F: Number(result.m.F.toFixed(4)),
+      K: Number(result.m.K.toFixed(4)),
+      G: Number(result.m.G.toFixed(2)),
+    },
     measurements: {
-      lengthToWidth: Number(result.m.R.toFixed(3)),
-      jawToCheek: Number(result.m.J.toFixed(3)),
-      foreheadToCheek: Number(result.m.F.toFixed(3)),
-      chinToCheek: Number(result.m.K.toFixed(3)),
-      jawAngleDeg: Number(result.m.G.toFixed(2)),
+      lengthToWidth: props.lengthToWidth,
+      jawToCheek: props.jawToCheek,
+      foreheadToCheek: props.foreheadToCheek,
+      chinToCheek: props.chinToCheek,
+      jawAngleDeg: props.jawAngleDeg,
     },
     zScores: {
       R: Number(result.z.R.toFixed(3)),

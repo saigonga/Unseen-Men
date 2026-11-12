@@ -14,24 +14,36 @@ export const NORM: Record<MeasureKey, [number, number]> = {
   G: [149.8, 4.52],
 };
 
-/** Calibrated MediaPipe 478-point craniofacial norms [mean, sd] and foreshortening compensation.
- *  Derived across 36 Indian male selfies & reference portraits so MediaPipe 478 measurements
- *  map cleanly onto the canonical z-score space without collapsing round/low-angle selfies into Square. */
+/** Calibrated MediaPipe 478-point 2D fallback norms [mean, sd] when 3D z-depth isn't available. */
 export const MP_NORM: Record<MeasureKey, [number, number]> = {
-  R: [1.448, 0.072],
-  J: [0.785, 0.022],
-  F: [0.828, 0.024],
-  K: [0.422, 0.024],
-  G: [147.8, 4.20],
+  R: [1.455, 0.068],
+  J: [0.733, 0.024],
+  F: [0.798, 0.025],
+  K: [0.468, 0.020],
+  G: [147.8, 3.60],
 };
 
-/** Lower-face vertical ratio baseline and foreshortening slope (deg per unit lowerH) for jaw angle G. */
-export const MP_PITCH_COMP = {
-  baseLowerH: 0.685,
-  degPerUnit: 68,
-  softDeadzone: 0.55,
-  softGain: 0.35,
+/** Calibrated 3D pose-normalised craniofacial norms [mean, sd] from lib/mesh3d.ts (`measureCanonical`).
+ *  Because `canonicalize` rotates every frame (front, left, right) to a straight-on canonical frame,
+ *  yaw/pitch/distance distortions are removed prior to z-score mapping. */
+export const MP3D_NORM: Record<MeasureKey, [number, number]> = {
+  R: [1.198, 0.052],
+  J: [0.725, 0.024],
+  F: [0.799, 0.025],
+  K: [0.319, 0.016],
+  G: [148.0, 3.60],
 };
+
+/** Lower-face vertical ratio baseline and soft deadzone tuning. */
+export const MP_PITCH_COMP = {
+  baseLowerH: 0.855,
+  degPerUnit: 68,
+  softDeadzone: 0.68,
+  softGain: 0.30,
+};
+
+/** Show an honest "ShapeA–ShapeB Blend" when the second shape reaches this share of the top shape. */
+export const BORDERLINE_RATIO = 0.72;
 
 /** z-scores are clamped to ±Z_CLAMP. */
 export const Z_CLAMP = 3;

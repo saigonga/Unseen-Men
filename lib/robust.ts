@@ -9,6 +9,7 @@ import type { Detection, FaceInput } from "./detector";
 import { isMediaPipeReady, mpDetect } from "./mediapipe";
 import { measure, measureDetection } from "./faceShape";
 import type { Measures } from "./faceShape";
+import { filterOutliers } from "./mesh3d";
 import { inputSize } from "./quality";
 
 const KEYS = ["R", "J", "F", "K", "G"] as const;
@@ -19,13 +20,14 @@ const median = (a: number[]) => { const s = [...a].sort((x, y) => x - y), n = s.
 export interface RobustMeasures { m: Measures; n: number; spread: Measures }
 
 export function medianMeasures(list: Measures[]): RobustMeasures {
+  const clean = filterOutliers(list);
   const m = {} as Measures, spread = {} as Measures;
   for (const k of KEYS) {
-    const v = list.map(x => x[k]);
+    const v = clean.map(x => x[k]);
     m[k] = median(v);
     spread[k] = median(v.map(x => Math.abs(x - m[k]))) * 1.4826; // robust SD (MAD)
   }
-  return { m, n: list.length, spread };
+  return { m, n: clean.length, spread };
 }
 
 function canvasOf(input: FaceInput, flip: boolean) {

@@ -56,6 +56,7 @@ export default function Capture({
   const [msg, setMsg] = useState<Msg>(null);
   const [busy, setBusy] = useState(false);
   const [measures, setMeasures] = useState<Measures | null>(null);
+  const [frameCount, setFrameCount] = useState<number>(1);
   const handedOff = useRef(false);
 
   const pendingRef = useRef<Pending | null>(null);
@@ -97,8 +98,11 @@ export default function Capture({
         return;
       }
       const q = checkQuality(p.img, d);
-      const mRes = (await robustMeasures(p.img, d, p.frames ?? []))?.m ?? null;
+      const robust = await robustMeasures(p.img, d, p.frames ?? []);
+      const mRes = robust?.m ?? null;
+      const fCount = robust?.n ?? (p.frames?.length || 1);
       setMeasures(mRes);
+      setFrameCount(fCount);
       setDet(d);
       setReport(q);
 
@@ -111,6 +115,7 @@ export default function Capture({
           dataUrl: p.dataUrl,
           det: d,
           m: mRes ?? undefined,
+          frameCount: fCount,
         });
         return;
       }
@@ -461,6 +466,7 @@ export default function Capture({
                     dataUrl: pending!.dataUrl,
                     det: det!,
                     m: measures ?? undefined,
+                    frameCount,
                   });
                 }}
                 style={{ minHeight: 52 }}

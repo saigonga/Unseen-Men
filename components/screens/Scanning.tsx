@@ -51,11 +51,12 @@ export default function Scanning({ url, photo }: ScanningProps) {
   }, []);
 
   const has478 = Boolean(photo?.det?.P478 && photo.det.P478.length >= 468);
+  const frameN = photo?.frameCount || 1;
   const baseSteps: { name: string; finalVal: string }[] = [
     { name: "Photo quality check", finalVal: "Passed" },
-    { name: "3D Craniofacial mesh", finalVal: has478 ? "478 points" : "68 points" },
-    { name: "Face shape architecture", finalVal: "Computed" },
-    { name: "Jawline & gonial angle", finalVal: "Pitch-calibrated" },
+    { name: "3D Craniofacial mesh", finalVal: has478 ? (frameN > 2 ? `478 pt · ${frameN} frames` : "478 points") : "68 points" },
+    { name: "3D Pose normalisation", finalVal: "Calibrated" },
+    { name: "Jawline & gonial angle", finalVal: "Measured" },
     { name: "Facial thirds", finalVal: "Calculated" },
     { name: "Proportions vs population norms", finalVal: "Indexed" },
   ];

@@ -12,7 +12,7 @@ import type { Answers } from "./screens/Questions";
 import Results from "./screens/Results";
 import { loadDetector } from "@/lib/detector";
 import type { Detection } from "@/lib/detector";
-import { analyseMeasures, measureDetection } from "@/lib/faceShape";
+import { analyseMeasures, blendMeasures, measureDetection } from "@/lib/faceShape";
 import type { FaceResult, Measures } from "@/lib/faceShape";
 import { SHAPES } from "@/lib/content";
 import { buildFaceDataPayload } from "@/lib/faceDataPayload";
@@ -30,6 +30,7 @@ export interface Photo {
   dataUrl?: string;
   det: Detection;
   m?: Measures;
+  frameCount?: number;
 }
 
 export type ModelState = "loading" | "ready" | "error";
@@ -85,6 +86,7 @@ export default function FaceScanApp() {
   const [result, setResult] = useState<FaceResult | null>(null);
   const [model, setModel] = useState<ModelState>("loading");
   const referredBy = useRef<string | null>(null);
+  const priorScanRef = useRef<{ m: Measures; scanCount: number } | null>(null);
 
   useEffect(() => {
     referredBy.current = captureReferral();
@@ -114,14 +116,29 @@ export default function FaceScanApp() {
       // Show the animated landmark mapping analysis
       go("scan");
 
-      // Compute measurements immediately
+      // Compute measurements immediately, settling against any prior scan baseline for returning users
       const effectiveBeard = userLead?.beard || answers.beard;
-      const r = analyseMeasures(p.m ?? measureDetection(p.det), effectiveBeard);
+      const baseMeasures = p.m ?? measureDetection(p.det);
+      const settledMeasures = priorScanRef.current
+        ? blendMeasures(
+            priorScanRef.current.m,
+            baseMeasures,
+            Math.min(0.45, priorScanRef.current.scanCount * 0.2)
+          )
+        : baseMeasures;
+      const settledPhoto: Photo = { ...p, m: settledMeasures };
+      setPhoto(settledPhoto);
+
+      const r = analyseMeasures(settledMeasures, effectiveBeard);
       setResult(r);
 
       // Sync photo + complete face data immediately to waitlist in background
       if (userLead) {
-        const faceData = buildFaceDataPayload(r, p.det, effectiveBeard);
+        const faceData = {
+          ...buildFaceDataPayload(r, p.det, effectiveBeard),
+          frameCount: p.frameCount || 1,
+          scanCount: (priorScanRef.current?.scanCount || 0) + 1,
+        };
         const getBase64 = async () => p.dataUrl || (await getPhotoDataUrl(p));
         getBase64().then((photoBase64) => {
           fetch("/api/waitlist", {
@@ -171,6 +188,7 @@ export default function FaceScanApp() {
     });
     setResult(null);
     setUserLead(null);
+    priorScanRef.current = null;
     try {
       localStorage.removeItem("unseen_lead");
       localStorage.removeItem("unseen_consent_age");
@@ -203,7 +221,8 @@ export default function FaceScanApp() {
                 localStorage.setItem("unseen_lead", JSON.stringify(profile));
               } catch {}
 
-              // 1. Details go into database immediately
+              // 1. Details go into database immediately; capture any prior scan baseline for returning users
+              priorScanRef.current = null;
               fetch("/api/waitlist", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -216,7 +235,17 @@ export default function FaceScanApp() {
                   skinConcern: profile.concern,
                 }),
                 keepalive: true,
-              }).catch((e) => console.warn("Upfront lead registration error:", e));
+              })
+                .then((res) => res.json())
+                .then((data) => {
+                  if (data?.priorMeasures) {
+                    priorScanRef.current = {
+                      m: data.priorMeasures,
+                      scanCount: data.scanCount || 1,
+                    };
+                  }
+                })
+                .catch((e) => console.warn("Upfront lead registration error:", e));
 
               setInitialCaptureMode(mode);
               go("capture");

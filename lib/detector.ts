@@ -5,12 +5,15 @@ import { avgPts } from "./geometry";
 import type { Box, Pt } from "./geometry";
 import { loadMediaPipe, mpDetect, isMediaPipeReady } from "./mediapipe";
 import type { MPDetection } from "./mediapipe";
+import type { P3 } from "./mesh3d";
 
 export interface Detection {
   box: Box;
   P: Pt[];
   /** All 478 MediaPipe points (null when using face-api fallback). */
   P478: Pt[] | null;
+  /** All 478 MediaPipe points with depth (null when using face-api fallback). */
+  P3?: P3[] | null;
   /** Native head pose from MediaPipe (null when using face-api fallback). */
   pose: { yaw: number; pitch: number; roll: number } | null;
   /** Probability (0–1) that the face model reads the face structure as female. */
@@ -91,7 +94,7 @@ async function genderCheck(input: FaceInput): Promise<number> {
 }
 
 function mpToDetection(mp: MPDetection, femaleP: number): Detection {
-  return { box: mp.box, P: mp.P, P478: mp.P478, pose: mp.pose, femaleP };
+  return { box: mp.box, P: mp.P, P478: mp.P478, P3: mp.P3, pose: mp.pose, femaleP };
 }
 
 /** Accurate pass for a still photo. MediaPipe primary, face-api fallback. */
@@ -166,13 +169,21 @@ export function detectMP(input: HTMLImageElement | HTMLCanvasElement): Detection
   return mpToDetection(mp, 0);
 }
 
-/** Average several detections of the same face (multi-frame capture). */
+/** Average several detections of the same face (multi-frame 3D capture). */
 export function averageDetections(list: Detection[]): Detection {
   const P = list[0].P.map((_, i) => avgPts(list.map(d => d.P[i])));
   const with478 = list.filter((d): d is Detection & { P478: Pt[] } => Array.isArray(d.P478) && d.P478.length >= 468);
   const P478 = with478.length
     ? with478[0].P478.map((_, i) => avgPts(with478.map(d => d.P478[i])))
     : list[0].P478;
+  const with3d = list.filter((d): d is Detection & { P3: P3[] } => Array.isArray(d.P3) && d.P3.length >= 468);
+  const P3avg = with3d.length
+    ? with3d[0].P3.map((_, i) => ({
+        x: with3d.reduce((s, d) => s + d.P3[i].x, 0) / with3d.length,
+        y: with3d.reduce((s, d) => s + d.P3[i].y, 0) / with3d.length,
+        z: with3d.reduce((s, d) => s + d.P3[i].z, 0) / with3d.length,
+      }))
+    : (list[0].P3 ?? null);
   const withPose = list.filter((d): d is Detection & { pose: NonNullable<Detection["pose"]> } => d.pose !== null);
   const pose = withPose.length
     ? {
@@ -188,5 +199,5 @@ export function averageDetections(list: Detection[]): Detection {
     width: list.reduce((s, d) => s + d.box.width, 0) / n,
     height: list.reduce((s, d) => s + d.box.height, 0) / n,
   };
-  return { box, P, P478, pose, femaleP: list.reduce((s, d) => s + d.femaleP, 0) / n };
+  return { box, P, P478, P3: P3avg, pose, femaleP: list.reduce((s, d) => s + d.femaleP, 0) / n };
 }

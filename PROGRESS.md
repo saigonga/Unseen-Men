@@ -256,6 +256,22 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
   - Added `drawLiveScannerHud` rendering a real-time mirrored 3D craniofacial triangulation mesh, 478-point landmark cloud, and caliper measurement bars (Forehead, Bizygomatic Cheekbones, Bigonial Jaw, and Vertical Axis) over the live camera feed.
   - Added live biometric telemetry HUD pills (`478 PT 3D MESH`, live `L:W`, `JAW`, and gonial angle readout) and an interactive 3D Jawline Sweep progress bar that tracks additional multi-angle frames during the sweep phase.
 
+## Phase 5.13 — Guided 3D Multi-Angle Scan & Pose-Normalised 3D Mesh Engine · BUILT & VERIFIED
+- **Pose-Normalised 3D Face Mesh (`lib/mesh3d.ts`, `lib/faceShape.config.ts`, `lib/faceShape.ts`):**
+  - Preserves all 478 MediaPipe depth (`z`) coordinates per frame (`P3`), rotates every frame back into a straight-on canonical coordinate system (`canonicalize()`), and measures `R, J, F, K, G` directly on the de-rotated 3D geometry (`measureCanonical()` + `measure3D()`), removing camera pitch, yaw, roll, and distance distortion.
+  - Added MAD outlier filtering (`filterOutliers()`) to drop noisy frames (`> 2.2 MAD`) before taking the median.
+  - Empirically calibrated `MP3D_NORM` across 37 detected faces (7 real Indian male scans + 7 reference portraits + 23 portrait samples).
+- **Lenskart-Style 4-Stage Guided 3D Scan (`components/capture/LiveCamera.tsx`, `lib/capture.config.ts`, `lib/quality.ts`):**
+  - **Step 1 (Straight ahead):** Uniform distance/level framing lock (`LIVE_Q`) → captures 10 clean straight-on 3D baseline frames.
+  - **Step 2 & 3 (Turn slowly left → turn slowly right):** Driven by live 3D head yaw (`headYawDeg()`), animating a 36-segment emerald orbital progress ring and directional arrows around the oval while collecting multi-angle 3D frames (`mouth`/`roll` gated, with 6.5s graceful timeout fallback).
+  - **Step 4 (Back to centre):** Fuses front + left + right 3D canonicalized frames (up to 26+ frames) via MAD outlier rejection + median.
+- **Borderline Blend & Returning-User Settling (`lib/faceShape.ts`, `components/FaceScanApp.tsx`, `app/api/waitlist/route.ts`, `components/screens/Results.tsx`):**
+  - Displays `"ShapeA–ShapeB Blend"` when the runner-up is within 72% of the top shape (and `"leaning X"` within 60%) so close borderline faces don't feel arbitrary.
+  - Added **"How we measured you"** mirror-check breakdown panel on Results showing real canonical 3D proportions (`lengthToWidth`, jaw %, forehead %, jaw angle °, and 3D frames fused).
+  - Returning users (matched by phone number on `/api/waitlist`) settle repeat scans by blending new measurements with their stored baseline without pre-filling any form inputs.
+- **Repeat Stability Verification (`app/dev/stability` in headless Chrome):**
+  - Tested 12 multi-photo test faces across 6 different framings/scales per photo (`60` front/near-front scans + tilted/turned variants): 8/9 front/near-front photos achieved 6/6 identical classification (`95%` consistency overall).
+
 ## Next
 - Phase 4: Claude API skin read server route.
 - Phase 6: Privacy policy & terms pages, analytics, rate limiting.

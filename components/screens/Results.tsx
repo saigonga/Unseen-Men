@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SHAPES } from "@/lib/content";
+import { rawProportions, shapeHeadline, isBorderline } from "@/lib/faceShape";
 import type { FaceResult } from "@/lib/faceShape";
 import { drawOverlay } from "@/lib/overlay";
 import { newCode } from "@/lib/referral";
@@ -56,6 +57,9 @@ export default function Results({
   const syncedRef = useRef(false);
 
   const sh = SHAPES[result.key];
+  const headline = shapeHeadline(result);
+  const borderline = isBorderline(result);
+  const props3d = rawProportions(photo.det, result.m);
   const p1 = result.ranked[0][1];
   const beardStyle = sh.beard.styles[0][0];
 
@@ -205,6 +209,12 @@ export default function Results({
                 year: "numeric",
               })}{" "}
               · {Math.round(p1 * 100)}% {sh.name} match
+              {result.lean && (
+                <span>
+                  {" "}
+                  · {borderline ? `close blend with ${SHAPES[result.lean].name}` : `leaning ${SHAPES[result.lean].name}`}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -246,7 +256,7 @@ export default function Results({
                       fontWeight: 500,
                     }}
                   >
-                    {sh.name}
+                    {headline}
                   </span>
                 </div>
 
@@ -268,7 +278,7 @@ export default function Results({
                         fontWeight: 500,
                       }}
                     >
-                      {Math.max(1.15, Math.min(1.5, 1.3 + (result.z?.R || 0) * 0.08)).toFixed(2)}
+                      {props3d.lengthToWidth.toFixed(2)}×
                     </div>
                   </div>
                   <div>
@@ -281,7 +291,7 @@ export default function Results({
                         fontWeight: 500,
                       }}
                     >
-                      {Math.max(0.68, Math.min(0.92, 0.77 + (result.z?.J || 0) * 0.05)).toFixed(2)}
+                      {props3d.jawToCheek.toFixed(2)}
                     </div>
                   </div>
                   <div>
@@ -302,6 +312,63 @@ export default function Results({
                 <div style={{ fontSize: 13.5, color: "#5C4F47", lineHeight: 1.5 }}>
                   {sh.desc} {why}
                   {beardNote}
+                </div>
+
+                {/* "How we measured you" Mirror-Check Panel */}
+                <div
+                  style={{
+                    borderTop: "1px solid #ECECEA",
+                    paddingTop: 12,
+                    marginTop: 2,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 600, color: "#4F2C1D", letterSpacing: "0.02em" }}>
+                      HOW WE MEASURED YOU ({props3d.is3D ? "3D MESH" : "2D MESH"})
+                    </span>
+                    <span style={{ fontSize: 11, color: "#7A6A60" }}>
+                      {photo.frameCount && photo.frameCount > 2
+                        ? `${photo.frameCount} 3D frames fused`
+                        : "Check in a mirror"}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                      gap: "6px 12px",
+                      fontSize: 12,
+                      color: "#5C4F47",
+                    }}
+                  >
+                    <div>
+                      <span style={{ color: "#8A8A85" }}>Face length: </span>
+                      <strong style={{ color: "#111111", fontWeight: 500 }}>
+                        {props3d.lengthToWidth.toFixed(2)}× cheekbones
+                      </strong>
+                    </div>
+                    <div>
+                      <span style={{ color: "#8A8A85" }}>Jaw width: </span>
+                      <strong style={{ color: "#111111", fontWeight: 500 }}>
+                        {Math.round(props3d.jawToCheek * 100)}% of cheekbones
+                      </strong>
+                    </div>
+                    <div>
+                      <span style={{ color: "#8A8A85" }}>Forehead: </span>
+                      <strong style={{ color: "#111111", fontWeight: 500 }}>
+                        {Math.round(props3d.foreheadToCheek * 100)}% of cheekbones
+                      </strong>
+                    </div>
+                    <div>
+                      <span style={{ color: "#8A8A85" }}>Jaw corner angle: </span>
+                      <strong style={{ color: "#111111", fontWeight: 500 }}>
+                        {props3d.jawAngleDeg}°
+                      </strong>
+                    </div>
+                  </div>
                 </div>
               </div>
 

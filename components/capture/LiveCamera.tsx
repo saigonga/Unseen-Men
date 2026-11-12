@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { detectFast, averageDetections } from "@/lib/detector";
 import type { Detection } from "@/lib/detector";
-import { liveInstruction, metrics, isFemale } from "@/lib/quality";
-import { LIVE } from "@/lib/capture.config";
+import { liveInstruction, metrics, isFemale, headYawDeg } from "@/lib/quality";
+import { LIVE, LIVE_Q } from "@/lib/capture.config";
 import { measureDetection } from "@/lib/faceShape";
 import type { Measures } from "@/lib/faceShape";
 import { drawLiveScannerHud } from "@/lib/overlay";
@@ -17,6 +17,7 @@ export interface LiveShot {
 }
 
 type Phase = "intro" | "starting" | "tracking" | "capturing" | "sweep";
+type TurnCue = "none" | "left" | "right" | "center";
 
 export function isInAppBrowser() {
   if (typeof navigator === "undefined") return false;
@@ -79,12 +80,19 @@ export default function LiveCamera({
   const [green, setGreen] = useState(false);
   const [count, setCount] = useState<number | null>(null);
   const [sweepPct, setSweepPct] = useState(0);
+  const [turnCue, setTurnCue] = useState<TurnCue>("none");
+  const [ringCoverage, setRingCoverage] = useState<{ top: number; left: number; right: number }>({
+    top: 0,
+    left: 0,
+    right: 0,
+  });
   const [telemetry, setTelemetry] = useState<{
     r: string;
     j: string;
     g: string;
     yaw: string;
     pts: number;
+    frames: number;
   } | null>(null);
 
   const stop = useCallback(() => {
@@ -94,8 +102,8 @@ export default function LiveCamera({
     if (videoRef.current) videoRef.current.srcObject = null;
   }, []);
 
-  async function captureFrames(video: HTMLVideoElement, id: number): Promise<LiveShot | null> {
-    const shots: { c: HTMLCanvasElement; d: Detection; score: number }[] = [];
+  async function captureFrames(video: HTMLVideoElement, id: number): Promise<{ shot: LiveShot; frontYaw: number } | null> {
+    const shots: { c: HTMLCanvasElement; d: Detection; score: number; yaw: number }[] = [];
     for (let i = 0; i < LIVE.frames * 2 && shots.length < LIVE.frames; i++) {
       if (runId.current !== id) return null;
       const c = grab(video);
@@ -105,17 +113,149 @@ export default function LiveCamera({
       }
       if (d && (manual.current || liveInstruction(c, d) === null)) {
         const m = metrics(c, d);
-        shots.push({ c, d, score: m.yaw * 100 + m.roll + m.mouth * 100 });
+        if (m.mouth < LIVE_Q.mouthMax && m.smile < LIVE_Q.smileMax && m.roll < 12) {
+          shots.push({
+            c,
+            d,
+            score: m.yaw * 100 + m.roll + m.mouth * 100,
+            yaw: headYawDeg(d) ?? 0,
+          });
+        }
       }
+      setRingCoverage({ top: Math.min(1, shots.length / LIVE.frames), left: 0, right: 0 });
       await sleep(45);
     }
     if (shots.length < Math.ceil(LIVE.frames / 2)) return null;
     const best = shots.reduce((a, b) => (b.score < a.score ? b : a));
+    const yaws = shots.map((s) => s.yaw).sort((a, b) => a - b);
+    const frontYaw = yaws[Math.floor(yaws.length / 2)] ?? 0;
     return {
-      canvas: best.c,
-      det: averageDetections(shots.map((s) => s.d)),
-      frames: shots.map((s) => measureDetection(s.d)),
+      frontYaw,
+      shot: {
+        canvas: best.c,
+        det: averageDetections(shots.map((s) => s.d)),
+        frames: shots.map((s) => measureDetection(s.d)),
+      },
     };
+  }
+
+  /** Guided Lenskart-style multi-angle 3D sweep: turn left, turn right, return to center. */
+  async function guided3DSweep(
+    video: HTMLVideoElement,
+    id: number,
+    shot: LiveShot,
+    frontYaw: number
+  ): Promise<LiveShot> {
+    const allDets: Detection[] = [];
+    let leftCount = 0;
+    let rightCount = 0;
+    let firstDir: "left" | "right" | null = null;
+    let stage: "turn1" | "turn2" | "center" = "turn1";
+    let stageStart = performance.now();
+    const minNeeded = LIVE.sideFrames;
+    let centerCount = 0;
+
+    setPhase("sweep");
+    setTurnCue("left");
+
+    while (runId.current === id) {
+      if (manual.current && leftCount + rightCount >= 2) break;
+      const elapsed = performance.now() - stageStart;
+
+      const sd = await detectFast(video, false);
+      if (runId.current !== id) break;
+
+      if (sd) {
+        const sm = metrics(video, sd);
+        const yaw = headYawDeg(sd) ?? frontYaw;
+        const dyaw = yaw - frontYaw;
+        const cleanExpr = sm.mouth < LIVE_Q.mouthMax && sm.smile < LIVE_Q.smileMax && sm.roll < 14;
+
+        if (hudCanvasRef.current) {
+          drawLiveScannerHud(hudCanvasRef.current, video, sd, cleanExpr, "sweep");
+        }
+
+        if (stage === "turn1") {
+          if (Math.abs(dyaw) >= LIVE.turnDeg && cleanExpr) {
+            if (!firstDir) firstDir = dyaw < 0 ? "left" : "right";
+            if ((firstDir === "left" && dyaw <= -LIVE.turnDeg) || (firstDir === "right" && dyaw >= LIVE.turnDeg)) {
+              shot.frames.push(measureDetection(sd));
+              allDets.push(sd);
+              if (firstDir === "left") leftCount++;
+              else rightCount++;
+            }
+          }
+          const done1 = firstDir === "left" ? leftCount : rightCount;
+          if (done1 >= minNeeded || elapsed > LIVE.turnTimeoutMs) {
+            stage = "turn2";
+            stageStart = performance.now();
+            setTurnCue(firstDir === "right" ? "left" : "right");
+          }
+        } else if (stage === "turn2") {
+          const oppDir = firstDir === "right" ? "left" : "right";
+          const hitOpp = oppDir === "left" ? dyaw <= -LIVE.turnDeg : dyaw >= LIVE.turnDeg;
+          if (hitOpp && cleanExpr) {
+            shot.frames.push(measureDetection(sd));
+            allDets.push(sd);
+            if (oppDir === "left") leftCount++;
+            else rightCount++;
+          }
+          const done2 = oppDir === "left" ? leftCount : rightCount;
+          if (done2 >= minNeeded || elapsed > LIVE.turnTimeoutMs) {
+            stage = "center";
+            stageStart = performance.now();
+            setTurnCue("center");
+          }
+        } else {
+          if (Math.abs(dyaw) <= 8 && cleanExpr) {
+            shot.frames.push(measureDetection(sd));
+            centerCount++;
+          }
+          if (centerCount >= 3 || elapsed > 2500) break;
+        }
+
+        const lPct = Math.min(1, leftCount / minNeeded);
+        const rPct = Math.min(1, rightCount / minNeeded);
+        setRingCoverage({ top: 1, left: lPct, right: rPct });
+        const overall = Math.round(((1 + lPct + rPct) / 3) * 100);
+        setSweepPct(overall);
+
+        const mm = measureDetection(sd);
+        const yawInt = Math.round(yaw);
+        setTelemetry({
+          r: mm.R.toFixed(2),
+          j: mm.J.toFixed(2),
+          g: `${Math.round(mm.G)}°`,
+          yaw: `${yawInt >= 0 ? "+" : ""}${yawInt}°`,
+          pts: sd.P478 ? 478 : 68,
+          frames: shot.frames.length,
+        });
+
+        if (!cleanExpr && sm.mouth >= LIVE_Q.mouthMax) {
+          setHint("Keep your mouth closed while turning");
+        } else if (stage === "turn1") {
+          setHint("Step 2/3 · Turn slowly left (~15°)");
+        } else if (stage === "turn2") {
+          setHint(
+            firstDir === "right"
+              ? "Step 3/3 · Now turn slowly the other way"
+              : "Step 3/3 · Now turn slowly right (~15°)"
+          );
+        } else {
+          setHint("Look back at the centre…");
+        }
+      } else {
+        setHint("Keep your face in view while turning");
+        if (elapsed > LIVE.turnTimeoutMs) break;
+      }
+
+      await sleep(45);
+    }
+
+    if (allDets.length > 0) {
+      shot.det = averageDetections([shot.det, ...allDets]);
+    }
+    return shot;
   }
 
   const run = useCallback(
@@ -127,6 +267,8 @@ export default function LiveCamera({
         femaleVotes: number[] = [],
         frame = 0;
       setPhase("tracking");
+      setTurnCue("none");
+      setRingCoverage({ top: 0, left: 0, right: 0 });
 
       while (runId.current === id) {
         await nextFrame();
@@ -156,6 +298,7 @@ export default function LiveCamera({
             g: `${Math.round(m.G)}°`,
             yaw: `${yawDeg >= 0 ? "+" : ""}${yawDeg}°`,
             pts: d.P478 ? 478 : 68,
+            frames: 0,
           });
         } else if (!d) {
           setTelemetry(null);
@@ -188,47 +331,24 @@ export default function LiveCamera({
         setGreen(true);
 
         const remain = Math.max(0, LIVE.holdMs - elapsed);
-        if (remain > 0) {
+        if (remain > 0 && !manual.current) {
           setCount(Math.ceil(remain / 1000));
-          setHint("3D Mesh Locked · Hold still…");
+          setHint("Step 1/3 · Straight ahead · Hold still…");
         } else {
           setCount(null);
           setPhase("capturing");
-          setHint("Mapping 478 craniofacial landmarks…");
-          const shot = await captureFrames(video, id);
+          setHint("Step 1/3 · Locking front 3D mesh…");
+          const captured = await captureFrames(video, id);
           if (runId.current !== id) return;
-          if (!shot) {
+          if (!captured) {
             okSince = 0;
             setPhase("tracking");
             continue;
           }
-          setPhase("sweep");
-          setSweepPct(0);
-          const sweepStart = performance.now();
-          while (performance.now() - sweepStart < LIVE.sweepMs) {
-            if (runId.current !== id) return;
-            const p = Math.min(100, Math.round(((performance.now() - sweepStart) / LIVE.sweepMs) * 100));
-            setSweepPct(p);
-            setHint(
-              p < 45
-                ? "3D Jawline Sweep · Tilt slightly left…"
-                : p < 85
-                ? "3D Jawline Sweep · Tilt slightly right…"
-                : "Locking craniofacial proportions…"
-            );
-            const sd = await detectFast(video, false);
-            if (sd && hudCanvasRef.current) {
-              drawLiveScannerHud(hudCanvasRef.current, video, sd, true, "sweep");
-              const sm = metrics(video, sd);
-              if (sm.yaw < 0.12 && sm.mouth < 0.06) {
-                shot.frames.push(measureDetection(sd));
-              }
-            }
-            await sleep(50);
-          }
+          const finalShot = await guided3DSweep(video, id, captured.shot, captured.frontYaw);
           if (runId.current !== id) return;
           stop();
-          onShotRef.current(shot);
+          onShotRef.current(finalShot);
           return;
         }
       }
@@ -410,7 +530,11 @@ export default function LiveCamera({
               border: `1px solid ${green ? "rgba(46, 207, 127, 0.45)" : "rgba(255, 255, 255, 0.18)"}`,
             }}
           >
-            {telemetry ? `${telemetry.pts} PT 3D MESH` : "3D CRANIOFACIAL SCANNER"}
+            {telemetry
+              ? telemetry.frames > 0
+                ? `${telemetry.frames} 3D FRAMES · ${telemetry.yaw}`
+                : `${telemetry.pts} PT 3D MESH · ${telemetry.yaw}`
+              : "3D CRANIOFACIAL SCANNER"}
           </span>
 
           {telemetry && (
@@ -433,7 +557,7 @@ export default function LiveCamera({
           )}
         </div>
 
-        {/* Wireframe Guides Overlay */}
+        {/* Wireframe Guides Overlay + Lenskart-style 36-segment 3D Coverage Ring */}
         <div
           style={{
             position: "absolute",
@@ -448,12 +572,111 @@ export default function LiveCamera({
             style={{
               width: "66%",
               aspectRatio: "3/4",
-              border: `2px dashed ${green ? "#2F7D4F" : "#111111"}`,
+              border: `2px dashed ${green ? "#2ECF7F" : "#111111"}`,
               borderRadius: "50%",
               boxShadow: "0 0 0 9999px rgba(0,0,0,0.22)",
               transition: "border-color 0.2s ease",
+              position: "relative",
+              display: "grid",
+              placeItems: "center",
             }}
-          />
+          >
+            {/* 36-tick segmented 3D sweep coverage ring around oval */}
+            <svg
+              viewBox="0 0 240 310"
+              style={{
+                position: "absolute",
+                inset: "-10px",
+                width: "calc(100% + 20px)",
+                height: "calc(100% + 20px)",
+                overflow: "visible",
+              }}
+            >
+              {Array.from({ length: 36 }).map((_, i) => {
+                // Angle from top clockwise: 0 = top center
+                const aDeg = i * 10 - 90;
+                const rad = (aDeg * Math.PI) / 180;
+                const r1x = 114, r1y = 148, r2x = 123, r2y = 160;
+                const x1 = 120 + Math.cos(rad) * r1x;
+                const y1 = 155 + Math.sin(rad) * r1y;
+                const x2 = 120 + Math.cos(rad) * r2x;
+                const y2 = 155 + Math.sin(rad) * r2y;
+
+                // Top band: i in [33..35, 0..3], Right band: [4..17], Left band: [19..32]
+                let active = false;
+                if (i <= 3 || i >= 33) {
+                  active = ringCoverage.top > 0.15;
+                } else if (i >= 4 && i <= 17) {
+                  const pos = (i - 4) / 13;
+                  active = pos < ringCoverage.right;
+                } else if (i >= 19 && i <= 32) {
+                  const pos = (32 - i) / 13;
+                  active = pos < ringCoverage.left;
+                } else {
+                  active = ringCoverage.left >= 0.9 && ringCoverage.right >= 0.9;
+                }
+
+                return (
+                  <line
+                    key={i}
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke={active ? "#2ECF7F" : "rgba(255,255,255,0.28)"}
+                    strokeWidth={active ? 3 : 1.6}
+                    strokeLinecap="round"
+                  />
+                );
+              })}
+            </svg>
+
+            {/* Directional Left / Right Turn Arrows during 3D sweep */}
+            {turnCue === "left" && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: -18,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "rgba(17,17,17,0.82)",
+                  color: "#2ECF7F",
+                  borderRadius: 999,
+                  width: 34,
+                  height: 34,
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: 18,
+                  fontWeight: 700,
+                  border: "1px solid rgba(46,207,127,0.6)",
+                }}
+              >
+                ←
+              </div>
+            )}
+            {turnCue === "right" && (
+              <div
+                style={{
+                  position: "absolute",
+                  right: -18,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "rgba(17,17,17,0.82)",
+                  color: "#2ECF7F",
+                  borderRadius: 999,
+                  width: 34,
+                  height: 34,
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: 18,
+                  fontWeight: 700,
+                  border: "1px solid rgba(46,207,127,0.6)",
+                }}
+              >
+                →
+              </div>
+            )}
+          </div>
 
           {/* Crosshair Lines */}
           <div

@@ -1,10 +1,12 @@
 /* Face-shape model, ported 1:1 from face-scan.html. Pure functions, no DOM.
-   Landmark indices are face-api 68-point; MediaPipe 478 uses calibrated craniofacial mapping. */
+   Landmark indices are face-api 68-point; MediaPipe 478 uses pose-normalised 3D craniofacial mapping. */
 import { dist, mid, angle, avgPts } from "./geometry.ts";
 import type { Pt } from "./geometry.ts";
-import { NORM, MP_NORM, MP_PITCH_COMP, Z_CLAMP, FULL_BEARD_WEIGHT, SHAPE_OFFSET, SOFTMAX_T, TRAIT_Z, LEAN_RATIO } from "./faceShape.config.ts";
+import { NORM, MP_NORM, MP3D_NORM, MP_PITCH_COMP, BORDERLINE_RATIO, Z_CLAMP, FULL_BEARD_WEIGHT, SHAPE_OFFSET, SOFTMAX_T, TRAIT_Z, LEAN_RATIO } from "./faceShape.config.ts";
 import type { MeasureKey } from "./faceShape.config.ts";
 import { MP_TO_68 } from "./landmarkMap.ts";
+import { canonicalize, measureCanonical } from "./mesh3d.ts";
+import type { P3, Raw3D } from "./mesh3d.ts";
 import { CUTS, SHAPES, BEARD_TWEAK } from "./content.ts";
 import type { Beard, Cut, Pair, ShapeKey, TraitKey } from "./content.ts";
 
@@ -26,7 +28,7 @@ export function measure(P: Pt[]): Measures {
   };
 }
 
-/** Smooth cubic deadzone for sub-trait measurement noise (<0.55 SD) while preserving >=0.75 SD traits. */
+/** Smooth cubic deadzone for sub-trait measurement noise while preserving >=0.75 SD traits. */
 function softZ(z: number): number {
   const s = Math.sign(z);
   const a = Math.abs(z);
@@ -35,10 +37,24 @@ function softZ(z: number): number {
   return z;
 }
 
-/** Calibrated MediaPipe 478-point craniofacial measurements mapped to canonical NORM scale.
- *  - Uses eyebrow-independent height (trichion 10, inter-ocular line, and brow-to-menton 152)
- *  - Uses true frontotemporal + brow width (54↔284, 103↔332, 70↔300)
- *  - Compensates 2D gonial angle G for camera pitch / lower-face foreshortening */
+function mapRawToNorm(raw: Raw3D, srcNorm: Record<MeasureKey, [number, number]>): Measures {
+  const mapped = {} as Measures;
+  for (const k of Object.keys(NORM) as MeasureKey[]) {
+    const zRaw = (raw[k] - srcNorm[k][0]) / srcNorm[k][1];
+    mapped[k] = NORM[k][0] + softZ(zRaw) * NORM[k][1];
+  }
+  return mapped;
+}
+
+/** Pose-normalised 3D craniofacial measurements mapped to canonical NORM scale.
+ *  Removes camera pitch/yaw/roll foreshortening before comparing ratios. */
+export function measure3D(P3pts: P3[]): Measures {
+  const C = canonicalize(P3pts);
+  if (!C) return measureMP(P3pts.map(p => ({ x: p.x, y: p.y })));
+  return mapRawToNorm(measureCanonical(C), MP3D_NORM);
+}
+
+/** Calibrated MediaPipe 478-point 2D fallback measurements mapped to canonical NORM scale. */
 export function measureMP(P478: Pt[]): Measures {
   if (!P478 || P478.length < 468) return measure(P478);
   const P = MP_TO_68.map(i => P478[i]);
@@ -70,18 +86,61 @@ export function measureMP(P478: Pt[]): Measures {
   const G_2d = (angle(P[2], P[4], P[7]) + angle(P[14], P[12], P[9])) / 2;
   const G_mp = G_2d + MP_PITCH_COMP.degPerUnit * (MP_PITCH_COMP.baseLowerH - lowerH);
 
-  const raw: Measures = { R: R_mp, J: J_mp, F: F_mp, K: K_mp, G: G_mp };
-  const mapped = {} as Measures;
-  for (const k of Object.keys(NORM) as MeasureKey[]) {
-    const zRaw = (raw[k] - MP_NORM[k][0]) / MP_NORM[k][1];
-    mapped[k] = NORM[k][0] + softZ(zRaw) * NORM[k][1];
-  }
-  return mapped;
+  return mapRawToNorm({ R: R_mp, J: J_mp, F: F_mp, K: K_mp, G: G_mp }, MP_NORM);
 }
 
-/** Measure from a Detection object, preferring 478-point MediaPipe craniofacial geometry when available. */
-export function measureDetection(det: { P: Pt[]; P478?: Pt[] | null }): Measures {
+/** Measure from a Detection object, preferring pose-normalised 3D mesh (P3), then 2D P478, then 68-pt. */
+export function measureDetection(det: { P: Pt[]; P478?: Pt[] | null; P3?: P3[] | null }): Measures {
+  if (det.P3 && det.P3.length >= 468) return measure3D(det.P3);
   return det.P478 && det.P478.length >= 468 ? measureMP(det.P478) : measure(det.P);
+}
+
+/** Blend two measure sets (used to settle returning users across repeat scans). */
+export function blendMeasures(prev: Measures, curr: Measures, prevWeight = 0.4): Measures {
+  const w = Math.max(0, Math.min(0.65, prevWeight));
+  const out = {} as Measures;
+  for (const k of Object.keys(NORM) as MeasureKey[]) {
+    out[k] = prev[k] * w + curr[k] * (1 - w);
+  }
+  return out;
+}
+
+/** Extract true craniofacial ratios for human inspection ("How we measured you"). */
+export function rawProportions(det: { P: Pt[]; P478?: Pt[] | null; P3?: P3[] | null }, m?: Measures) {
+  if (det.P3 && det.P3.length >= 468) {
+    const C = canonicalize(det.P3);
+    if (C) {
+      const r = measureCanonical(C);
+      return {
+        lengthToWidth: Number(r.R.toFixed(2)),
+        jawToCheek: Number(r.J.toFixed(2)),
+        foreheadToCheek: Number(r.F.toFixed(2)),
+        chinToCheek: Number(r.K.toFixed(2)),
+        jawAngleDeg: Math.round(r.G),
+        is3D: true,
+      };
+    }
+  }
+  const mm = m ?? measureDetection(det);
+  return {
+    lengthToWidth: Number((1.198 + ((mm.R - NORM.R[0]) / NORM.R[1]) * MP3D_NORM.R[1]).toFixed(2)),
+    jawToCheek: Number((0.725 + ((mm.J - NORM.J[0]) / NORM.J[1]) * MP3D_NORM.J[1]).toFixed(2)),
+    foreheadToCheek: Number((0.799 + ((mm.F - NORM.F[0]) / NORM.F[1]) * MP3D_NORM.F[1]).toFixed(2)),
+    chinToCheek: Number((0.319 + ((mm.K - NORM.K[0]) / NORM.K[1]) * MP3D_NORM.K[1]).toFixed(2)),
+    jawAngleDeg: Math.round(mm.G),
+    is3D: false,
+  };
+}
+
+export function isBorderline(r: FaceResult): boolean {
+  return r.ranked.length >= 2 && r.ranked[1][1] >= r.ranked[0][1] * BORDERLINE_RATIO;
+}
+
+export function shapeHeadline(r: FaceResult): string {
+  const s1 = SHAPES[r.key].name;
+  if (!r.lean) return s1;
+  const s2 = SHAPES[r.lean].name;
+  return isBorderline(r) ? `${s1}–${s2} Blend` : `${s1} · leaning ${s2}`;
 }
 
 const clampZ = (v: number) => Math.max(-Z_CLAMP, Math.min(Z_CLAMP, v));

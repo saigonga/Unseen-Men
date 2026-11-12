@@ -2,7 +2,8 @@
    Phase 3: uses native head pose from MediaPipe when available, falls back to landmark-based. */
 import { dist, mid, avgPts } from "./geometry";
 import type { Detection, FaceInput } from "./detector";
-import { Q, FEMALE_BLOCK_P } from "./capture.config";
+import { Q, LIVE_Q, FEMALE_BLOCK_P } from "./capture.config";
+import { yawOf } from "./mesh3d";
 
 export type CheckId = "distance" | "centred" | "straight" | "level" | "lighting" | "expression";
 export interface Check { id: CheckId; ok: boolean; text: string }
@@ -86,18 +87,26 @@ export function checkQuality(input: FaceInput, det: Detection): QualityReport {
   return { checks, failed: checks.filter(c => !c.ok).length, blocking };
 }
 
-/** Live camera: one instruction at a time, in priority order (AGENTS.md section 3). null = all good. */
+/** Live head yaw in degrees from 3D mesh or pose matrix (negative/positive = left vs right turn). */
+export function headYawDeg(det: Detection | null): number | null {
+  if (!det) return null;
+  if (det.pose && Number.isFinite(det.pose.yaw)) return det.pose.yaw;
+  if (det.P3 && det.P3.length >= 468) return yawOf(det.P3);
+  return null;
+}
+
+/** Live camera: one instruction at a time using consistent framing & pose envelope. null = ready to lock. */
 export function liveInstruction(input: FaceInput, det: Detection | null): string | null {
   if (!det) return "Fit your face in the oval";
   const m = metrics(input, det);
-  if (m.size < Q.sizeMin) return "Move closer";
-  if (m.size > Q.sizeMax) return "Move back a little";
-  if (m.offX >= Q.offMax || m.offY >= Q.offYMax) return "Move to the centre";
-  if (m.yaw >= Q.yawMax) return "Look straight at the camera";
-  if (m.roll >= Q.rollMax) return "Keep your head level";
+  if (m.size < LIVE_Q.sizeMin) return "Move closer";
+  if (m.size > LIVE_Q.sizeMax) return "Move back a little";
+  if (m.offX >= LIVE_Q.offMax || m.offY >= LIVE_Q.offYMax) return "Move to the centre";
+  if (m.yaw >= LIVE_Q.yawMax) return "Look straight at the camera";
+  if (m.roll >= LIVE_Q.rollMax) return "Keep your head level";
   if (m.pitch < Q.pitchMin) return "Chin down slightly";
   if (m.pitch > Q.pitchMax) return "Chin up slightly";
-  if (m.lum <= Q.lumMin) return "Find more light, face a window";
-  if (m.mouth >= Q.mouthMax || m.smile >= Q.smileMax) return "Relax your face, mouth closed";
+  if (m.lum <= LIVE_Q.lumMin) return "Find more light, face a window";
+  if (m.mouth >= LIVE_Q.mouthMax || m.smile >= LIVE_Q.smileMax) return "Relax your face, mouth closed";
   return null;
 }

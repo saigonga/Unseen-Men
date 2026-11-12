@@ -4,11 +4,14 @@
 import type { Pt, Box } from "./geometry";
 import { mpTo68 } from "./landmarkMap";
 import type { NormLandmark } from "./landmarkMap";
+import type { P3 } from "./mesh3d";
 
 export interface MPDetection {
   box: Box;
   P: Pt[];           // 68 equivalent points in pixel space
   P478: Pt[];         // all 478 in pixel space
+  /** All 478 with depth (z uses the same pixel scale as x). Used for 3D pose normalisation. */
+  P3: P3[];
   /** Native head pose from the facial transformation matrix (degrees). */
   pose: { yaw: number; pitch: number; roll: number } | null;
 }
@@ -127,6 +130,7 @@ function poseFromMatrix(mat: { rows: number; columns: number; data: number[] }):
 function convert(lm: NormLandmark[], mat: { rows: number; columns: number; data: number[] } | undefined, w: number, h: number): MPDetection {
   const P = mpTo68(lm, w, h);
   const P478 = lm.map(p => ({ x: p.x * w, y: p.y * h }));
+  const P3 = lm.map(p => ({ x: p.x * w, y: p.y * h, z: p.z * w }));
 
   // Bounding box from all landmarks
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -139,7 +143,7 @@ function convert(lm: NormLandmark[], mat: { rows: number; columns: number; data:
   const pad = (maxX - minX) * 0.1;
   const box: Box = { x: minX - pad, y: minY - pad, width: maxX - minX + pad * 2, height: maxY - minY + pad * 2 };
 
-  return { box, P, P478, pose: mat ? poseFromMatrix(mat) : null };
+  return { box, P, P478, P3, pose: mat ? poseFromMatrix(mat) : null };
 }
 
 let videoFrameCanvas: HTMLCanvasElement | null = null;
