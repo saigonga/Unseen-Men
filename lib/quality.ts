@@ -32,7 +32,7 @@ export function inputSize(input: FaceInput) {
 }
 
 export function metrics(input: FaceInput, det: Detection): Metrics {
-  const { box, P, pose } = det, { W, H } = inputSize(input);
+  const { box, P, P478, pose } = det, { W, H } = inputSize(input);
   const cheek = dist(P[1], P[15]);
   const eyeL = avgPts(P.slice(36, 42)), eyeR = avgPts(P.slice(42, 48)), eyes = mid(eyeL, eyeR);
   const lower = dist(mid(P[19], P[24]), P[8]);
@@ -44,14 +44,20 @@ export function metrics(input: FaceInput, det: Detection): Metrics {
     ? (pose.pitch > 15 ? 0.55 : pose.pitch < -15 ? 0.2 : 0.38) // map degrees to the existing 0.28-0.5 range
     : (P[30].y - eyes.y) / Math.max(1, P[8].y - eyes.y);
 
+  // Use true MediaPipe inner-lip vertical gap (13↔14) and mouth corners (61↔291) when P478 is available,
+  // since MP_TO_68[62] and [66] are both on the lower inner lip in Real3DPortrait's mapping.
+  const has478 = Boolean(P478 && P478.length >= 468);
+  const mouth = has478 ? dist(P478![13], P478![14]) / lower : dist(P[62], P[66]) / lower;
+  const smile = has478 ? dist(P478![61], P478![291]) / cheek : dist(P[48], P[54]) / cheek;
+
   return {
     size: box.width / Math.min(W, H),
     offX: Math.abs((box.x + box.width / 2) - W / 2) / W,
     offY: Math.abs((box.y + box.height / 2) - H / 2) / H,
     yaw, roll, pitch,
     lum: brightness(input, box),
-    mouth: dist(P[62], P[66]) / lower,
-    smile: dist(P[48], P[54]) / cheek,
+    mouth,
+    smile,
   };
 }
 
