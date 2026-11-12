@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import StepBar from "../StepBar";
 import { checkIndianMobile, isEmail } from "@/lib/phone";
 import DataUseModal from "./DataUseModal";
@@ -43,106 +43,17 @@ const CONCERNS: { id: Concern | "none"; label: string }[] = [
 ];
 
 export default function RegisterLead({
-  initial,
   onProceed,
   onClose,
 }: RegisterLeadProps) {
-  // Synchronous lazy state initialization from localStorage to ensure reload never wipes data
-  const [name, setName] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const s = localStorage.getItem("unseen_lead");
-        if (s) {
-          const parsed = JSON.parse(s);
-          if (parsed.name) return parsed.name;
-        }
-      } catch {}
-    }
-    return initial?.name || "";
-  });
-
-  const [phone, setPhone] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const s = localStorage.getItem("unseen_lead");
-        if (s) {
-          const parsed = JSON.parse(s);
-          if (parsed.phone) return parsed.phone;
-        }
-      } catch {}
-    }
-    return initial?.phone || "";
-  });
-
-  const [email, setEmail] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const s = localStorage.getItem("unseen_lead");
-        if (s) {
-          const parsed = JSON.parse(s);
-          if (parsed.email) return parsed.email;
-        }
-      } catch {}
-    }
-    return initial?.email || "";
-  });
-
-  const [age, setAge] = useState<AgeBracket>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const s = localStorage.getItem("unseen_lead");
-        if (s) {
-          const parsed = JSON.parse(s);
-          if (parsed.age) return parsed.age;
-        }
-      } catch {}
-    }
-    return initial?.age || "25-34";
-  });
-
-  const [beard, setBeard] = useState<Beard>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const s = localStorage.getItem("unseen_lead");
-        if (s) {
-          const parsed = JSON.parse(s);
-          if (parsed.beard) return parsed.beard;
-        }
-      } catch {}
-    }
-    return initial?.beard || "stubble";
-  });
-
-  const [concern, setConcern] = useState<Concern | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const s = localStorage.getItem("unseen_lead");
-        if (s) {
-          const parsed = JSON.parse(s);
-          if (parsed.concern !== undefined) return parsed.concern;
-        }
-      } catch {}
-    }
-    return initial?.concern ?? null;
-  });
-
-  const [consentAgeAndPhoto, setConsentAgeAndPhoto] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        return localStorage.getItem("unseen_consent_age") === "true";
-      } catch {}
-    }
-    return false;
-  });
-
-  const [consentWhatsApp, setConsentWhatsApp] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        return localStorage.getItem("unseen_consent_wa") === "true";
-      } catch {}
-    }
-    return false;
-  });
+  const [name, setName] = useState<string>("");
+  const [phone, setPhone] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [age, setAge] = useState<AgeBracket>("25-34");
+  const [beard, setBeard] = useState<Beard>("stubble");
+  const [concern, setConcern] = useState<Concern | null>(null);
+  const [consentAgeAndPhoto, setConsentAgeAndPhoto] = useState<boolean>(false);
+  const [consentWhatsApp, setConsentWhatsApp] = useState<boolean>(false);
 
   const [showDataModal, setShowDataModal] = useState(false);
   const [errs, setErrs] = useState<{
@@ -152,23 +63,6 @@ export default function RegisterLead({
     consentAgeAndPhoto?: string;
     consentWhatsApp?: string;
   }>({});
-
-  // Persist immediately on any input change so reloads preserve all details
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        "unseen_lead",
-        JSON.stringify({ name, phone, email, age, beard, concern })
-      );
-    } catch {}
-  }, [name, phone, email, age, beard, concern]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("unseen_consent_age", String(consentAgeAndPhoto));
-      localStorage.setItem("unseen_consent_wa", String(consentWhatsApp));
-    } catch {}
-  }, [consentAgeAndPhoto, consentWhatsApp]);
 
   function validate(): { ok: boolean; cleanPhone?: string } {
     const next: typeof errs = {};
@@ -276,7 +170,7 @@ export default function RegisterLead({
           <span>Your Full Name <span style={{ color: "#D9735E" }}>*</span></span>
           <input
             type="text"
-            placeholder="e.g. Rajdeep More"
+            autoComplete="off"
             value={name}
             onChange={(e) => setName(e.target.value)}
             style={{
@@ -298,7 +192,7 @@ export default function RegisterLead({
           <span>WhatsApp Mobile Number <span style={{ color: "#D9735E" }}>*</span></span>
           <input
             type="tel"
-            placeholder="+91 98765 43210"
+            autoComplete="off"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             style={{
@@ -320,7 +214,7 @@ export default function RegisterLead({
           <span>Email Address <span style={{ color: "#D9735E" }}>*</span></span>
           <input
             type="email"
-            placeholder="name@example.com"
+            autoComplete="off"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={{

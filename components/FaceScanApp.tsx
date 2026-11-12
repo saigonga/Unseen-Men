@@ -170,7 +170,11 @@ export default function FaceScanApp() {
       return null;
     });
     setResult(null);
+    setUserLead(null);
     try {
+      localStorage.removeItem("unseen_lead");
+      localStorage.removeItem("unseen_consent_age");
+      localStorage.removeItem("unseen_consent_wa");
       sessionStorage.setItem("unseen_screen", "register");
     } catch {}
     go("register");
@@ -187,7 +191,6 @@ export default function FaceScanApp() {
       {screen === "register" && (
         <div style={{ padding: "20px 16px 40px", display: "grid", placeItems: "center" }}>
           <RegisterLead
-            initial={userLead || undefined}
             onProceed={(profile, mode) => {
               setUserLead(profile);
               setAnswers((prev) => ({
