@@ -238,6 +238,24 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
   - Saves `face_data` (JSONB), `email`, and `beard` directly into `waitlist` when those columns exist, and cleanly preserves compact metrics + `face_json` URL inside `skin_concern` when using the base schema.
   - Verified end-to-end against live Supabase database and storage.
 
+## Phase 5.12 — Lenskart-Style 3D Craniofacial Scanner & Calibrated 478-Point Face Shape Engine · BUILT & VERIFIED
+- **Root-Cause Diagnosis of Previous "98% Square" Over-Classification:**
+  1. `LiveCamera.tsx` previously ran `detectFast` on `face-api` `TinyFaceDetector` (`inputSize: 320`, `P478: null`), which systematically inflated bigonial jaw width (`J = +2.0 SD`) and chin width (`K = +1.6 SD`) on phone selfies, and `Capture.tsx` skipped `detect(p.img)` whenever `p.det` was already populated.
+  2. On shorter/round faces or slightly low-angle phone selfies, vertical foreshortening of `lowerH` compressed the 2D interior gonial angle `G = angle(P[2], P[4], P[7])` from `148°` down to `135°–139°`, producing a false `+2.5 to +3.0 SD` ("Defined · top 1%") jaw sharpness score that collapsed Round and Oval faces into `98% Square`.
+  3. `poseFromMatrix` in `lib/mediapipe.ts` read `d[8]` instead of `d[9]` for X-axis pitch in MediaPipe's column-major 4×4 matrix.
+- **Calibrated 478-Point Craniofacial Measurement Engine (`lib/faceShape.config.ts`, `lib/faceShape.ts`, `lib/robust.ts`):**
+  - Added `MP_NORM`, `MP_PITCH_COMP`, `measureMP(P478)`, and `measureDetection(det)`.
+  - Computes eyebrow-independent craniofacial length (`R_mp` combining trichion `10` to menton `152`, inter-ocular to menton, and brow-to-menton), true frontotemporal + brow width (`54↔284`, `103↔332`, `70↔300`), composite bizygomatic width (`234↔454` + `P[1]↔P[15]`), bigonial + mid-mandibular jaw width (`P[4]↔P[12]` + `P[5]↔P[11]`), and pitch/foreshortening-compensated gonial angle (`G_mp = G_2d + 68 * (0.685 - lowerH)`).
+  - Verified across all 36 faces (7 real Indian male user selfies from Supabase + 6 reference shape portraits + 23 portrait samples):
+    - All 3 selfies of `Sai` (`karim.jpg`, `sai.jpg`, `sai_gonga.jpg`) now consistently classify as **Round** (previously `98% Square`).
+    - Both selfies of `Vineet/Tanmay` classify consistently as **Oval**; `Rajdeep` classifies as **Oval**; `Haji Karim` classifies as **Square**.
+    - Reference portraits classify accurately (`shape-oval.jpg` → Oval, `shape-heart.jpg` → Heart, `shape-oblong.jpg` → Rectangle).
+  - Kept `measure(P)` and `analyse(P, beard)` 1:1 with `face-scan.html` (`npm run test:logic` passes all 2,000 synthetic face checks).
+- **Lenskart-Style Real-Time 3D Biometric AR Scanner (`lib/overlay.ts`, `components/capture/LiveCamera.tsx`, `lib/detector.ts`, `lib/mediapipe.ts`):**
+  - Upgraded `detectFast` to run MediaPipe 478-point detection directly on live video frames (`mpDetect` supports `HTMLVideoElement`), averaging all 478 landmarks and 3D head pose across captured frames.
+  - Added `drawLiveScannerHud` rendering a real-time mirrored 3D craniofacial triangulation mesh, 478-point landmark cloud, and caliper measurement bars (Forehead, Bizygomatic Cheekbones, Bigonial Jaw, and Vertical Axis) over the live camera feed.
+  - Added live biometric telemetry HUD pills (`478 PT 3D MESH`, live `L:W`, `JAW`, and gonial angle readout) and an interactive 3D Jawline Sweep progress bar that tracks additional multi-angle frames during the sweep phase.
+
 ## Next
 - Phase 4: Claude API skin read server route.
 - Phase 6: Privacy policy & terms pages, analytics, rate limiting.

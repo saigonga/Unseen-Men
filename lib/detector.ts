@@ -99,10 +99,9 @@ export async function detect(input: FaceInput): Promise<Detection | null> {
   await loadDetector();
 
   // Gender check runs in parallel with MediaPipe detection
-  const img = input as HTMLImageElement | HTMLCanvasElement;
   const [femaleP, mp] = await Promise.all([
     genderCheck(input),
-    isMediaPipeReady() && !(input instanceof HTMLVideoElement) ? Promise.resolve(mpDetect(img)) : Promise.resolve(null),
+    isMediaPipeReady() ? Promise.resolve(mpDetect(input)) : Promise.resolve(null),
   ]);
 
   if (mp) return mpToDetection(mp, femaleP);
@@ -123,8 +122,20 @@ export async function detect(input: FaceInput): Promise<Detection | null> {
   return { box: toBox(runs[0].detection.box), P, P478: null, pose: null, femaleP };
 }
 
-/** Fast single pass for live video tracking (face-api, since MediaPipe video needs separate init). */
+/** Fast single pass for live video tracking — uses MediaPipe 478-point mesh when ready, face-api fallback. */
 export async function detectFast(input: FaceInput, withGender = false): Promise<Detection | null> {
+  if (!mediapipeReady && !mediapipeFailed) {
+    mediapipeReady = loadMediaPipe().catch(() => { mediapipeFailed = true; });
+  }
+  if (isMediaPipeReady()) {
+    const mp = mpDetect(input);
+    if (mp) {
+      const femaleP = withGender ? await genderCheck(input).catch(() => 0) : 0;
+      return mpToDetection(mp, femaleP);
+    }
+    return null;
+  }
+
   await loadFaceApi();
   const faceapi = window.faceapi;
   let q = faceapi
@@ -158,6 +169,18 @@ export function detectMP(input: HTMLImageElement | HTMLCanvasElement): Detection
 /** Average several detections of the same face (multi-frame capture). */
 export function averageDetections(list: Detection[]): Detection {
   const P = list[0].P.map((_, i) => avgPts(list.map(d => d.P[i])));
+  const with478 = list.filter((d): d is Detection & { P478: Pt[] } => Array.isArray(d.P478) && d.P478.length >= 468);
+  const P478 = with478.length
+    ? with478[0].P478.map((_, i) => avgPts(with478.map(d => d.P478[i])))
+    : list[0].P478;
+  const withPose = list.filter((d): d is Detection & { pose: NonNullable<Detection["pose"]> } => d.pose !== null);
+  const pose = withPose.length
+    ? {
+        yaw: withPose.reduce((s, d) => s + d.pose.yaw, 0) / withPose.length,
+        pitch: withPose.reduce((s, d) => s + d.pose.pitch, 0) / withPose.length,
+        roll: withPose.reduce((s, d) => s + d.pose.roll, 0) / withPose.length,
+      }
+    : list[0].pose;
   const n = list.length;
   const box = {
     x: list.reduce((s, d) => s + d.box.x, 0) / n,
@@ -165,5 +188,5 @@ export function averageDetections(list: Detection[]): Detection {
     width: list.reduce((s, d) => s + d.box.width, 0) / n,
     height: list.reduce((s, d) => s + d.box.height, 0) / n,
   };
-  return { box, P, P478: list[0].P478, pose: list[0].pose, femaleP: list.reduce((s, d) => s + d.femaleP, 0) / n };
+  return { box, P, P478, pose, femaleP: list.reduce((s, d) => s + d.femaleP, 0) / n };
 }

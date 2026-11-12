@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Detection } from "@/lib/detector";
 import type { FaceResult, Measures, ZScores } from "@/lib/faceShape";
-import { measure, zScores, shapeScores } from "@/lib/faceShape";
+import { measureDetection, zScores, shapeScores } from "@/lib/faceShape";
 import type { RobustMeasures } from "@/lib/robust";
 import { drawOverlay } from "@/lib/overlay";
 import { isMediaPipeReady } from "@/lib/mediapipe";
@@ -26,7 +26,7 @@ export default function DebugPanel({ img, det, result, robust, beard }: Props) {
     if (canvasRef.current) drawOverlay(canvasRef.current, img, det, false, show478);
   }, [img, det, show478]);
 
-  const m: Measures = robust?.m ?? measure(det.P);
+  const m: Measures = robust?.m ?? measureDetection(det);
   const z: ZScores = zScores(m, beard);
   const scores = shapeScores(z);
   const sorted = (Object.entries(scores) as [ShapeKey, number][]).sort((a, b) => b[1] - a[1]);

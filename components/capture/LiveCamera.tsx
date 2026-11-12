@@ -5,8 +5,9 @@ import { detectFast, averageDetections } from "@/lib/detector";
 import type { Detection } from "@/lib/detector";
 import { liveInstruction, metrics, isFemale } from "@/lib/quality";
 import { LIVE } from "@/lib/capture.config";
-import { measure } from "@/lib/faceShape";
+import { measureDetection } from "@/lib/faceShape";
 import type { Measures } from "@/lib/faceShape";
+import { drawLiveScannerHud } from "@/lib/overlay";
 
 export type CameraProblem = "denied" | "nocamera" | "unsupported" | "insecure" | "inapp" | "female";
 export interface LiveShot {
@@ -64,6 +65,7 @@ export default function LiveCamera({
   onProblem: (p: CameraProblem) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hudCanvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const runId = useRef(0);
   const manual = useRef(false);
@@ -76,6 +78,14 @@ export default function LiveCamera({
   const [hint, setHint] = useState("Fit your face in the oval");
   const [green, setGreen] = useState(false);
   const [count, setCount] = useState<number | null>(null);
+  const [sweepPct, setSweepPct] = useState(0);
+  const [telemetry, setTelemetry] = useState<{
+    r: string;
+    j: string;
+    g: string;
+    yaw: string;
+    pts: number;
+  } | null>(null);
 
   const stop = useCallback(() => {
     runId.current++;
@@ -89,19 +99,22 @@ export default function LiveCamera({
     for (let i = 0; i < LIVE.frames * 2 && shots.length < LIVE.frames; i++) {
       if (runId.current !== id) return null;
       const c = grab(video);
-      const d = await detectFast(c, true);
+      const d = await detectFast(c, i === 0);
+      if (d && hudCanvasRef.current) {
+        drawLiveScannerHud(hudCanvasRef.current, video, d, true, "capturing");
+      }
       if (d && (manual.current || liveInstruction(c, d) === null)) {
         const m = metrics(c, d);
         shots.push({ c, d, score: m.yaw * 100 + m.roll + m.mouth * 100 });
       }
-      await sleep(60);
+      await sleep(45);
     }
     if (shots.length < Math.ceil(LIVE.frames / 2)) return null;
     const best = shots.reduce((a, b) => (b.score < a.score ? b : a));
     return {
       canvas: best.c,
       det: averageDetections(shots.map((s) => s.d)),
-      frames: shots.map((s) => measure(s.d.P)),
+      frames: shots.map((s) => measureDetection(s.d)),
     };
   }
 
@@ -120,7 +133,7 @@ export default function LiveCamera({
         if (runId.current !== id) return;
         if (video.readyState < 2 || video.videoWidth === 0) continue;
         frame++;
-        const withGender = frame % 5 === 0;
+        const withGender = frame % 8 === 0;
         const d = await detectFast(video, withGender);
         if (runId.current !== id) return;
 
@@ -134,12 +147,32 @@ export default function LiveCamera({
           }
         }
 
+        if (d && frame % 2 === 0) {
+          const m = measureDetection(d);
+          const yawDeg = d.pose ? Math.round(d.pose.yaw) : 0;
+          setTelemetry({
+            r: m.R.toFixed(2),
+            j: m.J.toFixed(2),
+            g: `${Math.round(m.G)}°`,
+            yaw: `${yawDeg >= 0 ? "+" : ""}${yawDeg}°`,
+            pts: d.P478 ? 478 : 68,
+          });
+        } else if (!d) {
+          setTelemetry(null);
+        }
+
         let ins = liveInstruction(video, d);
         if (!ins && d) {
           const cx = (d.box.x + d.box.width / 2) / video.videoWidth;
           if (Math.abs(cx - lastCx) > 0.04) ins = "Hold still";
           lastCx = cx;
         }
+
+        const isAligned = !ins || manual.current;
+        if (hudCanvasRef.current) {
+          drawLiveScannerHud(hudCanvasRef.current, video, d, Boolean(d && isAligned), "tracking");
+        }
+
         const now = performance.now();
         if (ins && !manual.current) {
           okSince = 0;
@@ -157,11 +190,11 @@ export default function LiveCamera({
         const remain = Math.max(0, LIVE.holdMs - elapsed);
         if (remain > 0) {
           setCount(Math.ceil(remain / 1000));
-          setHint("Hold still…");
+          setHint("3D Mesh Locked · Hold still…");
         } else {
           setCount(null);
           setPhase("capturing");
-          setHint("Capturing…");
+          setHint("Mapping 478 craniofacial landmarks…");
           const shot = await captureFrames(video, id);
           if (runId.current !== id) return;
           if (!shot) {
@@ -170,8 +203,29 @@ export default function LiveCamera({
             continue;
           }
           setPhase("sweep");
-          setHint("Scanning jawline confidence…");
-          await sleep(LIVE.sweepMs);
+          setSweepPct(0);
+          const sweepStart = performance.now();
+          while (performance.now() - sweepStart < LIVE.sweepMs) {
+            if (runId.current !== id) return;
+            const p = Math.min(100, Math.round(((performance.now() - sweepStart) / LIVE.sweepMs) * 100));
+            setSweepPct(p);
+            setHint(
+              p < 45
+                ? "3D Jawline Sweep · Tilt slightly left…"
+                : p < 85
+                ? "3D Jawline Sweep · Tilt slightly right…"
+                : "Locking craniofacial proportions…"
+            );
+            const sd = await detectFast(video, false);
+            if (sd && hudCanvasRef.current) {
+              drawLiveScannerHud(hudCanvasRef.current, video, sd, true, "sweep");
+              const sm = metrics(video, sd);
+              if (sm.yaw < 0.12 && sm.mouth < 0.06) {
+                shot.frames.push(measureDetection(sd));
+              }
+            }
+            await sleep(50);
+          }
           if (runId.current !== id) return;
           stop();
           onShotRef.current(shot);
@@ -314,6 +368,71 @@ export default function LiveCamera({
           }}
         />
 
+        {/* Real-time 3D Biometric AR Mesh & Caliper Canvas */}
+        <canvas
+          ref={hudCanvasRef}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            transform: "scaleX(-1)",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Lenskart-style Top Biometric Telemetry HUD */}
+        <div
+          style={{
+            position: "absolute",
+            top: 12,
+            left: 12,
+            right: 12,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            pointerEvents: "none",
+            zIndex: 8,
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 10,
+              letterSpacing: "0.06em",
+              color: green ? "#2ECF7F" : "#FFFFFF",
+              background: "rgba(17, 17, 17, 0.72)",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+              padding: "4px 9px",
+              borderRadius: 6,
+              border: `1px solid ${green ? "rgba(46, 207, 127, 0.45)" : "rgba(255, 255, 255, 0.18)"}`,
+            }}
+          >
+            {telemetry ? `${telemetry.pts} PT 3D MESH` : "3D CRANIOFACIAL SCANNER"}
+          </span>
+
+          {telemetry && (
+            <span
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 10,
+                letterSpacing: "0.04em",
+                color: "#E0A526",
+                background: "rgba(17, 17, 17, 0.72)",
+                backdropFilter: "blur(6px)",
+                WebkitBackdropFilter: "blur(6px)",
+                padding: "4px 9px",
+                borderRadius: 6,
+                border: "1px solid rgba(224, 165, 38, 0.35)",
+              }}
+            >
+              L:W {telemetry.r} · JAW {telemetry.j} · {telemetry.g}
+            </span>
+          )}
+        </div>
+
         {/* Wireframe Guides Overlay */}
         <div
           style={{
@@ -424,14 +543,14 @@ export default function LiveCamera({
 
         {(phase === "sweep" || phase === "capturing") && <div className="scanline" />}
 
-        {/* Dynamic Instruction Pill */}
+        {/* Dynamic Instruction Pill + 3D Sweep Progress */}
         <div
           style={{
             position: "absolute",
-            bottom: 24,
+            bottom: 20,
             left: "50%",
             transform: "translateX(-50%)",
-            background: "#FFFFFF",
+            background: "rgba(255, 255, 255, 0.96)",
             border: "1px solid #ECECEA",
             borderRadius: 999,
             padding: "6px 16px",
@@ -439,11 +558,35 @@ export default function LiveCamera({
             color: green ? "#2F7D4F" : "#111111",
             fontWeight: 500,
             whiteSpace: "nowrap",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
             zIndex: 10,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 4,
           }}
         >
-          {phase === "starting" ? "Starting camera…" : hint}
+          <span>{phase === "starting" ? "Starting 3D scanner…" : hint}</span>
+          {phase === "sweep" && (
+            <div
+              style={{
+                width: 140,
+                height: 3,
+                background: "#ECECEA",
+                borderRadius: 999,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${sweepPct}%`,
+                  height: "100%",
+                  background: "#2F7D4F",
+                  transition: "width 0.08s linear",
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 

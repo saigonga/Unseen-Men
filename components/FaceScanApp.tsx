@@ -12,7 +12,7 @@ import type { Answers } from "./screens/Questions";
 import Results from "./screens/Results";
 import { loadDetector } from "@/lib/detector";
 import type { Detection } from "@/lib/detector";
-import { analyse, analyseMeasures } from "@/lib/faceShape";
+import { analyseMeasures, measureDetection } from "@/lib/faceShape";
 import type { FaceResult, Measures } from "@/lib/faceShape";
 import { SHAPES } from "@/lib/content";
 import { buildFaceDataPayload } from "@/lib/faceDataPayload";
@@ -116,7 +116,7 @@ export default function FaceScanApp() {
 
       // Compute measurements immediately
       const effectiveBeard = userLead?.beard || answers.beard;
-      const r = p.m ? analyseMeasures(p.m, effectiveBeard) : analyse(p.det.P, effectiveBeard);
+      const r = analyseMeasures(p.m ?? measureDetection(p.det), effectiveBeard);
       setResult(r);
 
       // Sync photo + complete face data immediately to waitlist in background
@@ -156,9 +156,7 @@ export default function FaceScanApp() {
       setAnswers(updatedAnswers);
       // Re-analyse if beard status was changed
       if (photo) {
-        const r = photo.m
-          ? analyseMeasures(photo.m, updatedAnswers.beard)
-          : analyse(photo.det.P, updatedAnswers.beard);
+        const r = analyseMeasures(photo.m ?? measureDetection(photo.det), updatedAnswers.beard);
         setResult(r);
       }
       go("results");

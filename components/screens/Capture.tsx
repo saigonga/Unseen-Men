@@ -88,7 +88,7 @@ export default function Capture({
     setMeasures(null);
 
     try {
-      const d = p.det ?? (await detect(p.img));
+      const d = p.det?.P478 ? p.det : ((await detect(p.img)) ?? p.det);
       if (!d) {
         setMsg({
           text: "No face found. Hold the phone straight and try again.",

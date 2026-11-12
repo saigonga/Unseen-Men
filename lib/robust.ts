@@ -4,10 +4,10 @@
    and take the median. MediaPipe's 478-point model is steadier than face-api's 68-point,
    so fewer passes are needed, but mirroring still helps catch asymmetry noise.
    Falls back to face-api multi-size if MediaPipe isn't available. */
-import { detectAt, detectMP } from "./detector";
+import { detectAt } from "./detector";
 import type { Detection, FaceInput } from "./detector";
 import { isMediaPipeReady, mpDetect } from "./mediapipe";
-import { measure } from "./faceShape";
+import { measure, measureDetection } from "./faceShape";
 import type { Measures } from "./faceShape";
 import { inputSize } from "./quality";
 
@@ -38,13 +38,13 @@ function canvasOf(input: FaceInput, flip: boolean) {
   return c;
 }
 
-/** MediaPipe path: original + mirrored = 2 passes. Steadier model needs fewer passes. */
+/** MediaPipe path: original + mirrored = 2 passes + multi-frame MediaPipe shots. */
 async function robustMP(input: FaceInput, extra: Measures[]): Promise<Measures[]> {
   const list: Measures[] = [...extra];
   for (const flip of [false, true]) {
     const c = canvasOf(input, flip);
     const mp = mpDetect(c);
-    if (mp) list.push(measure(mp.P));
+    if (mp) list.push(measureDetection(mp));
   }
   return list;
 }
@@ -59,7 +59,7 @@ async function robustFaceApi(input: FaceInput, fallback: Detection | undefined, 
       if (d) list.push(measure(d.P));
     }
   }
-  if (!list.length && fallback) list.push(measure(fallback.P));
+  if (!list.length && fallback) list.push(measureDetection(fallback));
   return list;
 }
 
@@ -69,6 +69,6 @@ export async function robustMeasures(input: FaceInput, fallback?: Detection, ext
     ? await robustMP(input, extra)
     : await robustFaceApi(input, fallback, extra);
 
-  if (!list.length && fallback) list.push(measure(fallback.P));
+  if (!list.length && fallback) list.push(measureDetection(fallback));
   return list.length ? medianMeasures(list) : null;
 }

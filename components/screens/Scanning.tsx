@@ -50,11 +50,12 @@ export default function Scanning({ url, photo }: ScanningProps) {
     };
   }, []);
 
+  const has478 = Boolean(photo?.det?.P478 && photo.det.P478.length >= 468);
   const baseSteps: { name: string; finalVal: string }[] = [
     { name: "Photo quality check", finalVal: "Passed" },
-    { name: "Landmark mapping", finalVal: "68 points" },
+    { name: "3D Craniofacial mesh", finalVal: has478 ? "478 points" : "68 points" },
     { name: "Face shape architecture", finalVal: "Computed" },
-    { name: "Jawline & gonial angle", finalVal: "Measured" },
+    { name: "Jawline & gonial angle", finalVal: "Pitch-calibrated" },
     { name: "Facial thirds", finalVal: "Calculated" },
     { name: "Proportions vs population norms", finalVal: "Indexed" },
   ];
@@ -210,8 +211,8 @@ export default function Scanning({ url, photo }: ScanningProps) {
             borderRadius: 4,
           }}
         >
-          <span>POINTS: 68 MAPPED</span>
-          <span>FACIAL PROPORTIONS: 100% MATCHED</span>
+          <span>{has478 ? "POINTS: 478 3D MESH" : "POINTS: 68 MAPPED"}</span>
+          <span>CRANIOFACIAL PROPORTIONS: CALIBRATED</span>
         </div>
       </div>
 

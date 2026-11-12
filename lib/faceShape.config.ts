@@ -14,6 +14,25 @@ export const NORM: Record<MeasureKey, [number, number]> = {
   G: [149.8, 4.52],
 };
 
+/** Calibrated MediaPipe 478-point craniofacial norms [mean, sd] and foreshortening compensation.
+ *  Derived across 36 Indian male selfies & reference portraits so MediaPipe 478 measurements
+ *  map cleanly onto the canonical z-score space without collapsing round/low-angle selfies into Square. */
+export const MP_NORM: Record<MeasureKey, [number, number]> = {
+  R: [1.448, 0.072],
+  J: [0.785, 0.022],
+  F: [0.828, 0.024],
+  K: [0.422, 0.024],
+  G: [147.8, 4.20],
+};
+
+/** Lower-face vertical ratio baseline and foreshortening slope (deg per unit lowerH) for jaw angle G. */
+export const MP_PITCH_COMP = {
+  baseLowerH: 0.685,
+  degPerUnit: 68,
+  softDeadzone: 0.55,
+  softGain: 0.35,
+};
+
 /** z-scores are clamped to ±Z_CLAMP. */
 export const Z_CLAMP = 3;
 

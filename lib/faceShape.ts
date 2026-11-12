@@ -1,9 +1,10 @@
 /* Face-shape model, ported 1:1 from face-scan.html. Pure functions, no DOM.
-   Landmark indices are face-api 68-point; phase 3 swaps in MediaPipe equivalents. */
-import { dist, mid, angle } from "./geometry.ts";
+   Landmark indices are face-api 68-point; MediaPipe 478 uses calibrated craniofacial mapping. */
+import { dist, mid, angle, avgPts } from "./geometry.ts";
 import type { Pt } from "./geometry.ts";
-import { NORM, Z_CLAMP, FULL_BEARD_WEIGHT, SHAPE_OFFSET, SOFTMAX_T, TRAIT_Z, LEAN_RATIO } from "./faceShape.config.ts";
+import { NORM, MP_NORM, MP_PITCH_COMP, Z_CLAMP, FULL_BEARD_WEIGHT, SHAPE_OFFSET, SOFTMAX_T, TRAIT_Z, LEAN_RATIO } from "./faceShape.config.ts";
 import type { MeasureKey } from "./faceShape.config.ts";
+import { MP_TO_68 } from "./landmarkMap.ts";
 import { CUTS, SHAPES, BEARD_TWEAK } from "./content.ts";
 import type { Beard, Cut, Pair, ShapeKey, TraitKey } from "./content.ts";
 
@@ -23,6 +24,64 @@ export function measure(P: Pt[]): Measures {
     K: dist(P[6], P[10]) / W,                     // chin ÷ cheekbones
     G: (angle(P[2], P[4], P[7]) + angle(P[14], P[12], P[9])) / 2, // jaw-corner angle: smaller = sharper
   };
+}
+
+/** Smooth cubic deadzone for sub-trait measurement noise (<0.55 SD) while preserving >=0.75 SD traits. */
+function softZ(z: number): number {
+  const s = Math.sign(z);
+  const a = Math.abs(z);
+  const { softDeadzone: d, softGain: g } = MP_PITCH_COMP;
+  if (a < d) return s * a * ((1 - g) * (a / d) * (a / d) + g);
+  return z;
+}
+
+/** Calibrated MediaPipe 478-point craniofacial measurements mapped to canonical NORM scale.
+ *  - Uses eyebrow-independent height (trichion 10, inter-ocular line, and brow-to-menton 152)
+ *  - Uses true frontotemporal + brow width (54↔284, 103↔332, 70↔300)
+ *  - Compensates 2D gonial angle G for camera pitch / lower-face foreshortening */
+export function measureMP(P478: Pt[]): Measures {
+  if (!P478 || P478.length < 468) return measure(P478);
+  const P = MP_TO_68.map(i => P478[i]);
+
+  const W_68 = dist(P[1], P[15]);
+  const W_zygo = dist(P478[234], P478[454]);
+  const W = 0.5 * W_68 + 0.5 * W_zygo;
+
+  const eyeL = avgPts(P.slice(36, 42));
+  const eyeR = avgPts(P.slice(42, 48));
+  const eyeMid = mid(eyeL, eyeR);
+  const browMid = mid(P[19], P[24]);
+  const cy = 0.65 * eyeMid.y + 0.35 * browMid.y;
+
+  const lowerH = (P[8].y - cy) / W;
+  const fullH = dist(P478[10], P478[152]) / W;
+  const eyeH = dist(eyeMid, P478[152]) / W;
+  const R_mp = 0.40 * (fullH * 1.13) + 0.35 * (eyeH * 1.74) + 0.25 * (lowerH * 2.06);
+
+  const F_mp = (
+    0.45 * dist(P478[54], P478[284]) +
+    0.35 * dist(P478[103], P478[332]) +
+    0.20 * dist(P478[70], P478[300])
+  ) / W;
+
+  const J_mp = (0.65 * dist(P[4], P[12]) + 0.35 * dist(P[5], P[11])) / W;
+  const K_mp = dist(P[6], P[10]) / W;
+
+  const G_2d = (angle(P[2], P[4], P[7]) + angle(P[14], P[12], P[9])) / 2;
+  const G_mp = G_2d + MP_PITCH_COMP.degPerUnit * (MP_PITCH_COMP.baseLowerH - lowerH);
+
+  const raw: Measures = { R: R_mp, J: J_mp, F: F_mp, K: K_mp, G: G_mp };
+  const mapped = {} as Measures;
+  for (const k of Object.keys(NORM) as MeasureKey[]) {
+    const zRaw = (raw[k] - MP_NORM[k][0]) / MP_NORM[k][1];
+    mapped[k] = NORM[k][0] + softZ(zRaw) * NORM[k][1];
+  }
+  return mapped;
+}
+
+/** Measure from a Detection object, preferring 478-point MediaPipe craniofacial geometry when available. */
+export function measureDetection(det: { P: Pt[]; P478?: Pt[] | null }): Measures {
+  return det.P478 && det.P478.length >= 468 ? measureMP(det.P478) : measure(det.P);
 }
 
 const clampZ = (v: number) => Math.max(-Z_CLAMP, Math.min(Z_CLAMP, v));

@@ -112,7 +112,7 @@ function poseFromMatrix(mat: { rows: number; columns: number; data: number[] }):
   const singular = sy < 1e-6;
   let pitch: number, yaw: number, roll: number;
   if (!singular) {
-    pitch = Math.atan2(d[8], d[10]);  // around X
+    pitch = Math.atan2(d[9], d[10]);  // around X (up-down nod, column-major R[1,2]/R[2,2])
     yaw   = Math.atan2(-d[2], sy);    // around Y (left-right turn)
     roll  = Math.atan2(d[1], d[0]);   // around Z (head tilt)
   } else {
@@ -142,15 +142,33 @@ function convert(lm: NormLandmark[], mat: { rows: number; columns: number; data:
   return { box, P, P478, pose: mat ? poseFromMatrix(mat) : null };
 }
 
-/** Detect on a still image. */
-export function mpDetect(input: HTMLImageElement | HTMLCanvasElement): MPDetection | null {
+let videoFrameCanvas: HTMLCanvasElement | null = null;
+
+/** Detect on a still image, canvas, or live video frame. */
+export function mpDetect(input: HTMLImageElement | HTMLCanvasElement | HTMLVideoElement): MPDetection | null {
   if (!landmarker) return null;
-  const w = input instanceof HTMLImageElement ? input.naturalWidth : input.width;
-  const h = input instanceof HTMLImageElement ? input.naturalHeight : input.height;
-  if (!w || !h) return null;
+  let target: HTMLImageElement | HTMLCanvasElement;
+  let w: number, h: number;
+  if (input instanceof HTMLVideoElement) {
+    w = input.videoWidth;
+    h = input.videoHeight;
+    if (!w || !h) return null;
+    videoFrameCanvas ??= document.createElement("canvas");
+    if (videoFrameCanvas.width !== w) videoFrameCanvas.width = w;
+    if (videoFrameCanvas.height !== h) videoFrameCanvas.height = h;
+    const ctx = videoFrameCanvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(input, 0, 0, w, h);
+    target = videoFrameCanvas;
+  } else {
+    w = input instanceof HTMLImageElement ? input.naturalWidth : input.width;
+    h = input instanceof HTMLImageElement ? input.naturalHeight : input.height;
+    if (!w || !h) return null;
+    target = input;
+  }
   return silenceTFLite(() => {
     try {
-      const r = landmarker!.detect(input);
+      const r = landmarker!.detect(target);
       if (!r || !r.faceLandmarks || !r.faceLandmarks.length) return null;
       return convert(r.faceLandmarks[0] as NormLandmark[], r.facialTransformationMatrixes?.[0], w, h);
     } catch (err) {
