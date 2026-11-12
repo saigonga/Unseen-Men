@@ -49,8 +49,6 @@ export default function ShareSection({
       await drawCard(cardRef.current, {
         shape: result.key,
         match: result.ranked[0][1],
-        cut: result.cuts[0].n,
-        beard: beardStyle,
         code,
         photo: showPhoto ? { img: photo.img, det: photo.det } : null,
         tryOn: tryOnImg,

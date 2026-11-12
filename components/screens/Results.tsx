@@ -11,8 +11,6 @@ import SkinRead from "../results/SkinRead";
 import ShareSection from "../results/ShareSection";
 import Rewards from "../results/Rewards";
 import FacialThirdsSection from "../results/FacialThirdsSection";
-import WhatsAppConcierge from "../results/WhatsAppConcierge";
-import CreativeStudio from "../results/CreativeStudio";
 import { getFacialThirds } from "@/lib/styling";
 import { getPhotoDataUrl } from "@/lib/photoData";
 import type { Answers } from "./Questions";
@@ -44,7 +42,6 @@ export default function Results({
 }) {
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const [surpriseNumber] = useState(() => String(300 + Math.floor(Math.random() * 200)).padStart(4, "0"));
-  const [photoPublicUrl, setPhotoPublicUrl] = useState<string | null>(null);
   const [unlocked, setUnlocked] = useState<Unlocked>(() => ({
     name: userLead?.name || "Founding Member",
     mobile: userLead?.phone || "",
@@ -91,7 +88,6 @@ export default function Results({
           .then((res) => res.json())
           .then((data) => {
             if (data.ok) {
-              if (data.photoUrl) setPhotoPublicUrl(data.photoUrl);
               setUnlocked({
                 name: data.name || userLead.name,
                 mobile: userLead.phone,
@@ -338,25 +334,8 @@ export default function Results({
               </div>
             </div>
 
-            {/* FULL SUITE: WhatsApp Concierge, Skin, PDF, Share, Rewards */}
+            {/* FULL SUITE: Skin, PDF, Share, Rewards */}
             <div ref={fullRef} style={{ display: "flex", flexDirection: "column", gap: 24, marginTop: 12 }}>
-              {/* WhatsApp Stylist Concierge */}
-              <WhatsAppConcierge
-                name={unlocked.name}
-                memberNumber={unlocked.memberNumber || surpriseNumber}
-                faceShape={sh.name}
-                referralCode={unlocked.code}
-              />
-
-              {/* Creative Studio (Higgsfield AI) */}
-              <CreativeStudio
-                photoUrl={photoPublicUrl || photo.dataUrl || photo.url}
-                faceShape={sh.name}
-                cutName={sh.best[0]?.[0] || "Textured Crop"}
-                userName={unlocked.name}
-                memberNumber={unlocked.memberNumber || surpriseNumber}
-              />
-
               <SkinRead data={null} />
 
               {/* Share & Download Section */}

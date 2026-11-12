@@ -219,6 +219,15 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 - **Configuration**:
   - Updated `.env.example` and `.env.local` with `HIGGSFIELD_API_KEY` placeholders.
 
+## Phase 5.10 — Results UI Cleanup & Story Card Simplification · BUILT & VERIFIED
+- **Results UI Cleanup (`components/screens/Results.tsx`)**:
+  - Removed the `WhatsAppConcierge` section from the results view.
+  - Removed the `CreativeStudio` (Higgsfield AI UI and API key input) from the user-facing UI and deleted `components/results/CreativeStudio.tsx`.
+  - Kept Higgsfield AI strictly server-side only in `app/api/creative/route.ts` (reading credentials exclusively from server environment variables; removed client header key acceptance).
+- **Story Card (`lib/storyCard.ts` & `components/results/ShareSection.tsx`)**:
+  - Removed `MY CUT` and `MY BEARD` panels from the 9:16 Instagram story card.
+  - Expanded the scanned photo / face glyph hero area (`PH = 1220`) to balance the card proportions cleanly around the user's face, face shape, match %, and referral code.
+
 ## Next
 - Phase 4: Claude API skin read server route.
 - Phase 6: Privacy policy & terms pages, analytics, rate limiting.

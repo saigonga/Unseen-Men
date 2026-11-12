@@ -1,16 +1,15 @@
-/* 9:16 story card (1080×1920): his photo + face shape, best cut and beard, with illustrations.
+/* 9:16 story card (1080×1920): his photo + face shape + match % + referral code.
    Never put skin observations on this card. Everything is drawn on the device. */
 import { SHAPES } from "./content";
 import type { ShapeKey } from "./content";
 import type { Detection } from "./detector";
 import { cropFaceMapped } from "./crop";
-import { cutSvg, beardSvg, svgToImage } from "./illustrations";
 
 export interface CardData {
   shape: ShapeKey;
   match: number;          // 0–1
-  cut: string;
-  beard: string;
+  cut?: string;
+  beard?: string;
   code: string;
   photo: { img: HTMLImageElement; det: Detection } | null; // null = photo hidden
   tryOn: HTMLImageElement | null;                          // AI preview, used instead of the photo when set
@@ -25,16 +24,6 @@ function fonts() {
     body: `${cssVar("--font-space-grotesk")}, "Space Grotesk", sans-serif`,
     mono: `${cssVar("--font-jetbrains-mono")}, "JetBrains Mono", monospace`,
   };
-}
-
-function wrapLines(x: CanvasRenderingContext2D, t: string, maxW: number) {
-  const lines: string[] = []; let line = "";
-  for (const w of t.split(" ")) {
-    const test = line ? line + " " + w : w;
-    if (x.measureText(test).width > maxW && line) { lines.push(line); line = w; } else line = test;
-  }
-  lines.push(line);
-  return lines;
 }
 
 function fitFont(x: CanvasRenderingContext2D, text: string, weight: number, family: string, start: number, maxW: number) {
@@ -77,16 +66,12 @@ export async function drawCard(c: HTMLCanvasElement, d: CardData) {
     await Promise.all([`900 200px ${F.display}`, `800 84px ${F.display}`, `500 40px ${F.body}`, `600 46px ${F.body}`, `500 30px ${F.mono}`]
       .map(f => document.fonts.load(f)));
   } catch { /* system fonts */ }
-  const [cutArt, beardArt] = await Promise.all([
-    svgToImage(cutSvg(d.cut, { size: 240, bg: C.panel })),
-    svgToImage(beardSvg(d.beard, { size: 240, bg: C.panel })),
-  ]);
 
   c.width = 1080; c.height = 1920;
   const x = c.getContext("2d")!, sh = SHAPES[d.shape];
   x.fillStyle = C.bg; x.fillRect(0, 0, 1080, 1920);
 
-  const PH = 900; // photo block height
+  const PH = 1220; // photo block height
   const hasPhoto = Boolean(d.tryOn || d.photo);
   if (d.tryOn) {
     coverDraw(x, d.tryOn, 0, 0, 1080, PH);
@@ -108,9 +93,9 @@ export async function drawCard(c: HTMLCanvasElement, d: CardData) {
   }
 
   if (hasPhoto) {
-    const g = x.createLinearGradient(0, PH - 420, 0, PH);
+    const g = x.createLinearGradient(0, PH - 460, 0, PH);
     g.addColorStop(0, "rgba(20,19,18,0)"); g.addColorStop(1, C.bg);
-    x.fillStyle = g; x.fillRect(0, PH - 420, 1080, 420);
+    x.fillStyle = g; x.fillRect(0, PH - 460, 1080, 460);
     const t = x.createLinearGradient(0, 0, 0, 220);
     t.addColorStop(0, "rgba(20,19,18,.75)"); t.addColorStop(1, "rgba(20,19,18,0)");
     x.fillStyle = t; x.fillRect(0, 0, 1080, 220);
@@ -118,7 +103,7 @@ export async function drawCard(c: HTMLCanvasElement, d: CardData) {
   } else {
     x.strokeStyle = C.line; x.lineWidth = 2;
     for (let y = 160; y < PH; y += 120) { x.beginPath(); x.moveTo(80, y); x.lineTo(1000, y); x.stroke(); }
-    x.strokeStyle = C.fg; x.lineWidth = 6; glyph(x, d.shape, 540, 560, 1.6);
+    x.strokeStyle = C.fg; x.lineWidth = 6; glyph(x, d.shape, 540, PH / 2 + 40, 1.85);
   }
 
   x.font = `500 32px ${F.mono}`;
@@ -128,27 +113,13 @@ export async function drawCard(c: HTMLCanvasElement, d: CardData) {
   if (d.tryOn) { x.textAlign = "right"; x.fillStyle = C.fg; x.fillText("AI PREVIEW", 980, 132); x.textAlign = "left"; }
 
   // Verdict
-  let y = PH + 10;
+  let y = PH + 20;
   x.fillStyle = C.muted; x.font = `500 34px ${F.mono}`; x.fillText("MY FACE SHAPE IS", 80, y);
   x.fillStyle = C.brass;
-  const fs = fitFont(x, sh.name.toUpperCase(), 900, F.display, 250, 920);
+  const fs = fitFont(x, sh.name.toUpperCase(), 900, F.display, 240, 920);
   x.fillText(sh.name.toUpperCase(), 72, y + fs * 0.92);
-  y += fs * 0.92 + 56;
-  x.fillStyle = C.fg; x.font = `500 34px ${F.mono}`; x.fillText(`${Math.round(d.match * 100)}% MATCH`, 80, y);
-
-  // Cut + beard panels
-  const top = y + 40, pw = 450, ph = 370;
-  [[d.cut, "MY CUT", cutArt], [d.beard, "MY BEARD", beardArt]].forEach(([name, label, art], i) => {
-    const px = 80 + i * (pw + 20);
-    x.fillStyle = C.panel; x.beginPath(); x.roundRect(px, top, pw, ph, 28); x.fill();
-    x.strokeStyle = C.line; x.lineWidth = 2; x.stroke();
-    x.drawImage(art as HTMLImageElement, px + pw - 190, top + 22, 160, 187);
-    x.fillStyle = C.muted; x.font = `500 28px ${F.mono}`; x.fillText(label as string, px + 28, top + 62);
-    let size = 60, lines: string[];
-    do { x.font = `800 ${size}px ${F.display}`; lines = wrapLines(x, (name as string).toUpperCase(), pw - 56); size -= 4; } while (lines.length * (size + 4) > 150 && size > 36);
-    x.fillStyle = C.fg;
-    lines.forEach((l, k) => x.fillText(l, px + 28, top + 250 + k * (size + 4)));
-  });
+  y += fs * 0.92 + 64;
+  x.fillStyle = C.fg; x.font = `500 36px ${F.mono}`; x.fillText(`${Math.round(d.match * 100)}% MATCH`, 80, y);
 
   // Footer
   const fy = 1920 - 230;

@@ -14,9 +14,8 @@ interface HiggsfieldRequestBody {
   aspectRatio?: "4:5" | "1:1" | "9:16" | "16:9";
 }
 
-function getHiggsfieldAuthHeader(clientKey?: string | null): string | null {
+function getHiggsfieldAuthHeader(): string | null {
   const rawKey =
-    clientKey?.trim() ||
     process.env.HIGGSFIELD_API_KEY?.trim() ||
     (process.env.HF_API_KEY_ID && process.env.HF_API_KEY_SECRET
       ? `${process.env.HF_API_KEY_ID.trim()}:${process.env.HF_API_KEY_SECRET.trim()}`
@@ -35,8 +34,7 @@ function getHiggsfieldAuthHeader(clientKey?: string | null): string | null {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const requestId = searchParams.get("requestId");
-  const clientKey = req.headers.get("x-higgsfield-key");
-  const authHeader = getHiggsfieldAuthHeader(clientKey);
+  const authHeader = getHiggsfieldAuthHeader();
 
   // If requestId is provided, poll status for the client
   if (requestId) {
@@ -87,16 +85,14 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const clientKey = req.headers.get("x-higgsfield-key");
-  const authHeader = getHiggsfieldAuthHeader(clientKey);
+  const authHeader = getHiggsfieldAuthHeader();
 
   if (!authHeader) {
     return NextResponse.json(
       {
         ok: false,
         error: "not_configured",
-        message:
-          "Higgsfield API key is not configured. Please add HIGGSFIELD_API_KEY in .env.local or enter it in the studio.",
+        message: "Higgsfield API key is not configured on the server.",
       },
       { status: 503 }
     );
