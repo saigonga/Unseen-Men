@@ -41,7 +41,7 @@ export default function SkinRead({ data }: { data: SkinReadData | null }) {
 
       {!data && (
         <div style={{ fontSize: 13, color: "#5C4F47", lineHeight: 1.5 }}>
-          Coming soon: Claude reads visible skin texture cues from your cropped selfie (oiliness,
+          Coming soon: Dermat reads visible skin texture cues from your cropped selfie (oiliness,
           dryness, texture) and matches appropriate Nordman grooming ingredients. Photo is
           discarded immediately.
         </div>
