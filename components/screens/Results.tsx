@@ -15,9 +15,6 @@ import FacialThirdsSection from "../results/FacialThirdsSection";
 import { getFacialThirds } from "@/lib/styling";
 import { buildFaceDataPayload } from "@/lib/faceDataPayload";
 import { getPhotoDataUrl } from "@/lib/photoData";
-import LookbookSection from "../results/LookbookSection";
-import { createLookbook, isLookbook } from "@/lib/lookbook";
-import type { Lookbook } from "@/lib/lookbook";
 import type { Answers } from "./Questions";
 import type { Photo } from "../FaceScanApp";
 import type { UserLeadProfile } from "./RegisterLead";
@@ -61,7 +58,6 @@ export default function Results({
   const fullRef = useRef<HTMLDivElement>(null);
   const syncedRef = useRef(false);
   const scanIdRef = useRef<string | null>(null);
-  const [book, setBook] = useState<Lookbook | null>(() => userLead ? null : createLookbook(result.key, result.traits.map(trait => trait.key), Math.random));
   const [saveStatus, setSaveStatus] = useState<"saving" | "saved" | "failed">(userLead ? "saving" : "saved");
 
   const sh = SHAPES[result.key];
@@ -110,9 +106,6 @@ export default function Results({
       });
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error("Scan could not be saved.");
-      setBook(isLookbook(data.lookbook)
-        ? data.lookbook
-        : createLookbook(result.key, result.traits.map(trait => trait.key), Math.random));
       setUnlocked({
         name: data.name || userLead.name,
         mobile: userLead.phone,
@@ -420,11 +413,10 @@ export default function Results({
 
             {/* FULL SUITE: Skin, PDF, Share, Rewards */}
             <div ref={fullRef} style={{ display: "flex", flexDirection: "column", gap: 24, marginTop: 12 }}>
-              {book && <LookbookSection book={book} photo={photo} />}
-              {userLead && saveStatus === "saving" && <p role="status">Saving your scan and assigning your looks…</p>}
+              {userLead && saveStatus === "saving" && <p role="status">Saving your scan…</p>}
               {saveStatus === "failed" && (
                 <div role="status">
-                  <p>Your scan is ready. We couldn’t save it and assign your looks yet.</p>
+                  <p>Your scan is ready. We couldn’t save it yet.</p>
                   <button type="button" className="btn-secondary" onClick={saveScan}>Retry saving scan</button>
                 </div>
               )}

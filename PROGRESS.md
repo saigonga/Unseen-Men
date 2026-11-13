@@ -300,6 +300,9 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 - New scans save the photo to the private `face-scan-photos` Supabase bucket and link its storage path in `waitlist.photo_url`. The configured n8n webhook receives the path and a one-hour signed URL. Consent and data-use copy were updated.
 - Muse's own integration was not available in this checkout. Its access to the private bucket and consumption of the saved path still require verification.
 
+## Results lookbook removal
+- Removed the eight-look preview and its save buttons from the results screen. Scan and photo saving continue as before.
+
 ## Next
 - Phase 4: Claude API skin read server route.
 - Phase 6: Privacy policy & terms pages, analytics, rate limiting.
