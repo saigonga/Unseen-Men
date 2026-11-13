@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SHAPES } from "@/lib/content";
 import { rawProportions, shapeHeadline } from "@/lib/faceShape";
 import type { FaceResult } from "@/lib/faceShape";
@@ -14,7 +14,9 @@ import Rewards from "../results/Rewards";
 import FacialThirdsSection from "../results/FacialThirdsSection";
 import { getFacialThirds } from "@/lib/styling";
 import { buildFaceDataPayload } from "@/lib/faceDataPayload";
-import { getPhotoDataUrl } from "@/lib/photoData";
+import LookbookSection from "../results/LookbookSection";
+import { createLookbook, isLookbook } from "@/lib/lookbook";
+import type { Lookbook } from "@/lib/lookbook";
 import type { Answers } from "./Questions";
 import type { Photo } from "../FaceScanApp";
 import type { UserLeadProfile } from "./RegisterLead";
@@ -34,12 +36,14 @@ export default function Results({
   photo,
   result,
   userLead,
+  referredBy,
   onRestart,
 }: {
   answers: Answers;
   photo: Photo;
   result: FaceResult;
   userLead?: UserLeadProfile | null;
+  referredBy: string | null;
   onRestart: () => void;
 }) {
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
@@ -55,6 +59,8 @@ export default function Results({
   }));
   const fullRef = useRef<HTMLDivElement>(null);
   const syncedRef = useRef(false);
+  const [book, setBook] = useState<Lookbook | null>(() => userLead ? null : createLookbook(result.key, result.traits.map(trait => trait.key), Math.random));
+  const [saveStatus, setSaveStatus] = useState<"saving" | "saved" | "failed">(userLead ? "saving" : "saved");
 
   const sh = SHAPES[result.key];
   const headline = shapeHeadline(result);
@@ -65,54 +71,56 @@ export default function Results({
     if (canvas) drawOverlay(canvas, photo.img, photo.det, true);
   }, [canvas, photo]);
 
-  // Auto-register lead & persist full face architecture data to database
-  useEffect(() => {
-    if (userLead && !syncedRef.current) {
-      syncedRef.current = true;
+  const saveScan = useCallback(async () => {
+    if (!userLead) return;
+    setSaveStatus("saving");
+    try {
       const effectiveBeard = userLead.beard || answers.beard || null;
       const faceData = buildFaceDataPayload(result, photo.det, effectiveBeard, photo.measurements);
-      const getBase64 = async () => photo.dataUrl || (await getPhotoDataUrl(photo));
-      getBase64().then((photoBase64) => {
-        fetch("/api/waitlist", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          keepalive: true,
-          body: JSON.stringify({
-            name: userLead.name,
-            contact: userLead.phone,
-            phone: userLead.phone,
-            email: userLead.email,
-            ageBracket: userLead.age || answers.age,
-            beard: effectiveBeard,
-            faceShape: sh.name,
-            skinConcern: userLead.concern || answers.concern,
-            photoBase64,
-            skipPhotoIfPresent: true,
-            memberNumber: surpriseNumber,
-            faceData,
-            styling: {
-              facialThirds: faceData.facialThirds,
-            },
-          }),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.ok) {
-              setUnlocked({
-                name: data.name || userLead.name,
-                mobile: userLead.phone,
-                email: userLead.email,
-                code: data.referralCode || newCode(),
-                position: data.waitlistPosition || 1,
-                referrals: data.referralCount || 0,
-                memberNumber: data.memberNumber || parseInt(surpriseNumber, 10),
-              });
-            }
-          })
-          .catch((err) => console.warn("Auto-register fallback:", err));
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        keepalive: true,
+        body: JSON.stringify({
+          name: userLead.name,
+          contact: userLead.phone,
+          phone: userLead.phone,
+          email: userLead.email,
+          ageBracket: userLead.age || answers.age,
+          beard: effectiveBeard,
+          faceShape: sh.name,
+          skinConcern:
+            [userLead.skinType, userLead.concern || answers.concern].filter(Boolean).join(" | ") ||
+            null,
+          memberNumber: surpriseNumber,
+          referredBy,
+          faceData,
+          styling: { facialThirds: faceData.facialThirds },
+        }),
       });
+      const data = await response.json();
+      if (!response.ok || !data.ok || !isLookbook(data.lookbook)) throw new Error("Scan could not be saved.");
+      setBook(data.lookbook);
+      setUnlocked({
+        name: data.name || userLead.name,
+        mobile: userLead.phone,
+        email: userLead.email,
+        code: data.referralCode || newCode(),
+        position: data.waitlistPosition || 1,
+        referrals: data.referralCount || 0,
+        memberNumber: data.memberNumber || parseInt(surpriseNumber, 10),
+      });
+      setSaveStatus("saved");
+    } catch {
+      setSaveStatus("failed");
     }
-  }, [userLead, photo, answers, result, sh.name, surpriseNumber]);
+  }, [userLead, answers, result, photo, sh.name, surpriseNumber, referredBy]);
+
+  useEffect(() => {
+    if (syncedRef.current) return;
+    syncedRef.current = true;
+    void saveScan();
+  }, [saveScan]);
 
   useEffect(() => {
     if (unlocked) {
@@ -400,6 +408,14 @@ export default function Results({
 
             {/* FULL SUITE: Skin, PDF, Share, Rewards */}
             <div ref={fullRef} style={{ display: "flex", flexDirection: "column", gap: 24, marginTop: 12 }}>
+              {book && <LookbookSection book={book} photo={photo} />}
+              {userLead && saveStatus === "saving" && <p role="status">Saving your scan and assigning your looks…</p>}
+              {saveStatus === "failed" && (
+                <div role="status">
+                  <p>Your scan is ready. We couldn’t save it and assign your looks yet.</p>
+                  <button type="button" className="btn-secondary" onClick={saveScan}>Retry saving scan</button>
+                </div>
+              )}
               <SkinRead data={null} />
 
               {/* Share & Download Section */}
@@ -421,11 +437,13 @@ export default function Results({
               />
 
               {/* Founding Member waitlist confirmation */}
-              <Rewards
-                code={unlocked.code}
-                position={unlocked.position}
-                memberNumber={unlocked.memberNumber || surpriseNumber}
-              />
+              {saveStatus === "saved" && (
+                <Rewards
+                  code={unlocked.code}
+                  position={unlocked.position}
+                  memberNumber={unlocked.memberNumber || surpriseNumber}
+                />
+              )}
 
               <button
                 type="button"

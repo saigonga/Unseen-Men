@@ -4,7 +4,7 @@ import { useState } from "react";
 import StepBar from "../StepBar";
 import { checkIndianMobile, isEmail } from "@/lib/phone";
 import DataUseModal from "./DataUseModal";
-import type { AgeBracket, Beard, Concern } from "@/lib/content";
+import type { AgeBracket, Beard, Concern, SkinType } from "@/lib/content";
 
 export interface UserLeadProfile {
   name: string;
@@ -12,6 +12,7 @@ export interface UserLeadProfile {
   email: string;
   age: AgeBracket;
   beard: Beard;
+  skinType?: SkinType | null;
   concern: Concern | null;
 }
 
@@ -34,6 +35,13 @@ const BEARDS: { id: Beard; label: string; desc: string }[] = [
   { id: "full", label: "Full beard", desc: "Defined length" },
 ];
 
+const SKIN_TYPES: { id: SkinType; label: string }[] = [
+  { id: "dry", label: "Dry" },
+  { id: "oily", label: "Oily" },
+  { id: "combination", label: "Combination" },
+  { id: "normal", label: "Normal" },
+];
+
 const CONCERNS: { id: Concern | "none"; label: string }[] = [
   { id: "none", label: "Balanced / None" },
   { id: "acne", label: "Acne / Breakouts" },
@@ -51,6 +59,7 @@ export default function RegisterLead({
   const [email, setEmail] = useState<string>("");
   const [age, setAge] = useState<AgeBracket>("25-34");
   const [beard, setBeard] = useState<Beard>("stubble");
+  const [skinType, setSkinType] = useState<SkinType | null>(null);
   const [concern, setConcern] = useState<Concern | null>(null);
   const [consentAgeAndPhoto, setConsentAgeAndPhoto] = useState<boolean>(false);
   const [consentWhatsApp, setConsentWhatsApp] = useState<boolean>(false);
@@ -115,6 +124,7 @@ export default function RegisterLead({
         email: email.trim().toLowerCase(),
         age,
         beard,
+        skinType,
         concern,
       },
       mode
@@ -302,10 +312,42 @@ export default function RegisterLead({
           </div>
         </div>
 
-        {/* Skin Type / Concern */}
+        {/* Skin Type */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 2 }}>
           <span style={{ fontSize: 13, fontWeight: 500, color: "#444441" }}>
             Skin Type
+          </span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {SKIN_TYPES.map((s) => {
+              const isSelected = skinType === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSkinType(skinType === s.id ? null : s.id)}
+                  style={{
+                    padding: "7px 11px",
+                    borderRadius: 20,
+                    fontSize: 12,
+                    fontWeight: isSelected ? 600 : 400,
+                    background: isSelected ? "#4F2C1D" : "#FAFAFA",
+                    color: isSelected ? "#FFFFFF" : "#555552",
+                    border: isSelected ? "1px solid #4F2C1D" : "1px solid #ECECEA",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Main Concern */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 2 }}>
+          <span style={{ fontSize: 13, fontWeight: 500, color: "#444441" }}>
+            Main Concern
           </span>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {CONCERNS.map((c) => {

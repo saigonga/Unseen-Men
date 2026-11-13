@@ -4,6 +4,7 @@
 export type ShapeKey = "oval" | "round" | "square" | "rectangle" | "heart" | "diamond";
 export type AgeBracket = "18-24" | "25-34" | "35-44" | "45+";
 export type Beard = "none" | "stubble" | "full";
+export type SkinType = "dry" | "oily" | "combination" | "normal";
 export type Concern = "acne" | "spots" | "oil" | "dull";
 export type TraitKey =
   | "long" | "short" | "wideJaw" | "narrowJaw" | "wideForehead" | "narrowForehead"
