@@ -1,6 +1,6 @@
 /* Full private PDF report, generated on the device with jsPDF.
    Print-friendly paper look with the brand's dark header and brass accent. */
-import { SHAPES, SKIN_AREAS, ROUTINES, REWARD } from "./content";
+import { SHAPES, SKIN_AREAS, ROUTINES, WAITLIST_CONFIRMATION } from "./content";
 import type { AgeBracket, Beard, Pair } from "./content";
 import type { FaceResult } from "./faceShape";
 import { TRAIT_LABEL, shapeHeadline } from "./faceShape";
@@ -196,13 +196,16 @@ export async function buildPdf(d: PdfData): Promise<Blob> {
   });
 
   // ---------- Invite ----------
-  ensure(96); y += 14;
-  doc.setFillColor(...K.dark); doc.roundedRect(L, y, Wd, 82, 10, 10, "F");
+  font(9.5, "normal", [157, 149, 138]);
+  const waitlistLines: string[] = doc.splitTextToSize(WAITLIST_CONFIRMATION, Wd - 36);
+  const waitlistHeight = 72 + waitlistLines.length * 12;
+  ensure(waitlistHeight + 14); y += 14;
+  doc.setFillColor(...K.dark); doc.roundedRect(L, y, Wd, waitlistHeight, 10, 10, "F");
   font(8, "bold", K.brassL); doc.text("NORDMAN EARLY LIST", L + 18, y + 22);
   font(20, "bold", [236, 230, 218]); doc.text(d.code, L + 18, y + 50);
   font(9.5, "normal", [157, 149, 138]);
-  doc.text(`Get ${REWARD.referralsNeeded} friends to scan with your code to unlock ${REWARD.label}.`, L + 18, y + 68);
-  y += 96;
+  waitlistLines.forEach((line, i) => doc.text(line, L + 18, y + 68 + i * 12));
+  y += waitlistHeight;
 
   footer();
   return doc.output("blob");

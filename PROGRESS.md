@@ -280,6 +280,9 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 - Browser smoke checks used bundled photos and an isolated local server: the open-mouth upload requested a retake, an allowed upload reached the report, and both exports reported success. The real phone camera still needs a test.
 - `/dev/calibration` reads consented photos locally and uses a JSON manifest with anonymous participant IDs and barber labels. It fits candidate norms and score offsets on the fit group, then compares both settings on people in the test group. The bundled-photo smoke test used illustrative labels. Calibration needs real barber labels across all six shapes and repeat phone captures.
 
+## Waitlist confirmation copy
+- Replaced the launch discount and its progress bar with the WhatsApp delivery and weekly analysis message through December 13, 2026. The PDF uses the same copy. The member number, waitlist position, and invite link are still available.
+
 ## Next
 - Phase 4: Claude API skin read server route.
 - Phase 6: Privacy policy & terms pages, analytics, rate limiting.

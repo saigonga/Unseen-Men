@@ -103,5 +103,5 @@ export const CONCERN_TEXT: Record<Concern, string> = {
   acne: "breakouts", spots: "dark spots", oil: "oily skin", dull: "dull, tired-looking skin"
 };
 
-/** Placeholders until the reward decision is made (AGENTS.md section 11). */
-export const REWARD = { referralsNeeded: 3, label: "20% off at launch" };
+export const WAITLIST_CONFIRMATION =
+  "Thank you for joining the waitlist. Your face scan analysis will be sent to you on WhatsApp, along with a weekly personalized analysis based on your recorded scan until the launch (December 13, 2026). Stay tuned!";

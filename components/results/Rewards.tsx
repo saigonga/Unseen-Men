@@ -1,18 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { REWARD } from "@/lib/content";
+import { WAITLIST_CONFIRMATION } from "@/lib/content";
 import { inviteLink } from "@/lib/referral";
 
 export default function Rewards({
   code,
   position,
-  referrals,
   memberNumber,
 }: {
   code: string;
   position: number;
-  referrals: number;
   memberNumber?: string | number;
 }) {
   const [copied, setCopied] = useState(false);
@@ -82,23 +80,8 @@ export default function Rewards({
           You&apos;re #{position} on the launch waitlist
         </h3>
         <p style={{ margin: "4px 0 0", fontSize: 13, color: "#5C4F47" }}>
-          Invite {REWARD.referralsNeeded} friends to scan with your code to unlock{" "}
-          <strong>{REWARD.label}</strong>.
+          {WAITLIST_CONFIRMATION}
         </p>
-      </div>
-
-      <div style={{ display: "flex", gap: 6 }}>
-        {Array.from({ length: REWARD.referralsNeeded }, (_, i) => (
-          <div
-            key={i}
-            style={{
-              flex: 1,
-              height: 4,
-              borderRadius: 2,
-              background: i < referrals ? "#4F2C1D" : "#DDD9D3",
-            }}
-          />
-        ))}
       </div>
 
       <div

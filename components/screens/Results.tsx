@@ -420,11 +420,10 @@ export default function Results({
                 }}
               />
 
-              {/* Founding Member Rewards & Position */}
+              {/* Founding Member waitlist confirmation */}
               <Rewards
                 code={unlocked.code}
                 position={unlocked.position}
-                referrals={unlocked.referrals}
                 memberNumber={unlocked.memberNumber || surpriseNumber}
               />
 
