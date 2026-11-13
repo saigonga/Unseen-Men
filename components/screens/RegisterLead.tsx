@@ -34,6 +34,14 @@ const BEARDS: { id: Beard; label: string; desc: string }[] = [
   { id: "full", label: "Full beard", desc: "Defined length" },
 ];
 
+const CONCERNS: { id: Concern | "none"; label: string }[] = [
+  { id: "none", label: "Balanced / None" },
+  { id: "acne", label: "Acne / Breakouts" },
+  { id: "oil", label: "Oiliness / Shine" },
+  { id: "spots", label: "Uneven Tone / Dark Spots" },
+  { id: "dull", label: "Dryness / Dull" },
+];
+
 export default function RegisterLead({
   onProceed,
   onClose,
@@ -43,6 +51,7 @@ export default function RegisterLead({
   const [email, setEmail] = useState<string>("");
   const [age, setAge] = useState<AgeBracket>("25-34");
   const [beard, setBeard] = useState<Beard>("stubble");
+  const [concern, setConcern] = useState<Concern | null>(null);
   const [consentAgeAndPhoto, setConsentAgeAndPhoto] = useState<boolean>(false);
   const [consentWhatsApp, setConsentWhatsApp] = useState<boolean>(false);
 
@@ -106,7 +115,7 @@ export default function RegisterLead({
         email: email.trim().toLowerCase(),
         age,
         beard,
-        concern: null,
+        concern,
       },
       mode
     );
@@ -287,6 +296,38 @@ export default function RegisterLead({
                   <span style={{ fontSize: 10, color: active ? "rgba(255,255,255,0.7)" : "#8A8A85" }}>
                     {b.desc}
                   </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Skin Type / Concern */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 2 }}>
+          <span style={{ fontSize: 13, fontWeight: 500, color: "#444441" }}>
+            Skin Type
+          </span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {CONCERNS.map((c) => {
+              const isSelected = (c.id === "none" && concern === null) || concern === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setConcern(c.id === "none" ? null : c.id)}
+                  style={{
+                    padding: "7px 11px",
+                    borderRadius: 20,
+                    fontSize: 12,
+                    fontWeight: isSelected ? 600 : 400,
+                    background: isSelected ? "#4F2C1D" : "#FAFAFA",
+                    color: isSelected ? "#FFFFFF" : "#555552",
+                    border: isSelected ? "1px solid #4F2C1D" : "1px solid #ECECEA",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {c.label}
                 </button>
               );
             })}
