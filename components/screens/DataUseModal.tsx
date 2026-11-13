@@ -97,7 +97,7 @@ export default function DataUseModal({ isOpen, onClose }: DataUseModalProps) {
         <div style={{ display: "flex", flexDirection: "column", gap: 14, fontSize: 13.5, lineHeight: 1.5, color: "#333330" }}>
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "12px 14px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 3 }}>What we collect:</strong>
-            Name, WhatsApp number, email, scan measurements, and your assigned styles.
+            Name, WhatsApp number, email, scan photo, scan measurements, and your assigned styles.
           </div>
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "12px 14px" }}>
@@ -112,12 +112,12 @@ export default function DataUseModal({ isOpen, onClose }: DataUseModalProps) {
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "12px 14px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 3 }}>Where it is kept:</strong>
-            The app runs on Vercel and stores your waitlist details, measurements, and assigned styles in Supabase.
+            The app runs on Vercel and stores your waitlist details, photo, measurements, and assigned styles in Supabase.
           </div>
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "12px 14px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 3 }}>How long:</strong>
-            New scan photos stay in your browser. Your saved details stay until you ask us to remove them or unsubscribe.
+            Your photo and saved details stay until you ask us to remove them or unsubscribe.
           </div>
 
           <div style={{ background: "#FAF7F2", border: "1px solid #E6DCCD", borderRadius: 8, padding: "12px 14px" }}>

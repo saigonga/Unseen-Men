@@ -14,6 +14,7 @@ import Rewards from "../results/Rewards";
 import FacialThirdsSection from "../results/FacialThirdsSection";
 import { getFacialThirds } from "@/lib/styling";
 import { buildFaceDataPayload } from "@/lib/faceDataPayload";
+import { getPhotoDataUrl } from "@/lib/photoData";
 import LookbookSection from "../results/LookbookSection";
 import { createLookbook, isLookbook } from "@/lib/lookbook";
 import type { Lookbook } from "@/lib/lookbook";
@@ -59,6 +60,7 @@ export default function Results({
   }));
   const fullRef = useRef<HTMLDivElement>(null);
   const syncedRef = useRef(false);
+  const scanIdRef = useRef<string | null>(null);
   const [book, setBook] = useState<Lookbook | null>(() => userLead ? null : createLookbook(result.key, result.traits.map(trait => trait.key), Math.random));
   const [saveStatus, setSaveStatus] = useState<"saving" | "saved" | "failed">(userLead ? "saving" : "saved");
 
@@ -75,12 +77,18 @@ export default function Results({
     if (!userLead) return;
     setSaveStatus("saving");
     try {
+      scanIdRef.current ??= crypto.randomUUID();
+      const photoBase64 = photo.dataUrl || await getPhotoDataUrl(photo);
+      if (!photoBase64) throw new Error("Photo could not be prepared.");
       const effectiveBeard = userLead.beard || answers.beard || null;
-      const faceData = buildFaceDataPayload(result, photo.det, effectiveBeard, photo.measurements);
+      const faceData = buildFaceDataPayload(result, photo.det, effectiveBeard, photo.measurements, {
+        ageBracket: userLead.age || answers.age,
+        skinType: userLead.skinType,
+        skinConcern: userLead.concern || answers.concern,
+      });
       const response = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        keepalive: true,
         body: JSON.stringify({
           name: userLead.name,
           contact: userLead.phone,
@@ -95,12 +103,16 @@ export default function Results({
           memberNumber: surpriseNumber,
           referredBy,
           faceData,
+          photoBase64,
+          scanId: scanIdRef.current,
           styling: { facialThirds: faceData.facialThirds },
         }),
       });
       const data = await response.json();
-      if (!response.ok || !data.ok || !isLookbook(data.lookbook)) throw new Error("Scan could not be saved.");
-      setBook(data.lookbook);
+      if (!response.ok || !data.ok) throw new Error("Scan could not be saved.");
+      setBook(isLookbook(data.lookbook)
+        ? data.lookbook
+        : createLookbook(result.key, result.traits.map(trait => trait.key), Math.random));
       setUnlocked({
         name: data.name || userLead.name,
         mobile: userLead.phone,

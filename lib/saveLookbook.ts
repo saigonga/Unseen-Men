@@ -13,19 +13,24 @@ export async function saveLookbook(
 ) {
   for (let attempt = 0; attempt < 12; attempt++) {
     const { data: existing, error: readError } = await db.from("scan_lookbooks")
-      .select("lookbook,email").eq("member_id", memberId).maybeSingle();
+      .select("lookbook,email,face_data").eq("member_id", memberId).maybeSingle();
     if (readError) throw readError;
 
     const measurements = { face_data: faceData, email, beard, updated_at: new Date().toISOString() };
     if (existing) {
       if (existing.email && existing.email !== email) throw new Error("Use the email from your original scan.");
-      if (!isLookbook(existing.lookbook)) throw new Error("Saved lookbook could not be read.");
-      const update = db.from("scan_lookbooks").update(measurements).eq("member_id", memberId);
+      const previousFaceData = existing.face_data && typeof existing.face_data === "object" && !Array.isArray(existing.face_data)
+        ? existing.face_data as Record<string, unknown>
+        : {};
+      const update = db.from("scan_lookbooks")
+        .update({ ...measurements, face_data: { ...previousFaceData, ...faceData } })
+        .eq("member_id", memberId)
+        .eq("face_data", JSON.stringify(existing.face_data));
       const { data: updated, error } = await (existing.email ? update.eq("email", existing.email) : update.is("email", null))
         .select("member_id").maybeSingle();
       if (error) throw error;
       if (!updated) continue;
-      return existing.lookbook;
+      return isLookbook(existing.lookbook) ? existing.lookbook : null;
     }
 
     const book = createLookbook(shape, traits, Math.random);

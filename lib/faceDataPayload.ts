@@ -24,6 +24,12 @@ export interface FaceDataPayload {
   rankedShapes: { shape: string; score: number }[];
   rawMeasures: Measures;
   rawMeshMeasures: Measures | null;
+  scanPreferences: {
+    ageBracket: string | null;
+    skinType: string | null;
+    skinConcern: string | null;
+    currentBeard: Beard | null;
+  };
   shapeScores: FaceResult["scores"];
   frameCount: number;
   measurements: {
@@ -61,7 +67,8 @@ export function buildFaceDataPayload(
   result: FaceResult,
   det: Detection,
   beard: Beard | null,
-  measurements: RobustMeasures
+  measurements: RobustMeasures,
+  preferences?: { ageBracket?: string | null; skinType?: string | null; skinConcern?: string | null }
 ): FaceDataPayload {
   const sh = SHAPES[result.key];
   const props = rawProportions(det, measurements.raw3D);
@@ -89,17 +96,19 @@ export function buildFaceDataPayload(
     leaning: result.lean || null,
     frameCount: measurements.n,
     rawMeshMeasures: measurements.raw3D,
+    scanPreferences: {
+      ageBracket: preferences?.ageBracket ?? null,
+      skinType: preferences?.skinType ?? null,
+      skinConcern: preferences?.skinConcern ?? null,
+      currentBeard: beard,
+    },
     shapeScores: result.scores,
     rankedShapes: result.ranked.map(([shape, score]) => ({
       shape,
       score: Number(score.toFixed(4)),
     })),
     rawMeasures: {
-      R: Number(result.m.R.toFixed(4)),
-      J: Number(result.m.J.toFixed(4)),
-      F: Number(result.m.F.toFixed(4)),
-      K: Number(result.m.K.toFixed(4)),
-      G: Number(result.m.G.toFixed(2)),
+      ...result.m,
     },
     measurements: {
       lengthToWidth: props.lengthToWidth,

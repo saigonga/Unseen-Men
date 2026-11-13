@@ -68,7 +68,7 @@ export default function HowWeUseYourDataPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 16, fontSize: 14.5, lineHeight: 1.6, color: "#2E2D2A" }}>
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "14px 16px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 4 }}>What we collect:</strong>
-            Name, WhatsApp number, email, scan measurements, and your assigned styles.
+            Name, WhatsApp number, email, scan photo, scan measurements, and your assigned styles.
           </div>
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "14px 16px" }}>
@@ -83,12 +83,12 @@ export default function HowWeUseYourDataPage() {
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "14px 16px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 4 }}>Where it is kept:</strong>
-            The app runs on Vercel and stores your waitlist details, measurements, and assigned styles in Supabase.
+            The app runs on Vercel and stores your waitlist details, photo, measurements, and assigned styles in Supabase.
           </div>
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "14px 16px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 4 }}>How long:</strong>
-            New scan photos stay in your browser. Your saved details stay until you ask us to remove them or unsubscribe.
+            Your photo and saved details stay until you ask us to remove them or unsubscribe.
           </div>
 
           <div style={{ background: "#FAF7F2", border: "1px solid #E6DCCD", borderRadius: 8, padding: "14px 16px" }}>

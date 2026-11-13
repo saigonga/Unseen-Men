@@ -11,7 +11,6 @@ type SampleTab = "overview" | "structure";
 
 interface ShapeItem {
   name: string;
-  image: string;
   viewBox: string;
   path: string;
   ratio: string;
@@ -21,7 +20,6 @@ interface ShapeItem {
 const SHAPES_DATA: ShapeItem[] = [
   {
     name: "Round",
-    image: "/images/mockup/shape-round.jpg",
     viewBox: "30 40 240 330",
     path: "M127.4 104.8 C137.1 104.2 147.9 103.7 157.6 104.3 C167.2 104.9 175.9 106.1 185.1 108.5 C194.3 110.8 204.7 114.2 212.7 118.6 C220.7 122.9 227.3 128.4 233.2 134.6 C239.0 140.7 244.0 148.4 247.8 155.6 C251.7 162.8 254.2 169.6 256.4 178.0 C258.7 186.3 260.1 196.8 261.1 205.7 C262.0 214.6 261.9 222.8 262.1 231.4 C262.2 239.9 262.4 248.3 261.9 257.1 C261.4 265.8 260.9 275.0 259.1 284.1 C257.3 293.2 254.7 303.6 251.2 311.6 C247.7 319.6 242.9 326.5 238.0 332.2 C233.2 337.9 228.1 341.6 222.1 345.8 C216.1 349.9 208.3 353.9 202.2 357.0 C196.0 360.0 191.0 362.0 185.2 364.0 C179.4 366.0 173.5 367.7 167.3 369.1 C161.2 370.4 155.2 371.7 148.4 372.3 C141.6 372.9 133.6 372.6 126.7 372.4 C119.7 372.2 112.5 372.0 106.8 371.1 C101.1 370.1 96.6 368.5 92.3 366.8 C87.9 365.2 84.4 363.4 80.7 361.3 C77.1 359.2 73.9 357.2 70.2 354.3 C66.5 351.3 61.8 347.5 58.6 343.6 C55.4 339.8 53.3 336.5 51.0 331.3 C48.7 326.1 46.5 319.9 44.8 312.3 C43.0 304.7 41.5 294.5 40.4 285.9 C39.3 277.2 38.7 268.5 38.3 260.2 C37.9 251.9 38.2 244.2 38.0 236.1 C37.7 228.0 37.0 220.2 36.9 211.8 C36.7 203.3 36.6 193.4 37.0 185.4 C37.4 177.4 37.8 170.6 39.3 163.5 C40.7 156.4 42.6 148.9 45.7 142.6 C48.7 136.4 52.4 130.8 57.6 126.1 C62.8 121.3 69.8 117.2 76.8 114.1 C83.8 111.0 91.0 109.1 99.5 107.6 C107.9 106.0 117.7 105.3 127.4 104.8 Z",
     ratio: "1.08",
@@ -29,7 +27,6 @@ const SHAPES_DATA: ShapeItem[] = [
   },
   {
     name: "Oval",
-    image: "/images/mockup/shape-oval.jpg",
     viewBox: "30 40 240 330",
     path: "M151.5 111.7 C161.2 111.7 171.5 111.6 180.3 112.4 C189.2 113.2 196.9 114.5 204.7 116.6 C212.4 118.7 220.8 121.6 226.8 125.2 C232.8 128.8 237.2 133.3 240.9 138.3 C244.7 143.3 247.3 149.3 249.4 155.1 C251.5 160.9 252.6 166.4 253.7 173.2 C254.7 180.1 255.3 188.6 255.7 196.0 C256.0 203.4 255.8 210.4 255.7 217.8 C255.5 225.2 255.5 232.7 254.9 240.4 C254.2 248.1 253.6 256.1 252.0 264.2 C250.4 272.3 248.1 281.5 245.3 288.9 C242.6 296.3 238.9 302.8 235.3 308.4 C231.7 314.0 228.1 318.1 223.8 322.6 C219.5 327.2 214.0 332.1 209.7 335.8 C205.3 339.6 201.8 342.4 197.7 345.2 C193.5 348.1 189.6 350.9 184.9 353.1 C180.3 355.4 175.6 357.5 169.9 358.7 C164.2 359.8 157.1 360.1 150.7 360.1 C144.3 360.1 137.3 359.8 131.7 358.6 C126.1 357.4 121.5 355.2 116.9 353.0 C112.3 350.7 108.3 348.0 104.2 345.1 C100.1 342.3 96.5 339.6 92.2 335.9 C87.8 332.2 82.2 327.4 77.8 322.9 C73.5 318.3 69.9 314.3 66.2 308.7 C62.6 303.1 58.8 296.7 55.9 289.3 C53.1 281.9 50.8 272.5 49.1 264.4 C47.4 256.3 46.5 248.3 45.7 240.6 C44.9 232.9 44.7 225.6 44.5 218.2 C44.2 210.8 43.7 203.9 44.1 196.5 C44.4 189.1 45.3 180.7 46.5 173.8 C47.7 167.0 49.0 161.4 51.3 155.5 C53.6 149.6 56.4 143.6 60.4 138.6 C64.4 133.5 69.0 129.0 75.3 125.3 C81.5 121.7 90.0 118.7 97.9 116.6 C105.8 114.5 113.7 113.3 122.6 112.5 C131.6 111.7 141.9 111.7 151.5 111.7 Z",
     ratio: "1.27",
@@ -37,7 +34,6 @@ const SHAPES_DATA: ShapeItem[] = [
   },
   {
     name: "Square",
-    image: "/images/mockup/shape-square.jpg",
     viewBox: "30 40 240 330",
     path: "M133.4 104.2 C143.5 104.0 154.8 103.7 164.5 104.3 C174.3 104.9 183.0 106.0 191.9 107.9 C200.9 109.8 210.7 112.3 218.1 115.7 C225.5 119.1 231.3 123.5 236.4 128.5 C241.5 133.5 245.5 139.5 248.8 145.6 C252.1 151.7 254.2 157.5 256.2 164.9 C258.2 172.3 259.8 181.7 260.8 190.0 C261.9 198.2 262.1 206.1 262.5 214.5 C263.0 222.9 263.7 231.4 263.6 240.4 C263.6 249.4 263.6 258.6 262.3 268.2 C261.0 277.9 258.9 289.0 255.8 298.0 C252.7 307.1 248.3 315.5 243.9 322.6 C239.5 329.7 234.9 335.0 229.4 340.7 C223.9 346.4 216.7 352.2 210.9 356.8 C205.2 361.4 200.4 364.6 194.9 368.1 C189.4 371.6 183.9 375.0 177.9 377.6 C171.9 380.2 165.2 381.7 158.4 382.4 C151.6 383.0 144.3 382.9 137.4 382.7 C130.4 382.4 124.9 384.1 116.7 382.3 C110.7 380.5 105.9 377.6 101.3 374.5 C96.7 371.4 92.9 367.6 88.9 363.9 C84.9 360.1 81.4 356.7 77.3 352.1 C73.1 347.4 67.9 341.5 64.1 335.8 C60.4 330.1 57.6 324.8 54.6 317.9 C51.6 311.0 48.6 303.1 46.3 294.3 C44.0 285.6 41.9 274.8 40.5 265.5 C39.2 256.3 38.7 247.4 38.2 238.9 C37.8 230.3 38.1 222.3 37.9 214.3 C37.7 206.2 37.1 198.6 37.1 190.6 C37.1 182.6 37.4 173.7 38.1 166.5 C38.7 159.3 39.5 153.4 41.0 147.4 C42.6 141.4 44.5 135.5 47.5 130.6 C50.6 125.7 54.1 121.3 59.4 117.8 C64.8 114.3 72.2 111.6 79.6 109.5 C87.0 107.4 94.8 106.2 103.7 105.3 C112.7 104.4 123.3 104.4 133.4 104.2 Z",
     ratio: "1.12",
@@ -45,7 +41,6 @@ const SHAPES_DATA: ShapeItem[] = [
   },
   {
     name: "Oblong",
-    image: "/images/mockup/shape-oblong.jpg",
     viewBox: "30 40 240 330",
     path: "M164.0 114.5 C172.7 114.6 181.5 114.6 189.3 115.3 C197.2 116.1 204.5 117.3 211.1 119.1 C217.7 120.9 224.1 123.1 228.9 126.2 C233.8 129.3 237.3 133.0 240.4 137.5 C243.5 142.1 245.6 147.6 247.3 153.3 C248.9 159.1 249.7 164.9 250.3 171.9 C251.0 178.9 251.2 187.8 251.2 195.4 C251.2 203.1 250.9 210.3 250.6 217.8 C250.3 225.3 250.0 232.9 249.4 240.7 C248.8 248.6 248.0 256.7 246.8 264.9 C245.6 273.2 244.1 282.6 242.3 290.2 C240.4 297.9 238.1 304.6 235.8 310.6 C233.4 316.5 231.1 320.8 228.0 325.7 C225.0 330.6 220.8 335.9 217.5 340.0 C214.2 344.1 211.4 347.1 208.1 350.3 C204.8 353.4 201.7 356.5 197.7 359.0 C193.7 361.5 189.6 363.9 184.3 365.4 C179.0 366.8 172.2 367.4 165.9 367.7 C159.5 368.0 152.1 368.1 146.1 367.2 C140.0 366.3 134.7 364.3 129.4 362.2 C124.2 360.0 119.3 357.3 114.4 354.5 C109.6 351.7 105.4 349.1 100.4 345.3 C95.4 341.5 89.1 336.5 84.3 331.7 C79.5 326.9 75.4 322.6 71.5 316.7 C67.5 310.8 63.6 304.1 60.8 296.3 C57.9 288.5 56.0 278.5 54.4 270.0 C52.7 261.4 51.7 253.0 50.9 244.9 C50.1 236.8 49.9 229.1 49.7 221.3 C49.6 213.5 49.3 206.2 50.0 198.2 C50.7 190.3 52.2 181.1 54.1 173.7 C55.9 166.3 58.0 160.1 61.3 154.0 C64.5 147.9 68.7 141.9 73.6 137.2 C78.4 132.4 84.0 128.4 90.5 125.3 C97.1 122.1 105.2 120.0 113.0 118.3 C120.8 116.6 129.0 115.6 137.5 115.0 C146.0 114.4 155.4 114.4 164.0 114.5 Z",
     ratio: "1.48",
@@ -53,7 +48,6 @@ const SHAPES_DATA: ShapeItem[] = [
   },
   {
     name: "Heart",
-    image: "/images/mockup/shape-heart.jpg",
     viewBox: "30 40 240 330",
     path: "M169.2 109.8 C178.9 109.9 188.9 109.9 197.3 110.7 C205.8 111.5 213.0 112.7 219.9 114.6 C226.7 116.5 233.8 119.0 238.6 122.2 C243.4 125.5 246.4 129.6 248.9 134.1 C251.4 138.7 252.5 144.1 253.5 149.5 C254.4 154.9 254.7 160.1 254.7 166.5 C254.7 173.0 253.9 181.0 253.4 188.1 C252.8 195.1 251.9 201.8 251.2 208.9 C250.5 215.9 250.1 223.1 249.1 230.5 C248.1 237.9 247.0 245.3 245.3 253.2 C243.6 261.1 241.4 270.2 239.1 277.8 C236.9 285.3 234.4 292.5 231.9 298.6 C229.4 304.7 226.9 309.3 223.9 314.4 C220.8 319.4 216.6 324.6 213.4 328.8 C210.1 332.9 207.4 335.9 204.2 339.2 C201.0 342.5 198.0 345.8 194.2 348.5 C190.4 351.2 186.5 353.9 181.5 355.5 C176.5 357.1 170.1 357.7 164.0 357.9 C158.0 358.1 150.9 357.9 145.2 356.7 C139.5 355.4 134.7 353.0 129.8 350.5 C124.9 348.0 120.4 344.9 115.9 341.8 C111.3 338.7 107.4 336.0 102.6 332.0 C97.8 328.0 91.7 322.9 86.9 317.9 C82.1 312.9 77.8 308.1 73.8 302.0 C69.7 295.8 65.7 288.8 62.5 281.0 C59.4 273.3 57.0 263.7 55.0 255.5 C53.1 247.2 51.9 239.3 50.9 231.6 C50.0 223.9 49.6 216.4 49.3 209.1 C48.9 201.8 48.4 195.0 48.8 187.8 C49.2 180.6 50.1 172.5 51.6 166.0 C53.1 159.5 54.7 154.1 57.6 148.6 C60.5 143.1 64.3 137.4 69.1 132.7 C74.0 128.1 79.7 123.9 86.9 120.6 C94.1 117.3 103.8 114.9 112.5 113.1 C121.2 111.3 129.7 110.4 139.1 109.9 C148.6 109.3 159.5 109.6 169.2 109.8 Z",
     ratio: "1.24",
@@ -61,7 +55,6 @@ const SHAPES_DATA: ShapeItem[] = [
   },
   {
     name: "Diamond",
-    image: "/images/mockup/shape-diamond.jpg",
     viewBox: "30 40 240 330",
     path: "M175.2 109.2 C184.8 109.5 194.4 109.7 202.6 110.7 C210.8 111.7 217.9 113.0 224.6 115.3 C231.3 117.5 238.1 120.3 242.8 124.0 C247.4 127.7 250.3 132.3 252.7 137.3 C255.1 142.4 256.3 148.5 257.2 154.4 C258.2 160.3 258.3 166.0 258.3 172.9 C258.3 179.9 257.5 188.6 257.1 196.1 C256.6 203.7 255.9 210.9 255.4 218.4 C255.0 225.9 254.9 233.4 254.2 241.2 C253.6 249.1 252.9 257.2 251.5 265.6 C250.2 273.9 248.2 283.5 246.1 291.3 C244.0 299.0 241.6 306.1 239.2 312.1 C236.8 318.2 234.6 322.5 231.7 327.5 C228.8 332.4 224.8 337.7 221.7 341.9 C218.6 346.0 216.0 349.2 212.9 352.4 C209.8 355.7 206.9 359.0 203.0 361.7 C199.2 364.4 195.1 367.0 189.8 368.6 C184.4 370.2 177.7 370.9 171.0 371.3 C164.3 371.7 156.1 371.8 149.6 370.9 C143.0 369.9 137.3 367.8 131.6 365.5 C125.9 363.3 120.5 360.5 115.2 357.6 C109.9 354.6 105.3 352.0 99.8 348.1 C94.3 344.2 87.5 339.1 82.1 334.1 C76.7 329.1 72.1 324.5 67.7 318.2 C63.2 311.9 58.8 304.6 55.6 296.4 C52.5 288.2 50.3 277.8 48.6 268.8 C46.9 259.9 46.1 251.2 45.5 242.9 C44.8 234.5 44.8 226.7 44.7 218.8 C44.6 210.9 44.2 203.4 44.9 195.5 C45.6 187.6 47.1 178.6 48.9 171.3 C50.8 164.1 52.7 158.1 56.1 151.9 C59.5 145.8 64.0 139.4 69.5 134.2 C75.0 129.0 81.3 124.3 89.1 120.7 C97.0 117.1 107.4 114.4 116.7 112.5 C125.9 110.6 134.8 109.7 144.6 109.1 C154.3 108.6 165.5 109.0 175.2 109.2 Z",
     ratio: "1.34",
@@ -287,7 +280,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             marginTop: 4,
           }}
         >
-          <span>Your photo stays on your device</span>
+          <span>Your photo is stored privately</span>
           <span>No age, ethnicity or attractiveness scoring</span>
           <span>Takes about 60 seconds</span>
         </div>
@@ -307,22 +300,8 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               background: "#E5E5E3",
             }}
             role="img"
-            aria-label="AI-generated sample face on a backdrop with landmark rings, a centre line and frosted panels showing face shape, widths, length to width 1.27 and a gonial angle of 132 degrees"
+            aria-label="Sample facial measurements and landmark positions"
           >
-            <img
-              src="/images/mockup/hero-face.jpg"
-              alt="AI-generated sample face"
-              style={{
-                position: "absolute",
-                left: "50%",
-                transform: "translateX(-50%)",
-                top: 0,
-                width: 450,
-                height: 600,
-                display: "block",
-                objectFit: "cover",
-              }}
-            />
             {/* Radial highlight overlay */}
             <div
               style={{
@@ -664,7 +643,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 color: "rgba(255,255,255,0.65)",
               }}
             >
-              AI-generated sample face · not a real person
+              Sample measurements
             </div>
           </div>
 
@@ -681,7 +660,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             <svg
               viewBox="0 0 440 300"
               role="img"
-              aria-label="AI-generated sample face with landmark rings and panels showing an oval face shape, length to width 1.27, jaw to cheek 0.80 and a 132 degree jaw angle"
+              aria-label="Sample facial measurements and landmark positions"
               style={{ width: "100%", height: "auto", display: "block" }}
             >
               <defs>
@@ -691,7 +670,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 </linearGradient>
               </defs>
               <rect width="440" height="300" fill="#E5E5E3" />
-              <image href="/images/mockup/hero-face.jpg" x="70" y="-20" width="300" height="400" preserveAspectRatio="none" />
+
               <rect width="440" height="300" fill="url(#s2g-hero)" />
               <line x1="220" y1="0" x2="220" y2="300" stroke="#FFFFFF" strokeOpacity="0.4" strokeWidth="0.8" strokeDasharray="3 3" />
               <g stroke="#FFFFFF" strokeOpacity="0.6" strokeWidth="0.8">
@@ -733,7 +712,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               <text x="347.5" y="262.0" fontFamily="JetBrains Mono, monospace" fontSize="7.0" letterSpacing="0.50" fill="#FFFFFF" fillOpacity="0.72">LENGTH : WIDTH</text>
               <text x="347.5" y="281.0" fontFamily="Sora, sans-serif" fontWeight="300" fontSize="17.0" fill="#FFFFFF">1.27</text>
 
-              <text x="220.0" y="294.0" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.2" letterSpacing="0.50" fill="#FFFFFF" fillOpacity="0.7">AI-GENERATED SAMPLE · NOT A REAL PERSON</text>
+              <text x="220.0" y="294.0" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.2" letterSpacing="0.50" fill="#FFFFFF" fillOpacity="0.7">SAMPLE MEASUREMENTS</text>
             </svg>
           </div>
 
@@ -859,7 +838,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 <svg
                   viewBox="18 251 264 149"
                   role="img"
-                  aria-label="Lower face of the sample with the measured jaw contour and jaw angle"
+                  aria-label="Sample jaw contour and angle illustration"
                   style={{ width: "100%", height: "auto", display: "block" }}
                 >
                   <defs>
@@ -871,7 +850,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                       <stop offset="1" stopColor="#0F0F11" stopOpacity="0.5" />
                     </linearGradient>
                   </defs>
-                  <image href="/images/mockup/hero-face.jpg" x="0" y="0" width="300" height="400" preserveAspectRatio="none" />
+
                   <rect x="0" y="330" width="300" height="120" fill="url(#jfade)" />
                   <path
                     d="M151.5 111.7 C161.2 111.7 171.5 111.6 180.3 112.4 C189.2 113.2 196.9 114.5 204.7 116.6 C212.4 118.7 220.8 121.6 226.8 125.2 C232.8 128.8 237.2 133.3 240.9 138.3 C244.7 143.3 247.3 149.3 249.4 155.1 C251.5 160.9 252.6 166.4 253.7 173.2 C254.7 180.1 255.3 188.6 255.7 196.0 C256.0 203.4 255.8 210.4 255.7 217.8 C255.5 225.2 255.5 232.7 254.9 240.4 C254.2 248.1 253.6 256.1 252.0 264.2 C250.4 272.3 248.1 281.5 245.3 288.9 C242.6 296.3 238.9 302.8 235.3 308.4 C231.7 314.0 228.1 318.1 223.8 322.6 C219.5 327.2 214.0 332.1 209.7 335.8 C205.3 339.6 201.8 342.4 197.7 345.2 C193.5 348.1 189.6 350.9 184.9 353.1 C180.3 355.4 175.6 357.5 169.9 358.7 C164.2 359.8 157.1 360.1 150.7 360.1 C144.3 360.1 137.3 359.8 131.7 358.6 C126.1 357.4 121.5 355.2 116.9 353.0 C112.3 350.7 108.3 348.0 104.2 345.1 C100.1 342.3 96.5 339.6 92.2 335.9 C87.8 332.2 82.2 327.4 77.8 322.9 C73.5 318.3 69.9 314.3 66.2 308.7 C62.6 303.1 58.8 296.7 55.9 289.3 C53.1 281.9 50.8 272.5 49.1 264.4 C47.4 256.3 46.5 248.3 45.7 240.6 C44.9 232.9 44.7 225.6 44.5 218.2 C44.2 210.8 43.7 203.9 44.1 196.5 C44.4 189.1 45.3 180.7 46.5 173.8 C47.7 167.0 49.0 161.4 51.3 155.5 C53.6 149.6 56.4 143.6 60.4 138.6 C64.4 133.5 69.0 129.0 75.3 125.3 C81.5 121.7 90.0 118.7 97.9 116.6 C105.8 114.5 113.7 113.3 122.6 112.5 C131.6 111.7 141.9 111.7 151.5 111.7 Z"
@@ -1007,7 +986,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               <div style={{ background: "#F4F4F2", borderRadius: 8, padding: 12, display: "flex", gap: 14, alignItems: "center" }}>
                 <div style={{ position: "relative", width: 112, flex: "none", borderRadius: 8, overflow: "hidden", background: "#E5E5E3" }}>
                   <svg viewBox="40 52 220 328" style={{ width: "100%", height: "auto", display: "block" }} aria-hidden="true">
-                    <image href="/images/mockup/hero-face.jpg" x="0" y="0" width="300" height="400" preserveAspectRatio="none" />
+
                     <g stroke="#FFFFFF" strokeWidth="1.6" strokeDasharray="6 5">
                       <line x1="40" y1="92" x2="260" y2="92" />
                       <line x1="40" y1="163" x2="260" y2="163" />
@@ -1099,7 +1078,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                     </span>
                   </div>
 
-                  {/* 6 Real Photographic Shape Previews with Contour Overlays */}
+                  {/* Face shape illustrations */}
                   <div
                     style={{
                       background: "#FCFCFB",
@@ -1139,7 +1118,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                             }}
                           >
                             <svg viewBox={shape.viewBox} style={{ width: "100%", height: "auto", display: "block" }} aria-hidden="true">
-                              <image href={shape.image} x="0" y="0" width="300" height="400" preserveAspectRatio="none" />
+
                               <path
                                 d={shape.path}
                                 fill="none"
@@ -1728,7 +1707,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 letterSpacing: "-0.03em",
               }}
             >
-              Your photo <span style={{ fontWeight: 600 }}>stays on your device.</span>
+              Your photo <span style={{ fontWeight: 600 }}>is stored privately.</span>
             </h2>
           </div>
 
@@ -1751,7 +1730,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               }}
             >
               <span style={{ color: "#8A8A85" }}>Photo</span>
-              <span>Used in your browser to create your analysis and style previews.</span>
+              <span>Stored privately for your analysis and personalized style images.</span>
             </div>
             <div
               className="privacy-table-row"
@@ -1834,7 +1813,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           <details style={{ borderTop: "1px solid #ECECEA", padding: "18px 0" }}>
             <summary style={{ fontWeight: 500, fontSize: 16 }}>What happens to my photo?</summary>
             <p style={{ margin: "8px 0 0", color: "#5F5F5B", fontSize: 14 }}>
-              Your browser uses it to create your report and lookbook. You can save the previews you want to keep.
+              Your photo is stored privately so we can create your report and personalized style images. You can request deletion.
             </p>
           </details>
 

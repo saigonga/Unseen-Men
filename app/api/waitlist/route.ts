@@ -15,6 +15,16 @@ function generateReferralCode(): string {
   return "UM-" + Array.from(bytes, (b) => ABC[b % ABC.length]).join("");
 }
 
+async function saveScanPhoto(supabase: SupabaseClient, memberId: string, scanId: string, jpeg: Buffer) {
+  const path = `${memberId}/${scanId}.jpg`;
+  const bucket = supabase.storage.from("face-scan-photos");
+  const { error: uploadError } = await bucket.upload(path, jpeg, { contentType: "image/jpeg", upsert: false });
+  if (uploadError && uploadError.statusCode !== "409") throw uploadError;
+  const { error } = await supabase.from("waitlist").update({ photo_url: path }).eq("id", memberId);
+  if (error) throw error;
+  return path;
+}
+
 /** Encode complete summary into skin_concern if optional schema columns are absent. */
 function buildFallbackSkinConcern(
   skinConcern: string | null,
@@ -97,6 +107,22 @@ export async function POST(req: NextRequest) {
       faceShape !== SHAPES[scanShape].name || !faceData?.measurements || !faceData?.rawMeasures || !faceData?.facialThirds)) {
       return NextResponse.json({ ok: false, error: "Invalid scan measurements." }, { status: 400 });
     }
+    if (body.faceData && !scanShape) {
+      return NextResponse.json({ ok: false, error: "Invalid face shape in scan." }, { status: 400 });
+    }
+    let scanPhoto: Buffer | null = null;
+    const scanId = typeof body.scanId === "string" ? body.scanId : "";
+    if (scanShape) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(scanId) ||
+          typeof body.photoBase64 !== "string" || body.photoBase64.length > 2_800_000 ||
+          !/^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(body.photoBase64)) {
+        return NextResponse.json({ ok: false, error: "A valid scan photo is required." }, { status: 400 });
+      }
+      scanPhoto = Buffer.from(body.photoBase64.slice("data:image/jpeg;base64,".length), "base64");
+      if (scanPhoto.length < 4 || scanPhoto.length > 2_097_152 || scanPhoto[0] !== 0xff || scanPhoto[1] !== 0xd8 || scanPhoto[2] !== 0xff) {
+        return NextResponse.json({ ok: false, error: "A valid scan photo is required." }, { status: 400 });
+      }
+    }
     const requestedMemberNumber = body.memberNumber ? parseInt(String(body.memberNumber), 10) : null;
     const referredBy = body.referredBy ? String(body.referredBy).trim().toUpperCase() : null;
 
@@ -149,6 +175,10 @@ export async function POST(req: NextRequest) {
       const lookbook = scanShape && faceData
         ? await saveLookbook(supabase, existing.id, scanShape, traits, faceData, rawEmail || null, beard)
         : null;
+      const photoPath = scanPhoto ? await saveScanPhoto(supabase, existing.id, scanId, scanPhoto) : null;
+      const signedPhoto = photoPath && process.env.N8N_WEBHOOK_URL
+        ? await supabase.storage.from("face-scan-photos").createSignedUrl(photoPath, 3600)
+        : null;
       const updatePayload: Record<string, unknown> = {};
       if (faceShape) updatePayload.face_shape = faceShape;
       if (ageBracket) updatePayload.age_bracket = ageBracket;
@@ -194,6 +224,8 @@ export async function POST(req: NextRequest) {
                 beard,
                 faceShape: faceShape || null,
                 skinConcern,
+                photoPath,
+                photoUrl: signedPhoto?.data?.signedUrl || null,
               },
               faceData,
               styling: stylingData,
@@ -305,11 +337,16 @@ export async function POST(req: NextRequest) {
     }
 
     let lookbook = null;
+    let photoPath: string | null = null;
     if (scanShape && faceData) {
       const { data: member, error } = await supabase.from("waitlist").select("id").eq("contact", normalizedContact).single();
       if (error) throw error;
       lookbook = await saveLookbook(supabase, member.id, scanShape, traits, faceData, rawEmail || null, beard);
+      if (scanPhoto) photoPath = await saveScanPhoto(supabase, member.id, scanId, scanPhoto);
     }
+    const signedPhoto = photoPath && process.env.N8N_WEBHOOK_URL
+      ? await supabase.storage.from("face-scan-photos").createSignedUrl(photoPath, 3600)
+      : null;
 
     // 8. Calculate waitlist position
     const { count: totalWaitlist } = await supabase
@@ -338,6 +375,8 @@ export async function POST(req: NextRequest) {
               beard,
               faceShape,
               skinConcern,
+              photoPath,
+              photoUrl: signedPhoto?.data?.signedUrl || null,
             },
             faceData,
             styling: stylingData,

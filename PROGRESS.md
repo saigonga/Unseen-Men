@@ -289,6 +289,17 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 - New results use a single save request and keep selfie and creative pixels in the browser. Legacy records and files were left in place. The existing `scans` bucket is public and requires a separate decision about legacy access and retention.
 - Verified database privileges, measurement updates and duplicate rejection in a rolled-back synthetic transaction. Local tests verified the save API with a legacy-schema fixture, eight rendered cards and a JPEG export. Phone camera and production rollout are pending.
 
+## Face analysis database check
+- New scan records include separate age bracket, skin type, skin concern and beard preferences, and retain full precision for the five scoring measurements. Rescans preserve existing analysis fields written by other tools. Existing scan data and image storage are unchanged. Saving still reports an error with a retry option when the database write fails.
+- Muse records use a different lookbook format. The analysis save preserves those records and creates an in-session preview when the saved format cannot be rendered by this app. Concurrent changes to analysis data are detected and retried.
+
+## Sample face images
+- Removed the sample face photos from the landing page and its public image assets. Face-shape outlines and the example measurements remain.
+
+## Scan photo storage
+- New scans save the photo to the private `face-scan-photos` Supabase bucket and link its storage path in `waitlist.photo_url`. The configured n8n webhook receives the path and a one-hour signed URL. Consent and data-use copy were updated.
+- Muse's own integration was not available in this checkout. Its access to the private bucket and consumption of the saved path still require verification.
+
 ## Next
 - Phase 4: Claude API skin read server route.
 - Phase 6: Privacy policy & terms pages, analytics, rate limiting.

@@ -404,7 +404,7 @@ export default function RegisterLead({
               }}
             />
             <span>
-              I am 18 or older and agree to face analysis and the storage of my scan measurements and style recommendations. <span style={{ color: "#D9735E" }}>*</span>
+              I am 18 or older and agree to the storage of my scan photo, measurements and style recommendations for personalized creatives. <span style={{ color: "#D9735E" }}>*</span>
             </span>
           </label>
           {errs.consentAgeAndPhoto && (
@@ -458,7 +458,7 @@ export default function RegisterLead({
               paddingLeft: 2,
             }}
           >
-            Your photo stays in your browser while we create your analysis and style previews. You can download the looks you want to keep.{" "}
+            Your photo is stored privately in Supabase so it can be used for your personalized style images. You can request deletion.{" "}
             <button
               type="button"
               onClick={() => setShowDataModal(true)}
