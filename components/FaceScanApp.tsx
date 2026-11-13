@@ -15,10 +15,7 @@ import type { Detection } from "@/lib/detector";
 import { analyseMeasures } from "@/lib/faceShape";
 import type { FaceResult } from "@/lib/faceShape";
 import type { RobustMeasures } from "@/lib/robust";
-import { SHAPES } from "@/lib/content";
-import { buildFaceDataPayload } from "@/lib/faceDataPayload";
 import { captureReferral } from "@/lib/referral";
-import { getPhotoDataUrl } from "@/lib/photoData";
 import dynamic from "next/dynamic";
 
 const DebugPanel = dynamic(() => import("./DebugPanel"), { ssr: false });
@@ -119,31 +116,6 @@ export default function FaceScanApp() {
       const r = analyseMeasures(p.measurements.m, effectiveBeard);
       setResult(r);
 
-      // Sync photo + complete face data immediately to waitlist in background
-      if (userLead) {
-        const faceData = buildFaceDataPayload(r, p.det, effectiveBeard, p.measurements);
-        const getBase64 = async () => p.dataUrl || (await getPhotoDataUrl(p));
-        getBase64().then((photoBase64) => {
-          fetch("/api/waitlist", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            keepalive: true,
-            body: JSON.stringify({
-              name: userLead.name,
-              contact: userLead.phone,
-              phone: userLead.phone,
-              email: userLead.email,
-              ageBracket: userLead.age,
-              beard: effectiveBeard,
-              faceShape: SHAPES[r.key].name,
-              skinConcern: userLead.concern,
-              photoBase64: photoBase64 || undefined,
-              faceData,
-            }),
-          }).catch((err) => console.warn("Background face sync:", err));
-        });
-      }
-
       // Allow 2.2s for scanning animation to complete, then reveal the report
       await new Promise((res) => setTimeout(res, 2200));
       go("results");
@@ -203,22 +175,6 @@ export default function FaceScanApp() {
                 localStorage.setItem("unseen_lead", JSON.stringify(profile));
               } catch {}
 
-              // Register the lead before opening capture.
-              fetch("/api/waitlist", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  name: profile.name,
-                  contact: profile.phone,
-                  phone: profile.phone,
-                  email: profile.email,
-                  ageBracket: profile.age,
-                  skinConcern: profile.concern,
-                }),
-                keepalive: true,
-              })
-                .catch((e) => console.warn("Upfront lead registration error:", e));
-
               setInitialCaptureMode(mode);
               go("capture");
             }}
@@ -265,6 +221,7 @@ export default function FaceScanApp() {
             photo={photo}
             result={result}
             userLead={userLead}
+            referredBy={referredBy.current}
             onRestart={restart}
           />
         </div>

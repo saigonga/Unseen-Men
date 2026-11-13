@@ -287,7 +287,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             marginTop: 4,
           }}
         >
-          <span>Photo stored privately, deleted on request</span>
+          <span>Your photo stays on your device</span>
           <span>No age, ethnicity or attractiveness scoring</span>
           <span>Takes about 60 seconds</span>
         </div>
@@ -1728,8 +1728,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 letterSpacing: "-0.03em",
               }}
             >
-              Your photo is private,{" "}
-              <span style={{ fontWeight: 600 }}>and securely stored.</span>
+              Your photo <span style={{ fontWeight: 600 }}>stays on your device.</span>
             </h2>
           </div>
 
@@ -1752,7 +1751,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               }}
             >
               <span style={{ color: "#8A8A85" }}>Photo</span>
-              <span>Stored securely in your private Founding Member profile.</span>
+              <span>Used in your browser to create your analysis and style previews.</span>
             </div>
             <div
               className="privacy-table-row"
@@ -1764,7 +1763,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
               }}
             >
               <span style={{ color: "#8A8A85" }}>Kept</span>
-              <span>Written results only, such as "oval face, wavy hair".</span>
+              <span>Your waitlist details, scan measurements, and assigned styles.</span>
             </div>
             <div
               className="privacy-table-row"
@@ -1835,7 +1834,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           <details style={{ borderTop: "1px solid #ECECEA", padding: "18px 0" }}>
             <summary style={{ fontWeight: 500, fontSize: 16 }}>What happens to my photo?</summary>
             <p style={{ margin: "8px 0 0", color: "#5F5F5B", fontSize: 14 }}>
-              It is discarded the moment landmarks are measured. We retain written proportions only.
+              Your browser uses it to create your report and lookbook. You can save the previews you want to keep.
             </p>
           </details>
 

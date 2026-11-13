@@ -283,6 +283,12 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 ## Waitlist confirmation copy
 - Replaced the launch discount and its progress bar with the WhatsApp delivery and weekly analysis message through December 13, 2026. The PDF uses the same copy. The member number, waitlist position, and invite link are still available.
 
+## Personalized lookbook and private scan records
+- The results screen renders eight downloadable looks on the user’s selfie using reusable Canvas filters. Face shape guides eyewear and beard selection. Face shape and measured traits guide haircut selection. Hair and beard are stylized previews.
+- Supabase MCP is configured for the project and authenticated through OAuth. The deployed `scan_lookbooks` migration stores the latest structured measurements, scan metadata, email, beard status and versioned style selection per waitlist member. A unique pack signature prevents identical packs across members. Returning members keep their pack when they rescan with the same contact details.
+- New results use a single save request and keep selfie and creative pixels in the browser. Legacy records and files were left in place. The existing `scans` bucket is public and requires a separate decision about legacy access and retention.
+- Verified database privileges, measurement updates and duplicate rejection in a rolled-back synthetic transaction. Local tests verified the save API with a legacy-schema fixture, eight rendered cards and a JPEG export. Phone camera and production rollout are pending.
+
 ## Next
 - Phase 4: Claude API skin read server route.
 - Phase 6: Privacy policy & terms pages, analytics, rate limiting.

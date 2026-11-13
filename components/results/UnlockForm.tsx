@@ -25,43 +25,11 @@ interface UnlockFormProps {
   onUnlock: (l: Lead) => void;
 }
 
-function extractJpeg(img: HTMLImageElement): string | null {
-  try {
-    const c = document.createElement("canvas");
-    const nw = img.naturalWidth || img.width;
-    const nh = img.naturalHeight || img.height;
-    if (!nw || !nh) return null;
-    const maxW = 800;
-    const scale = nw > maxW ? maxW / nw : 1;
-    c.width = Math.round(nw * scale);
-    c.height = Math.round(nh * scale);
-    const ctx = c.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return null;
-    ctx.drawImage(img, 0, 0, c.width, c.height);
-    return c.toDataURL("image/jpeg", 0.85);
-  } catch {
-    return null;
-  }
-}
-
-function getPhotoBase64(photo?: { img: HTMLImageElement; url: string } | null): string | null {
-  if (!photo) return null;
-  if (photo.img) {
-    const extracted = extractJpeg(photo.img);
-    if (extracted) return extracted;
-  }
-  if (photo.url && photo.url.startsWith("data:image/")) {
-    return photo.url;
-  }
-  return null;
-}
-
 export default function UnlockForm({
   result,
   memberNumber = "0347",
   ageBracket,
   skinConcern,
-  photo,
   onUnlock,
 }: UnlockFormProps) {
   const [name, setName] = useState("Rohan");
@@ -109,7 +77,6 @@ export default function UnlockForm({
 
     setSubmitting(true);
     try {
-      const photoBase64 = getPhotoBase64(photo);
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -121,7 +88,6 @@ export default function UnlockForm({
           skinConcern,
           memberNumber: parseInt(memberNumber, 10),
           referredBy: captureReferral(),
-          photoBase64,
         }),
       });
 

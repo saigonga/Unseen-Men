@@ -68,7 +68,7 @@ export default function HowWeUseYourDataPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 16, fontSize: 14.5, lineHeight: 1.6, color: "#2E2D2A" }}>
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "14px 16px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 4 }}>What we collect:</strong>
-            First name, WhatsApp number, email, your photo, and the style results from your analysis (for example face shape and beard type).
+            Name, WhatsApp number, email, scan measurements, and your assigned styles.
           </div>
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "14px 16px" }}>
@@ -83,12 +83,12 @@ export default function HowWeUseYourDataPage() {
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "14px 16px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 4 }}>Where it is kept:</strong>
-            On secure servers run by our service providers (Vercel, Supabase, and the image provider once chosen).
+            The app runs on Vercel and stores your waitlist details, measurements, and assigned styles in Supabase.
           </div>
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "14px 16px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 4 }}>How long:</strong>
-            Unsaved photos are deleted straight after the analysis. Saved photos and generated images are deleted on 31 January 2027. Your details stay until you ask us to remove them or unsubscribe.
+            New scan photos stay in your browser. Your saved details stay until you ask us to remove them or unsubscribe.
           </div>
 
           <div style={{ background: "#FAF7F2", border: "1px solid #E6DCCD", borderRadius: 8, padding: "14px 16px" }}>

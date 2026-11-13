@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { checkIndianMobile, isEmail } from "@/lib/phone";
+import { SHAPE_ORDER, SHAPES } from "@/lib/content";
+import type { ShapeKey, TraitKey } from "@/lib/content";
+import { saveLookbook } from "@/lib/saveLookbook";
 
 const ABC = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const CODE_RE = /^UM-[A-HJ-KM-NP-Z2-9]{4}$/;
@@ -12,70 +15,12 @@ function generateReferralCode(): string {
   return "UM-" + Array.from(bytes, (b) => ABC[b % ABC.length]).join("");
 }
 
-/** Upload captured selfie and full face-analysis JSON to Supabase Storage `scans` bucket. */
-async function uploadScanAssets(
-  supabase: SupabaseClient,
-  referralCode: string,
-  photoBase64: string | null,
-  faceDataRecord: Record<string, unknown> | null
-): Promise<{ photoUrl: string | null; faceDataUrl: string | null }> {
-  let photoUrl: string | null = null;
-  let faceDataUrl: string | null = null;
-
-  if (photoBase64 && photoBase64.includes("base64")) {
-    try {
-      const cleanBase64 = photoBase64.includes(",") ? photoBase64.split(",")[1] : photoBase64;
-      const buffer = Buffer.from(cleanBase64, "base64");
-      const mime = photoBase64.startsWith("data:image/png") ? "image/png" : "image/jpeg";
-      const ext = mime === "image/png" ? "png" : "jpg";
-      const fileName = `${referralCode}_${Date.now()}.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("scans")
-        .upload(fileName, buffer, { contentType: mime, upsert: true });
-
-      if (!uploadError) {
-        const { data: pubData } = supabase.storage.from("scans").getPublicUrl(fileName);
-        photoUrl = pubData?.publicUrl || null;
-      } else {
-        console.warn("Storage photo upload warning:", uploadError.message);
-      }
-    } catch (photoErr) {
-      console.warn("Failed to process photo upload:", photoErr);
-    }
-  }
-
-  if (faceDataRecord) {
-    try {
-      const jsonName = `${referralCode}_face_data.json`;
-      const { error: jsonErr } = await supabase.storage
-        .from("scans")
-        .upload(jsonName, Buffer.from(JSON.stringify(faceDataRecord, null, 2), "utf8"), {
-          contentType: "application/json",
-          upsert: true,
-        });
-
-      if (!jsonErr) {
-        const { data: pubJson } = supabase.storage.from("scans").getPublicUrl(jsonName);
-        faceDataUrl = pubJson?.publicUrl || null;
-      } else {
-        console.warn("Storage face_data JSON warning:", jsonErr.message);
-      }
-    } catch (jsonErr) {
-      console.warn("Failed to upload face_data JSON:", jsonErr);
-    }
-  }
-
-  return { photoUrl, faceDataUrl };
-}
-
 /** Encode complete summary into skin_concern if optional schema columns are absent. */
 function buildFallbackSkinConcern(
   skinConcern: string | null,
   rawEmail: string,
   beard: string | null,
-  faceData: Record<string, unknown> | null,
-  faceDataUrl: string | null
+  faceData: Record<string, unknown> | null
 ): string | null {
   const parts: string[] = [];
   if (skinConcern) parts.push(skinConcern);
@@ -94,7 +39,6 @@ function buildFallbackSkinConcern(
       .join(" ");
     if (summary) parts.push(`metrics:[${summary}]`);
   }
-  if (faceDataUrl) parts.push(`face_json:${faceDataUrl}`);
   return parts.length ? parts.join(" | ") : null;
 }
 
@@ -114,13 +58,11 @@ async function writeWaitlistWithFallback(
   const first = await exec(payload);
   if (!first.error) return first;
 
+  if (!["PGRST204", "42703"].includes(first.error.code)) return first;
   const fallback = { ...payload };
   delete fallback.email;
   delete fallback.beard;
   delete fallback.face_data;
-  if (first.error.message?.includes("photo_url")) {
-    delete fallback.photo_url;
-  }
   if (fallbackConcern) {
     fallback.skin_concern = fallbackConcern;
   }
@@ -140,15 +82,23 @@ export async function POST(req: NextRequest) {
     const skinConcern = body.skinConcern ? String(body.skinConcern) : null;
     const beard = body.beard ? String(body.beard) : null;
     const stylingData = body.styling || null;
-    const faceData =
-      body.faceData && typeof body.faceData === "object"
+    const faceData: Record<string, unknown> | null =
+      body.faceData && typeof body.faceData === "object" && !Array.isArray(body.faceData)
         ? (body.faceData as Record<string, unknown>)
         : stylingData && typeof stylingData === "object"
           ? { facialThirds: stylingData.facialThirds, faceShape }
           : null;
-    const skipPhotoIfPresent = Boolean(body.skipPhotoIfPresent);
+    const scanShape = faceData && SHAPE_ORDER.includes(faceData.shapeKey as ShapeKey) ? faceData.shapeKey as ShapeKey : null;
+    const traits = Array.isArray(faceData?.structuralHighlights)
+      ? faceData.structuralHighlights.slice(0, 5).map(trait => trait?.key).filter((key): key is TraitKey => typeof key === "string")
+      : [];
+    const encodedScan = scanShape ? JSON.stringify(faceData) : "";
+    if (scanShape && (encodedScan.length > 24_000 || encodedScan.includes("data:image/") ||
+      faceShape !== SHAPES[scanShape].name || !faceData?.measurements || !faceData?.rawMeasures || !faceData?.facialThirds)) {
+      return NextResponse.json({ ok: false, error: "Invalid scan measurements." }, { status: 400 });
+    }
     const requestedMemberNumber = body.memberNumber ? parseInt(String(body.memberNumber), 10) : null;
-    let referredBy = body.referredBy ? String(body.referredBy).trim().toUpperCase() : null;
+    const referredBy = body.referredBy ? String(body.referredBy).trim().toUpperCase() : null;
 
     if (!rawName || rawName.length < 2) {
       return NextResponse.json({ ok: false, error: "Please enter your name." }, { status: 400 });
@@ -186,7 +136,7 @@ export async function POST(req: NextRequest) {
     // 1. Check if contact already exists
     const { data: existing, error: existingErr } = await supabase
       .from("waitlist")
-      .select("id, name, contact, member_number, referral_code, referral_count, created_at, photo_url")
+      .select("id, name, contact, member_number, referral_code, referral_count, created_at")
       .eq("contact", normalizedContact)
       .maybeSingle();
 
@@ -195,47 +145,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Database error during lookup." }, { status: 500 });
     }
 
-    const photoBase64 = body.photoBase64 ? String(body.photoBase64) : null;
-
     if (existing) {
-      const shouldUploadPhoto = Boolean(photoBase64) && !(skipPhotoIfPresent && existing.photo_url);
-      const { photoUrl: newPhotoUrl, faceDataUrl } = await uploadScanAssets(
-        supabase,
-        existing.referral_code,
-        shouldUploadPhoto ? photoBase64 : null,
-        faceData
-          ? {
-              memberNumber: existing.member_number,
-              referralCode: existing.referral_code,
-              name: rawName || existing.name,
-              contact: prettyContact,
-              email: rawEmail || null,
-              ageBracket,
-              beard,
-              skinConcern,
-              photoUrl: existing.photo_url || null,
-              faceData,
-              savedAt: new Date().toISOString(),
-            }
-          : null
-      );
-
-      const updatedPhotoUrl = newPhotoUrl || existing.photo_url || null;
+      const lookbook = scanShape && faceData
+        ? await saveLookbook(supabase, existing.id, scanShape, traits, faceData, rawEmail || null, beard)
+        : null;
       const updatePayload: Record<string, unknown> = {};
       if (faceShape) updatePayload.face_shape = faceShape;
       if (ageBracket) updatePayload.age_bracket = ageBracket;
       if (beard) updatePayload.beard = beard;
       if (rawName && rawName !== existing.name) updatePayload.name = rawName;
-      if (updatedPhotoUrl) updatePayload.photo_url = updatedPhotoUrl;
       if (rawEmail) updatePayload.email = rawEmail;
       if (skinConcern) updatePayload.skin_concern = skinConcern;
-      if (faceData) {
-        updatePayload.face_data = faceDataUrl ? { ...faceData, faceDataUrl } : faceData;
+      if (faceData && !scanShape) {
+        updatePayload.face_data = faceData;
       }
 
       if (Object.keys(updatePayload).length > 0) {
-        const fallbackConcern = buildFallbackSkinConcern(skinConcern, rawEmail, beard, faceData, faceDataUrl);
-        await writeWaitlistWithFallback(supabase, "update", updatePayload, fallbackConcern, existing.id);
+        const fallbackConcern = buildFallbackSkinConcern(skinConcern, rawEmail, beard, faceData);
+        const { error } = await writeWaitlistWithFallback(supabase, "update", updatePayload, fallbackConcern, existing.id);
+        if (error) throw error;
       }
 
       const { count: priorCount } = await supabase
@@ -246,7 +174,7 @@ export async function POST(req: NextRequest) {
       const waitlistPosition = (priorCount || 0) + 1;
 
       const n8nWebhook = process.env.N8N_WEBHOOK_URL;
-      if (n8nWebhook && (faceShape || updatedPhotoUrl)) {
+      if (n8nWebhook && (faceShape || faceData)) {
         try {
           fetch(n8nWebhook, {
             method: "POST",
@@ -266,8 +194,6 @@ export async function POST(req: NextRequest) {
                 beard,
                 faceShape: faceShape || null,
                 skinConcern,
-                photoUrl: updatedPhotoUrl,
-                faceDataUrl,
               },
               faceData,
               styling: stylingData,
@@ -287,8 +213,8 @@ export async function POST(req: NextRequest) {
         waitlistPosition,
         referralCode: existing.referral_code,
         referralCount: existing.referral_count || 0,
-        photoUrl: updatedPhotoUrl,
-        faceDataUrl,
+
+        lookbook,
       });
     }
 
@@ -339,27 +265,6 @@ export async function POST(req: NextRequest) {
       assignedMemberNumber = maxRow?.member_number ? maxRow.member_number + 1 : 348;
     }
 
-    // 5. Upload photo + complete face data JSON to Supabase Storage
-    const { photoUrl, faceDataUrl } = await uploadScanAssets(
-      supabase,
-      assignedCode,
-      photoBase64,
-      faceData
-        ? {
-            memberNumber: assignedMemberNumber,
-            referralCode: assignedCode,
-            name: rawName,
-            contact: prettyContact,
-            email: rawEmail || null,
-            ageBracket,
-            beard,
-            skinConcern,
-            faceData,
-            savedAt: new Date().toISOString(),
-          }
-        : null
-    );
-
     // 6. Insert new waitlist row
     const insertPayload: Record<string, unknown> = {
       name: rawName,
@@ -375,15 +280,17 @@ export async function POST(req: NextRequest) {
       referral_count: 0,
     };
 
-    if (photoUrl) insertPayload.photo_url = photoUrl;
-    if (faceData) {
-      insertPayload.face_data = faceDataUrl ? { ...faceData, faceDataUrl } : faceData;
+    if (faceData && !scanShape) {
+      insertPayload.face_data = faceData;
     }
 
-    const fallbackConcern = buildFallbackSkinConcern(skinConcern, rawEmail, beard, faceData, faceDataUrl);
+    const fallbackConcern = buildFallbackSkinConcern(skinConcern, rawEmail, beard, faceData);
     const { error: insertErr } = await writeWaitlistWithFallback(supabase, "insert", insertPayload, fallbackConcern);
 
     if (insertErr) {
+      if (insertErr.code === "23505") {
+        return NextResponse.json({ ok: false, error: "The waitlist changed during registration. Please retry." }, { status: 409 });
+      }
       console.error("Waitlist insertion error:", insertErr);
       return NextResponse.json({ ok: false, error: "Failed to join waitlist. Please try again." }, { status: 500 });
     }
@@ -397,6 +304,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    let lookbook = null;
+    if (scanShape && faceData) {
+      const { data: member, error } = await supabase.from("waitlist").select("id").eq("contact", normalizedContact).single();
+      if (error) throw error;
+      lookbook = await saveLookbook(supabase, member.id, scanShape, traits, faceData, rawEmail || null, beard);
+    }
+
     // 8. Calculate waitlist position
     const { count: totalWaitlist } = await supabase
       .from("waitlist")
@@ -404,7 +318,7 @@ export async function POST(req: NextRequest) {
 
     // 9. Trigger n8n Webhook if configured
     const n8nWebhook = process.env.N8N_WEBHOOK_URL;
-    if (n8nWebhook) {
+    if (n8nWebhook && (faceShape || faceData)) {
       try {
         fetch(n8nWebhook, {
           method: "POST",
@@ -424,8 +338,6 @@ export async function POST(req: NextRequest) {
               beard,
               faceShape,
               skinConcern,
-              photoUrl,
-              faceDataUrl,
             },
             faceData,
             styling: stylingData,
@@ -445,13 +357,13 @@ export async function POST(req: NextRequest) {
       waitlistPosition: totalWaitlist || 1,
       referralCode: assignedCode,
       referralCount: 0,
-      photoUrl,
-      faceDataUrl,
+
+      lookbook,
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Internal Server Error";
-    console.error("Waitlist API error:", message);
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    const code = err && typeof err === "object" && "code" in err ? err.code : null;
+    console.error("Waitlist API error", { code });
+    return NextResponse.json({ ok: false, error: "Could not save your waitlist details. Please try again." }, { status: 500 });
   }
 }
 

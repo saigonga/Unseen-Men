@@ -97,7 +97,7 @@ export default function DataUseModal({ isOpen, onClose }: DataUseModalProps) {
         <div style={{ display: "flex", flexDirection: "column", gap: 14, fontSize: 13.5, lineHeight: 1.5, color: "#333330" }}>
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "12px 14px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 3 }}>What we collect:</strong>
-            First name, WhatsApp number, email, your photo, and the style results from your analysis (for example face shape and beard type).
+            Name, WhatsApp number, email, scan measurements, and your assigned styles.
           </div>
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "12px 14px" }}>
@@ -112,12 +112,12 @@ export default function DataUseModal({ isOpen, onClose }: DataUseModalProps) {
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "12px 14px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 3 }}>Where it is kept:</strong>
-            On secure servers run by our service providers (Vercel, Supabase, and the image provider once chosen).
+            The app runs on Vercel and stores your waitlist details, measurements, and assigned styles in Supabase.
           </div>
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "12px 14px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 3 }}>How long:</strong>
-            Unsaved photos are deleted straight after the analysis. Saved photos and generated images are deleted on 31 January 2027. Your details stay until you ask us to remove them or unsubscribe.
+            New scan photos stay in your browser. Your saved details stay until you ask us to remove them or unsubscribe.
           </div>
 
           <div style={{ background: "#FAF7F2", border: "1px solid #E6DCCD", borderRadius: 8, padding: "12px 14px" }}>

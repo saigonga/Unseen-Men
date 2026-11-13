@@ -23,6 +23,8 @@ export interface FaceDataPayload {
   leaning: string | null;
   rankedShapes: { shape: string; score: number }[];
   rawMeasures: Measures;
+  rawMeshMeasures: Measures | null;
+  shapeScores: FaceResult["scores"];
   frameCount: number;
   measurements: {
     lengthToWidth: number;
@@ -86,6 +88,8 @@ export function buildFaceDataPayload(
     shapeKey: result.key,
     leaning: result.lean || null,
     frameCount: measurements.n,
+    rawMeshMeasures: measurements.raw3D,
+    shapeScores: result.scores,
     rankedShapes: result.ranked.map(([shape, score]) => ({
       shape,
       score: Number(score.toFixed(4)),
