@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ConsoleSilencer } from "@/components/ConsoleSilencer";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "NODD MEN · Facial Analysis",
@@ -33,6 +34,7 @@ export default function RootLayout({
       <body>
         <ConsoleSilencer />
         {children}
+        <Analytics />
       </body>
     </html>
   );
