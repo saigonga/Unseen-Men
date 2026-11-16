@@ -322,3 +322,7 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 
 ## Vercel Web Analytics
 - Added Vercel Web Analytics to the root layout and disclosed site analytics in the data-use notice. The production build passes; page-view collection requires deployment and an enabled Vercel Analytics project.
+
+## Calendar-first member studio
+- Moved the delivery calendar into the sidebar. Selecting a calendar item displays member cards; selecting a member opens that item's creative and message. The member search, refresh, image and WhatsApp actions remain available.
+- Checked the local signed-in category-to-member flow, including a stored creative and the text-only Welcome category. Production testing remains pending.
