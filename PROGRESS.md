@@ -304,3 +304,7 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 - Phase 4: Claude API skin read server route.
 - Phase 6: Privacy policy & terms pages, analytics, rate limiting.
 - Phase 7: Calibration with 50+ labelled Indian male selfies.
+
+## Private member studio — in progress
+- Added a staff-only dashboard with Supabase Auth, an editable four-week WhatsApp calendar, member search and authenticated image retrieval for legacy and private lookbook images.
+- Supabase staff account setup and an authenticated end-to-end test remain pending. Existing public images have not been migrated.
