@@ -315,3 +315,7 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 ## Member studio speed
 - Reuses recently opened creative images in memory for the signed-in session and prepares the next available creative in the background. A member refresh clears cached images; sign-out clears them as well.
 - Added loading and retry feedback for images and a member refresh control. Manual WhatsApp sending remains unchanged.
+
+## Member studio session
+- Added secure, rotating Supabase refresh sessions so staff stay signed in across visits. Refresh cookies last up to 30 days of inactivity; signing out clears the session.
+- Verified the login, renewal, sign-out and unauthorized access paths with an isolated mock Supabase service. Live renewal on Vercel still needs a check after deployment.

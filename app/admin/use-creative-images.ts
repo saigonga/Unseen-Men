@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { staffFetch } from './staff-fetch';
 
 type CachedImage = { blob: Blob; url: string };
 type ImageState = { key: string; status: 'loading' | 'ready' | 'error'; image?: CachedImage };
@@ -32,7 +33,7 @@ export function useCreativeImages(active: boolean, imageUrl: string, nextUrl: st
     const inFlight = pending.current.get(url);
     if (inFlight) return inFlight;
     const started = generation.current;
-    const request = fetch(url, { cache: 'no-store' }).then(async response => {
+    const request = staffFetch(url, { cache: 'no-store' }).then(async response => {
       if (!response.ok) throw new Error('Image unavailable');
       const blob = await response.blob();
       if (started !== generation.current) throw new Error('Session changed');
