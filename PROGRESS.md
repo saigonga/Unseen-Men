@@ -311,3 +311,7 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 ## Private member studio — in progress
 - Added a staff-only dashboard with Supabase Auth, an editable four-week WhatsApp calendar, member search and authenticated image retrieval for legacy and private lookbook images.
 - The staff account was created in Supabase Auth. Local sign-in, member listing and Chetan's saved image were checked. WhatsApp sending and private-bucket images still need a live check. Existing public images have not been migrated.
+
+## Member studio speed
+- Reuses recently opened creative images in memory for the signed-in session and prepares the next available creative in the background. A member refresh clears cached images; sign-out clears them as well.
+- Added loading and retry feedback for images and a member refresh control. Manual WhatsApp sending remains unchanged.
