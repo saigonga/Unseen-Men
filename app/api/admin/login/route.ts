@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ADMIN_COOKIE, adminEmailMatches, authClient } from '@/lib/adminAuth';
+import { adminEmailMatches, authClient, setAdminCookies } from '@/lib/adminAuth';
 
 export async function POST(request: Request) {
   try {
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     const { data, error } = await authClient().auth.signInWithPassword({ email: body.email.trim().toLowerCase(), password: body.password });
     if (error || !data.session || !data.user.email_confirmed_at) return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
     const response = NextResponse.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
-    response.cookies.set(ADMIN_COOKIE, data.session.access_token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', path: '/', maxAge: Math.min(data.session.expires_in, 3600) });
+    setAdminCookies(response, data.session);
     return response;
   } catch { return NextResponse.json({ error: 'Sign-in is unavailable.' }, { status: 503 }); }
 }
