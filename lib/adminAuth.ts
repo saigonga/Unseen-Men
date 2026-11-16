@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
-const ADMIN_EMAIL = 'sai.gonga@theboredmonkey.com';
+const ADMIN_EMAILS = new Set(['sai.gonga@theboredmonkey.com', 'aayushi.tripathi@noddmen.com']);
 export const ADMIN_COOKIE = 'nodd_admin_session';
 
 export function authClient() {
@@ -16,10 +16,10 @@ export async function isAdmin() {
   if (!token) return false;
   try {
     const { data, error } = await authClient().auth.getUser(token);
-    return !error && data.user?.email?.toLowerCase() === ADMIN_EMAIL && !!data.user.email_confirmed_at;
+    return !error && !!data.user?.email && ADMIN_EMAILS.has(data.user.email.toLowerCase()) && !!data.user.email_confirmed_at;
   } catch { return false; }
 }
 
 export function adminEmailMatches(value: unknown) {
-  return typeof value === 'string' && value.trim().toLowerCase() === ADMIN_EMAIL;
+  return typeof value === 'string' && ADMIN_EMAILS.has(value.trim().toLowerCase());
 }
