@@ -7,7 +7,9 @@ const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key || !stdin.isTTY) { console.error('Run this from an interactive terminal with Supabase server credentials configured.'); process.exit(1); }
 const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-const email = 'sai.gonga@theboredmonkey.com';
+const permitted = ['sai.gonga@theboredmonkey.com', 'aayushi.tripathi@noddmen.com'];
+const email = (process.argv[2] || permitted[0]).trim().toLowerCase();
+if (!permitted.includes(email)) { console.error('This email is not authorized for the member studio.'); process.exit(1); }
 let existing = false;
 for (let page = 1; ; page++) {
   const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
