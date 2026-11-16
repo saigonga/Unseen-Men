@@ -87,6 +87,11 @@ export default function HowWeUseYourDataPage() {
           </div>
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "14px 16px" }}>
+            <strong style={{ color: "#111111", display: "block", marginBottom: 4 }}>Site analytics:</strong>
+            We use Vercel Web Analytics to understand visits and page views and improve the site.
+          </div>
+
+          <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "14px 16px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 4 }}>How long:</strong>
             Your photo and saved details stay until you ask us to remove them or unsubscribe.
           </div>

@@ -319,3 +319,6 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 ## Member studio session
 - Added secure, rotating Supabase refresh sessions so staff stay signed in across visits. Refresh cookies last up to 30 days of inactivity; signing out clears the session.
 - Verified the login, renewal, sign-out and unauthorized access paths with an isolated mock Supabase service. Live renewal on Vercel still needs a check after deployment.
+
+## Vercel Web Analytics
+- Added Vercel Web Analytics to the root layout and disclosed site analytics in the data-use notice. The production build passes; page-view collection requires deployment and an enabled Vercel Analytics project.
