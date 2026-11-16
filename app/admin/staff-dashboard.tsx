@@ -5,6 +5,7 @@ import './staff.css';
 type Member = { id: string; name: string; contact: string; member_number: number; face_shape: string | null; created_at: string; lookbook: Record<string, unknown> | null };
 type Item = { code: string; label: string; date: string; key?: string; message: string };
 const calendar: Item[] = [
+  {code:'WELCOME',label:'Welcome',date:'After scan',message:'Hi {name}, welcome to Nodd Men, Founding Member #{number}. More than meets the eye starts here: you have a {shape} face, and every pick we send you is worked out from your own measurements. Two picks a week for four weeks, starting with your haircut.'},
   {code:'W1-HAIR',label:'Hairstyle',date:'17 Nov · 9:00 AM',key:'w1_hair',message:"Hi {name}, your haircut, worked out from your face's proportions and shown on you. Show the last line to your barber. Week 1 of 4. Next up, Friday: your beard."},
   {code:'W1-BEARD',label:'Beard',date:'20 Nov · 9:00 AM',key:'w1_beard',message:'Hi {name}, the beard shape for your jaw, with exact trim lengths for the sides and chin. Week 1 of 4 complete. Next up, Tuesday: two frames for your face.'},
   {code:'W2-GLASSES',label:'Glasses',date:'24 Nov · 9:00 AM',key:'w2_glasses',message:'Hi {name}, two frames that suit your face, shown on you side by side. Take the dark band to your optician. Week 2 of 4. Next up, Friday: your sunglasses.'},
