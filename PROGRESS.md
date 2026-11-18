@@ -326,3 +326,7 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 ## Calendar-first member studio
 - Moved the delivery calendar into the sidebar. Selecting a calendar item displays member cards; selecting a member opens that item's creative and message. The member search, refresh, image and WhatsApp actions remain available.
 - Checked the local signed-in category-to-member flow, including a stored creative and the text-only Welcome category. Production testing remains pending.
+
+## Landing-page sample photos restored
+- Restored the original AI-generated sample face photos behind the facial measurement overlays, at the owner's request. The photos are bundled with the app.
+- Production build passed and the hero image returned successfully from the local app. Instagram on iPhone still needs a check after deployment.
