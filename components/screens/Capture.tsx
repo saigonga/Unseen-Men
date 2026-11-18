@@ -32,7 +32,7 @@ const PROBLEM_TEXT: Record<CameraProblem, string> = {
   nocamera: "No camera was detected on this device. Upload a photo instead.",
   unsupported: "Could not open camera stream. Make sure no other application is using your webcam, or upload a photo instead.",
   insecure: "The live camera requires a secure link (https or localhost). Upload a photo instead.",
-  inapp: "In-app browsers often block camera access. Open this link in Chrome or Safari, or upload a photo.",
+  inapp: "Camera access isn't available here. Allow camera access in the app's settings, or tap the menu (⋯) and open this page in Safari or Chrome. You can also upload a photo below.",
   female: MEN_ONLY_MSG,
 };
 
