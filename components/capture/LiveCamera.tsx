@@ -26,7 +26,6 @@ export function isInAppBrowser() {
 }
 
 export function cameraSupport(): CameraProblem | null {
-  if (isInAppBrowser()) return "inapp";
   if (typeof window !== "undefined") {
     const isLocal =
       window.location.hostname === "localhost" ||
@@ -42,7 +41,7 @@ export function cameraSupport(): CameraProblem | null {
       (navigator as any).mozGetUserMedia ||
       (navigator as any).getUserMedia
     );
-  if (!hasGetUserMedia) return "unsupported";
+  if (!hasGetUserMedia) return isInAppBrowser() ? "inapp" : "unsupported";
   return null;
 }
 
@@ -358,8 +357,13 @@ export default function LiveCamera({
             video: { facingMode: { ideal: "user" }, width: { ideal: 1280 }, height: { ideal: 960 } },
             audio: false,
           });
-        } catch {
-          // Fallback to basic video for desktop webcams
+        } catch (error) {
+          // Only retry when the preferred camera settings are unavailable.
+          // A denied permission cannot be fixed by requesting the camera again.
+          const name = error && typeof error === "object" && "name" in error ? error.name : "";
+          if (name !== "OverconstrainedError" && name !== "NotFoundError" && name !== "DevicesNotFoundError") {
+            throw error;
+          }
           stream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: false,
@@ -429,7 +433,7 @@ export default function LiveCamera({
       const name = e instanceof DOMException ? e.name : e?.name || "";
       onProblemRef.current(
         name === "NotAllowedError" || name === "SecurityError" || name === "PermissionDeniedError"
-          ? "denied"
+          ? isInAppBrowser() ? "inapp" : "denied"
           : name === "NotFoundError" || name === "DevicesNotFoundError"
           ? "nocamera"
           : "unsupported"
