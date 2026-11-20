@@ -5,6 +5,7 @@ import { checkIndianMobile, isEmail } from "@/lib/phone";
 import { SHAPE_ORDER, SHAPES } from "@/lib/content";
 import type { ShapeKey, TraitKey } from "@/lib/content";
 import { saveLookbook } from "@/lib/saveLookbook";
+import { isLookbook } from "@/lib/lookbook";
 
 const ABC = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const CODE_RE = /^UM-[A-HJ-KM-NP-Z2-9]{4}$/;
@@ -162,7 +163,7 @@ export async function POST(req: NextRequest) {
     // 1. Check if contact already exists
     const { data: existing, error: existingErr } = await supabase
       .from("waitlist")
-      .select("id, name, contact, member_number, referral_code, referral_count, created_at")
+      .select("id, name, contact, member_number, referral_code, referral_count, created_at, photo_url")
       .eq("contact", normalizedContact)
       .maybeSingle();
 
@@ -172,81 +173,32 @@ export async function POST(req: NextRequest) {
     }
 
     if (existing) {
-      const lookbook = scanShape && faceData
-        ? await saveLookbook(supabase, existing.id, scanShape, traits, faceData, rawEmail || null, beard)
-        : null;
-      const photoPath = scanPhoto ? await saveScanPhoto(supabase, existing.id, scanId, scanPhoto) : null;
-      const signedPhoto = photoPath && process.env.N8N_WEBHOOK_URL
-        ? await supabase.storage.from("face-scan-photos").createSignedUrl(photoPath, 3600)
-        : null;
-      const updatePayload: Record<string, unknown> = {};
-      if (faceShape) updatePayload.face_shape = faceShape;
-      if (ageBracket) updatePayload.age_bracket = ageBracket;
-      if (beard) updatePayload.beard = beard;
-      if (rawName && rawName !== existing.name) updatePayload.name = rawName;
-      if (rawEmail) updatePayload.email = rawEmail;
-      if (skinConcern) updatePayload.skin_concern = skinConcern;
-      if (faceData && !scanShape) {
-        updatePayload.face_data = faceData;
+      // A completed or partially completed scan belongs to the original submission.
+      // Never replace it with the data or photo from a later submission.
+      const { data: existingScan, error: scanReadError } = await supabase
+        .from("scan_lookbooks")
+        .select("member_id,lookbook")
+        .eq("member_id", existing.id)
+        .maybeSingle();
+      if (scanReadError) throw scanReadError;
+      if (!existingScan || !existing.photo_url) {
+        return NextResponse.json({ ok: false, error: "Your original scan is incomplete. Please contact support so we can preserve it." }, { status: 409 });
       }
-
-      if (Object.keys(updatePayload).length > 0) {
-        const fallbackConcern = buildFallbackSkinConcern(skinConcern, rawEmail, beard, faceData);
-        const { error } = await writeWaitlistWithFallback(supabase, "update", updatePayload, fallbackConcern, existing.id);
-        if (error) throw error;
-      }
-
-      const { count: priorCount } = await supabase
+      const { count: priorCount, error: countError } = await supabase
         .from("waitlist")
         .select("*", { count: "exact", head: true })
         .lt("created_at", existing.created_at);
-
-      const waitlistPosition = (priorCount || 0) + 1;
-
-      const n8nWebhook = process.env.N8N_WEBHOOK_URL;
-      if (n8nWebhook && (faceShape || faceData)) {
-        try {
-          fetch(n8nWebhook, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              event: "scan_completed",
-              timestamp: new Date().toISOString(),
-              memberNumber: existing.member_number,
-              referralCode: existing.referral_code,
-              referralLink: `https://unseen-men.vercel.app/?ref=${existing.referral_code}`,
-              waitlistPosition,
-              user: {
-                name: rawName || existing.name,
-                phone: prettyContact,
-                email: rawEmail || null,
-                ageBracket,
-                beard,
-                faceShape: faceShape || null,
-                skinConcern,
-                photoPath,
-                photoUrl: signedPhoto?.data?.signedUrl || null,
-              },
-              faceData,
-              styling: stylingData,
-            }),
-          }).catch((e: Error) => console.warn("[n8n webhook error]:", e.message));
-        } catch (e) {
-          console.warn("[n8n webhook error]:", e);
-        }
-      }
-
+      if (countError) throw countError;
       return NextResponse.json({
         ok: true,
         alreadyJoined: true,
-        name: rawName || existing.name,
+        name: existing.name,
         contact: prettyContact,
         memberNumber: existing.member_number,
-        waitlistPosition,
+        waitlistPosition: (priorCount || 0) + 1,
         referralCode: existing.referral_code,
         referralCount: existing.referral_count || 0,
-
-        lookbook,
+        lookbook: isLookbook(existingScan.lookbook) ? existingScan.lookbook : null,
       });
     }
 
