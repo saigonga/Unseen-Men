@@ -334,3 +334,7 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 ## Repeat scan protection
 - Existing contacts retain their original scan and photo; repeat submissions do not trigger new creative work. Incomplete original records are held for support rather than overwritten. Concurrent lookbook saves cannot update an existing scan.
 - Checked the production build and synthetic repeat/partial/concurrent lookbook cases. Live database constraints, simultaneous first signups and matching people using changed contact details remain unverified; no existing records were repaired.
+
+## Look-at-camera capture guidance
+- Added eye-level and slight closed-mouth smile guidance. Both live-camera and upload captures now show a photo review with an eye-direction confirmation before analysis. Photos with a raised or lowered chin are blocked for a retake.
+- Synthetic native-pose and landmark-fallback checks and the production build pass. Eye gaze is confirmed by the user, not detected automatically; real phone testing and pose-threshold calibration remain necessary.
