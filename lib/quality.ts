@@ -75,13 +75,15 @@ export function checkQuality(input: FaceInput, det: Detection): QualityReport {
     { id: "level", ok: m.roll < Q.rollMax && m.pitch >= Q.pitchMin && m.pitch <= Q.pitchMax,
       text: m.roll >= Q.rollMax ? "Head tilted" : m.pitch < Q.pitchMin ? "Chin up" : m.pitch > Q.pitchMax ? "Chin down" : "Head level" },
     { id: "lighting", ok: m.lum > Q.lumMin, text: m.lum > Q.lumMin ? "Good light" : "Too dark" },
-    { id: "expression", ok: m.mouth < Q.mouthMax, text: m.mouth < Q.mouthMax ? "Neutral" : "Mouth open" },
+    { id: "expression", ok: m.mouth < Q.mouthMax, text: m.mouth < Q.mouthMax ? "Mouth closed" : "Mouth open" },
   ];
   const byId = Object.fromEntries(checks.map(c => [c.id, c])) as Record<CheckId, Check>;
   const blocking = isFemale(det)
     ? MEN_ONLY_MSG
     : !byId.straight.ok
       ? "Your head is turned, which makes your face read narrower than it is. Look straight into the camera and retake."
+      : m.pitch < Q.pitchMin || m.pitch > Q.pitchMax
+        ? "Keep your head level and look into the camera. Retake the photo with your phone at eye level."
       : !byId.expression.ok
         ? "Your mouth is open, which makes your face read longer. Close your mouth and retake."
         : null;
@@ -108,6 +110,6 @@ export function liveInstruction(input: FaceInput, det: Detection | null): string
   if (m.pitch < Q.pitchMin) return "Chin down slightly";
   if (m.pitch > Q.pitchMax) return "Chin up slightly";
   if (m.lum <= LIVE_Q.lumMin) return "Find more light, face a window";
-  if (m.mouth >= LIVE_Q.mouthMax || m.smile >= LIVE_Q.smileMax) return "Relax your face, mouth closed";
+  if (m.mouth >= LIVE_Q.mouthMax || m.smile >= LIVE_Q.smileMax) return "Keep your mouth closed and smile softly";
   return null;
 }
