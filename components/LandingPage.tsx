@@ -1642,7 +1642,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 >
                   POSE REQUIRED
                 </div>
-                <div style={{ fontWeight: 500, fontSize: 14.5 }}>Front face, neutral expression</div>
+                <div style={{ fontWeight: 500, fontSize: 14.5 }}>Look at the camera, with a slight smile</div>
                 <div style={{ fontSize: 13, color: "#5F5F5B" }}>Natural light, glasses off, forehead clear.</div>
               </div>
             </div>
