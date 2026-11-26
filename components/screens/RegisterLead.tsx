@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import StepBar from "../StepBar";
-import { checkIndianMobile, isEmail } from "@/lib/phone";
+import { checkIndianMobile } from "@/lib/phone";
 import DataUseModal from "./DataUseModal";
 import type { AgeBracket, Beard, Concern, SkinType } from "@/lib/content";
 
 export interface UserLeadProfile {
   name: string;
   phone: string;
-  email: string;
   age: AgeBracket;
   beard: Beard;
   skinType?: SkinType | null;
@@ -56,7 +55,6 @@ export default function RegisterLead({
 }: RegisterLeadProps) {
   const [name, setName] = useState<string>("");
   const [phone, setPhone] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
   const [age, setAge] = useState<AgeBracket>("25-34");
   const [beard, setBeard] = useState<Beard>("stubble");
   const [skinType, setSkinType] = useState<SkinType | null>(null);
@@ -68,7 +66,6 @@ export default function RegisterLead({
   const [errs, setErrs] = useState<{
     name?: string;
     phone?: string;
-    email?: string;
     consentAgeAndPhoto?: string;
     consentWhatsApp?: string;
   }>({});
@@ -77,7 +74,6 @@ export default function RegisterLead({
     const next: typeof errs = {};
     const n = name.trim().replace(/\s+/g, " ");
     const p = phone.trim();
-    const e = email.trim().toLowerCase();
 
     if (!n || n.length < 2) {
       next.name = "Enter your full name (at least 2 letters).";
@@ -93,12 +89,6 @@ export default function RegisterLead({
       } else {
         cleanPhone = check.pretty;
       }
-    }
-
-    if (!e) {
-      next.email = "Enter your email address.";
-    } else if (!isEmail(e)) {
-      next.email = "Enter a valid email address.";
     }
 
     if (!consentAgeAndPhoto) {
@@ -121,7 +111,6 @@ export default function RegisterLead({
       {
         name: name.trim().replace(/\s+/g, " "),
         phone: val.cleanPhone,
-        email: email.trim().toLowerCase(),
         age,
         beard,
         skinType,
@@ -217,28 +206,6 @@ export default function RegisterLead({
             }}
           />
           {errs.phone && <span style={{ color: "#D9735E", fontSize: 12 }}>{errs.phone}</span>}
-        </label>
-
-        {/* Email Input */}
-        <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 13, fontWeight: 500, color: "#444441" }}>
-          <span>Email Address <span style={{ color: "#D9735E" }}>*</span></span>
-          <input
-            type="email"
-            autoComplete="off"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{
-              border: errs.email ? "1px solid #D9735E" : "1px solid #D9D9D6",
-              borderRadius: 8,
-              padding: "11px 14px",
-              fontSize: 16, // Prevents iOS Safari auto-zoom
-              color: "#111111",
-              minHeight: 46,
-              boxSizing: "border-box",
-              outline: "none",
-            }}
-          />
-          {errs.email && <span style={{ color: "#D9735E", fontSize: 12 }}>{errs.email}</span>}
         </label>
 
         {/* Age Bracket */}

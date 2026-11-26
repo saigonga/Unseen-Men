@@ -97,12 +97,12 @@ export default function DataUseModal({ isOpen, onClose }: DataUseModalProps) {
         <div style={{ display: "flex", flexDirection: "column", gap: 14, fontSize: 13.5, lineHeight: 1.5, color: "#333330" }}>
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "12px 14px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 3 }}>What we collect:</strong>
-            Name, WhatsApp number, email, scan photo, scan measurements, and your assigned styles.
+            Name, WhatsApp number, scan photo, scan measurements, and your assigned styles.
           </div>
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "12px 14px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 3 }}>Why:</strong>
-            To give you your analysis and report; if you agree, to create personalised style images and send recommendations and launch updates on WhatsApp and email.
+            To give you your analysis and report; if you agree, to create personalised style images and send recommendations and launch updates on WhatsApp.
           </div>
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "12px 14px" }}>
