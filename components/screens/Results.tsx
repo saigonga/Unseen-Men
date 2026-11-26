@@ -9,6 +9,7 @@ import { newCode } from "@/lib/referral";
 import CompareBars from "../results/CompareBars";
 import { TryOnProvider } from "../results/TryOnContext";
 import SkinRead from "../results/SkinRead";
+import SaveImageButton from "../results/SaveImageButton";
 import ShareSection from "../results/ShareSection";
 import Rewards from "../results/Rewards";
 import FacialThirdsSection from "../results/FacialThirdsSection";
@@ -49,7 +50,7 @@ export default function Results({
   const [unlocked, setUnlocked] = useState<Unlocked>(() => ({
     name: userLead?.name || "Founding Member",
     mobile: userLead?.phone || "",
-    email: userLead?.email || "",
+    email: "",
     code: newCode(),
     position: 1,
     referrals: 0,
@@ -89,7 +90,6 @@ export default function Results({
           name: userLead.name,
           contact: userLead.phone,
           phone: userLead.phone,
-          email: userLead.email,
           ageBracket: userLead.age || answers.age,
           beard: effectiveBeard,
           faceShape: sh.name,
@@ -109,7 +109,7 @@ export default function Results({
       setUnlocked({
         name: data.name || userLead.name,
         mobile: userLead.phone,
-        email: userLead.email,
+        email: "",
         code: data.referralCode || newCode(),
         position: data.waitlistPosition || 1,
         referrals: data.referralCount || 0,
@@ -400,6 +400,7 @@ export default function Results({
                 <div style={{ width: "100%", maxHeight: 380, overflow: "hidden", display: "grid", placeItems: "center" }}>
                   <canvas ref={setCanvas} style={{ maxWidth: "100%", height: "auto", borderRadius: 8 }} />
                 </div>
+                <SaveImageButton canvas={() => canvas} filename="nodd-men-face-analysis.png" label="Save face analysis image" />
               </div>
 
               {/* Compare Bars */}

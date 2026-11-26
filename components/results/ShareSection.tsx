@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { drawCard } from "@/lib/storyCard";
 import { buildPdf, preloadPdf } from "@/lib/pdf";
 import type { PdfData } from "@/lib/pdf";
-import { saveFile, canvasToBlob } from "@/lib/download";
+import { saveFile } from "@/lib/download";
+import SaveImageButton from "./SaveImageButton";
 import { loadImage } from "@/lib/image";
 import { shapeHeadline } from "@/lib/faceShape";
 import type { Photo } from "../FaceScanApp";
@@ -21,7 +22,8 @@ export default function ShareSection({
 }) {
   const cardRef = useRef<HTMLCanvasElement>(null);
   const [msg, setMsg] = useState("");
-  const [busy, setBusy] = useState<"card" | "pdf" | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [cardReady, setCardReady] = useState(false);
   const [showPhoto, setShowPhoto] = useState(true);
   const [preferTryOn, setPreferTryOn] = useState(true);
   const { result, code } = pdf;
@@ -41,6 +43,7 @@ export default function ShareSection({
 
   useEffect(() => {
     let cancelled = false;
+    setCardReady(false);
     (async () => {
       let tryOnImg: HTMLImageElement | null = null;
       if (showPhoto && preferTryOn && tryOn) {
@@ -54,38 +57,28 @@ export default function ShareSection({
         photo: showPhoto ? { img: photo.img, det: photo.det } : null,
         tryOn: tryOnImg,
       });
+      if (!cancelled) setCardReady(true);
     })();
     return () => {
       cancelled = true;
     };
   }, [result, code, photo, beardStyle, showPhoto, preferTryOn, tryOn]);
 
-  async function run(kind: "card" | "pdf") {
-    setBusy(kind);
+  async function downloadPdf() {
+    setBusy(true);
     setMsg("");
     try {
-      const how =
-        kind === "card"
-          ? await saveFile(await canvasToBlob(cardRef.current!), `nodd-men-${result.key}.png`)
-          : await saveFile(
-              await buildPdf({ ...pdf, tryOn }),
-              `nodd-men-report-${pdf.name.toLowerCase().replace(/[^a-z]+/g, "-")}.pdf`
-            );
-      if (how === "downloaded") {
-        setMsg(
-          kind === "pdf"
-            ? "Report saved to your Downloads folder."
-            : "Story card saved to your Downloads."
-        );
-      }
-      if (how === "shared") {
-        setMsg(kind === "pdf" ? "Report shared. Choose 'Save to Files' to keep a copy." : "");
-      }
+      const how = await saveFile(
+        await buildPdf({ ...pdf, tryOn }),
+        `nodd-men-report-${pdf.name.toLowerCase().replace(/[^a-z]+/g, "-")}.pdf`
+      );
+      if (how === "downloaded") setMsg("Report download requested.");
+      if (how === "shared") setMsg("Report shared. Choose 'Save to Files' to keep a copy.");
     } catch (e) {
       console.error(e);
       setMsg("The file wasn't saved. Try again.");
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   }
 
@@ -161,24 +154,16 @@ export default function ShareSection({
         )}
       </div>
 
-      <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ display: "grid", gap: 10 }}>
+        <SaveImageButton canvas={() => cardRef.current} filename={`nodd-men-${result.key}.png`} label="Save story card" disabled={!cardReady} />
         <button
           type="button"
-          disabled={busy !== null}
-          onClick={() => run("card")}
-          className="btn-secondary"
-          style={{ flex: 1, padding: "12px 0", fontSize: 14 }}
-        >
-          {busy === "card" ? "Saving…" : "Save story card"}
-        </button>
-        <button
-          type="button"
-          disabled={busy !== null}
-          onClick={() => run("pdf")}
+          disabled={busy}
+          onClick={downloadPdf}
           className="btn-primary"
           style={{ flex: 1, padding: "12px 0", fontSize: 14 }}
         >
-          {busy === "pdf" ? "Building PDF…" : "Download PDF report"}
+          {busy ? "Building PDF…" : "Download PDF report"}
         </button>
       </div>
 

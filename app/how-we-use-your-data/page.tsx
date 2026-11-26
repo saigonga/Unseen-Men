@@ -68,12 +68,12 @@ export default function HowWeUseYourDataPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 16, fontSize: 14.5, lineHeight: 1.6, color: "#2E2D2A" }}>
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "14px 16px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 4 }}>What we collect:</strong>
-            Name, WhatsApp number, email, scan photo, scan measurements, and your assigned styles.
+            Name, WhatsApp number, scan photo, scan measurements, and your assigned styles.
           </div>
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "14px 16px" }}>
             <strong style={{ color: "#111111", display: "block", marginBottom: 4 }}>Why:</strong>
-            To give you your analysis and report; if you agree, to create personalised style images and send recommendations and launch updates on WhatsApp and email.
+            To give you your analysis and report; if you agree, to create personalised style images and send recommendations and launch updates on WhatsApp.
           </div>
 
           <div style={{ background: "#FAF9F6", border: "1px solid #EFEFEA", borderRadius: 8, padding: "14px 16px" }}>
