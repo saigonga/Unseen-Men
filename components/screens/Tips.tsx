@@ -18,7 +18,7 @@ export default function Tips({ onNext }: { onNext: () => void }) {
         </div>
         <div className="tip">
           <svg viewBox="0 0 40 40"><ellipse cx="20" cy="20" rx="12" ry="15" /><path d="M15 27h10" /><circle cx="15" cy="17" r="1.2" /><circle cx="25" cy="17" r="1.2" /></svg>
-          <div><strong>Straight on, neutral face</strong><p className="small muted">Arm&apos;s length away, mouth closed. A smile widens the jaw.</p></div>
+          <div><strong>Look into the camera</strong><p className="small muted">Hold the phone at eye level. Keep your mouth closed; a slight smile is fine.</p></div>
         </div>
       </div>
       <button className="primary" onClick={onNext}>I&apos;m ready</button>

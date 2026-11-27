@@ -32,7 +32,7 @@ const PROBLEM_TEXT: Record<CameraProblem, string> = {
   nocamera: "No camera was detected on this device. Upload a photo instead.",
   unsupported: "Could not open camera stream. Make sure no other application is using your webcam, or upload a photo instead.",
   insecure: "The live camera requires a secure link (https or localhost). Upload a photo instead.",
-  inapp: "In-app browsers often block camera access. Open this link in Chrome or Safari, or upload a photo.",
+  inapp: "Camera access isn't available here. Allow camera access in the app's settings, or tap the menu (⋯) and open this page in Safari or Chrome. You can also upload a photo below.",
   female: MEN_ONLY_MSG,
 };
 
@@ -55,6 +55,7 @@ export default function Capture({
   const [report, setReport] = useState<QualityReport | null>(null);
   const [msg, setMsg] = useState<Msg>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmedGaze, setConfirmedGaze] = useState(false);
   const [measurements, setMeasurements] = useState<RobustMeasures | null>(null);
   const handedOff = useRef(false);
 
@@ -114,19 +115,6 @@ export default function Capture({
       }
       setMeasurements(robust);
 
-      // If taken via live camera and quality checks pass, move ahead automatically to analysis!
-      if (p.source === "camera" && q.failed === 0) {
-        handedOff.current = true;
-        onAnalyse({
-          img: p.img,
-          url: p.url,
-          dataUrl: p.dataUrl,
-          det: d,
-          measurements: robust,
-        });
-        return;
-      }
-
       if (q.failed) {
         setMsg({
           text: `${q.failed} quality ${q.failed === 1 ? "check needs" : "checks need"} attention. You can proceed anyway or retake.`,
@@ -140,7 +128,7 @@ export default function Capture({
     } finally {
       if (pendingRef.current === p) setBusy(false);
     }
-  }, [onAnalyse]);
+  }, []);
 
   useEffect(() => {
     if (model === "ready" && pending && !det && !report && !busy && !msg?.bad) {
@@ -158,6 +146,7 @@ export default function Capture({
     if (pendingRef.current) URL.revokeObjectURL(pendingRef.current.url);
     pendingRef.current = p;
     setPending(p);
+    setConfirmedGaze(false);
     setDet(null);
     setReport(null);
     setMsg(null);
@@ -242,7 +231,7 @@ export default function Capture({
         >
           Front view
         </h1>
-        <span style={{ fontSize: 12.5, color: "#7A6A60" }}>Neutral expression</span>
+        <span style={{ fontSize: 12.5, color: "#7A6A60" }}>Look at the camera · slight smile</span>
       </div>
 
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
@@ -462,9 +451,16 @@ export default function Capture({
             )}
 
             {mode === "preview" && canAnalyse && (
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 10, color: "#5C4F47", fontSize: 13 }}>
+                <input type="checkbox" checked={confirmedGaze} onChange={(event) => setConfirmedGaze(event.target.checked)} />
+                My eyes are looking at the camera in this photo.
+              </label>
+            )}
+            {mode === "preview" && canAnalyse && (
               <button
                 type="button"
                 className="btn-primary"
+                disabled={!confirmedGaze}
                 onClick={() => {
                   handedOff.current = true;
                   onAnalyse({

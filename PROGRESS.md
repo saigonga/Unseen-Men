@@ -326,3 +326,15 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 ## Calendar-first member studio
 - Moved the delivery calendar into the sidebar. Selecting a calendar item displays member cards; selecting a member opens that item's creative and message. The member search, refresh, image and WhatsApp actions remain available.
 - Checked the local signed-in category-to-member flow, including a stored creative and the text-only Welcome category. Production testing remains pending.
+
+## Landing-page sample photos restored
+- Restored the original AI-generated sample face photos behind the facial measurement overlays, at the owner's request. The photos are bundled with the app.
+- Production build passed and the hero image returned successfully from the local app. Instagram on iPhone still needs a check after deployment.
+
+## Repeat scan protection
+- Existing contacts retain their original scan and photo; repeat submissions do not trigger new creative work. Incomplete original records are held for support rather than overwritten. Concurrent lookbook saves cannot update an existing scan.
+- Checked the production build and synthetic repeat/partial/concurrent lookbook cases. Live database constraints, simultaneous first signups and matching people using changed contact details remain unverified; no existing records were repaired.
+
+## Look-at-camera capture guidance
+- Added eye-level and slight closed-mouth smile guidance. Both live-camera and upload captures now show a photo review with an eye-direction confirmation before analysis. Photos with a raised or lowered chin are blocked for a retake.
+- Synthetic native-pose and landmark-fallback checks and the production build pass. Eye gaze is confirmed by the user, not detected automatically; real phone testing and pose-threshold calibration remain necessary.

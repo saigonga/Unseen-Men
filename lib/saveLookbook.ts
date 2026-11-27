@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ShapeKey, TraitKey } from "./content";
-import { createLookbook, isLookbook, lookbookSignature } from "./lookbook";
+import { createLookbook, lookbookSignature } from "./lookbook";
 
 export async function saveLookbook(
   db: SupabaseClient,
@@ -17,27 +17,8 @@ export async function saveLookbook(
     if (readError) throw readError;
 
     const measurements = { face_data: faceData, email, beard, updated_at: new Date().toISOString() };
-    if (existing) {
-      if (existing.email && existing.email !== email) throw new Error("Use the email from your original scan.");
-      const previousFaceData = existing.face_data && typeof existing.face_data === "object" && !Array.isArray(existing.face_data)
-        ? existing.face_data as Record<string, unknown>
-        : {};
-      if (faceData.scanId) {
-        if (previousFaceData.scanId !== faceData.scanId) {
-          throw new Error("A different scan has already been saved for this member.");
-        }
-        return isLookbook(existing.lookbook) ? existing.lookbook : null;
-      }
-      const update = db.from("scan_lookbooks")
-        .update({ ...measurements, face_data: { ...previousFaceData, ...faceData } })
-        .eq("member_id", memberId)
-        .eq("face_data", JSON.stringify(existing.face_data));
-      const { data: updated, error } = await (existing.email ? update.eq("email", existing.email) : update.is("email", null))
-        .select("member_id").maybeSingle();
-      if (error) throw error;
-      if (!updated) continue;
-      return isLookbook(existing.lookbook) ? existing.lookbook : null;
-    }
+    // A concurrent request must never replace the first saved scan.
+    if (existing) throw new Error("A scan already exists for this member.");
 
     const book = createLookbook(shape, traits, Math.random);
     const { error } = await db.from("scan_lookbooks").insert({
