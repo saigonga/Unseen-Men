@@ -2,7 +2,7 @@
    Phase 3: uses native head pose from MediaPipe when available, falls back to landmark-based. */
 import { dist, mid, avgPts } from "./geometry";
 import type { Detection, FaceInput } from "./detector";
-import { Q, LIVE_Q, FEMALE_BLOCK_P } from "./capture.config";
+import { Q, LIVE_Q, FEMALE_BLOCK_P, UPLOAD_MAX_WIDTH } from "./capture.config";
 import { yawOf } from "./mesh3d";
 
 export type CheckId = "distance" | "centred" | "straight" | "level" | "lighting" | "expression";
@@ -66,10 +66,13 @@ export const isFemale = (det: Detection) => det.femaleP >= FEMALE_BLOCK_P;
 export const MEN_ONLY_MSG = "This scan is built for men only. The face shape, haircut and beard advice is designed for men's faces, so we can't analyse this photo.";
 
 /** The six checks for a still photo (upload or captured frame). */
-export function checkQuality(input: FaceInput, det: Detection): QualityReport {
+export function checkQuality(input: FaceInput, det: Detection, source: "camera" | "upload"): QualityReport {
   const m = metrics(input, det);
+  const { W } = inputSize(input);
+  const savedFaceWidth = det.box.width * (source === "upload" ? Math.min(1, UPLOAD_MAX_WIDTH / W) : 1);
+  const tooFar = m.size < Q.sizeMin || savedFaceWidth < Q.facePixelsMin;
   const checks: Check[] = [
-    { id: "distance", ok: m.size >= Q.sizeMin && m.size <= Q.sizeMax, text: m.size < Q.sizeMin ? "Move closer" : m.size > Q.sizeMax ? "Too close" : "Good distance" },
+    { id: "distance", ok: !tooFar && m.size <= Q.sizeMax, text: tooFar ? "Face too small" : m.size > Q.sizeMax ? "Too close" : "Good distance" },
     { id: "centred", ok: m.offX < Q.offMax, text: m.offX < Q.offMax ? "Centred" : "Off-centre" },
     { id: "straight", ok: m.yaw < Q.yawMax, text: m.yaw < Q.yawMax ? "Facing camera" : "Head turned" },
     { id: "level", ok: m.roll < Q.rollMax && m.pitch >= Q.pitchMin && m.pitch <= Q.pitchMax,
@@ -82,11 +85,17 @@ export function checkQuality(input: FaceInput, det: Detection): QualityReport {
     ? MEN_ONLY_MSG
     : !byId.straight.ok
       ? "Your head is turned, which makes your face read narrower than it is. Look straight into the camera and retake."
-      : m.pitch < Q.pitchMin || m.pitch > Q.pitchMax
+      : !byId.level.ok
         ? "Keep your head level and look into the camera. Retake the photo with your phone at eye level."
       : !byId.expression.ok
         ? "Your mouth is open, which makes your face read longer. Close your mouth and retake."
-        : null;
+      : tooFar
+        ? "Your face is too small to read clearly. Retake a head-and-shoulders photo with the camera closer."
+      : !byId.distance.ok
+        ? "Move the camera back so your full hairline and chin fit in the photo, then retake."
+      : !byId.lighting.ok
+        ? "Your face is too dark to read clearly. Face a window so both sides of your face are lit, then retake."
+      : null;
   return { checks, failed: checks.filter(c => !c.ok).length, blocking };
 }
 

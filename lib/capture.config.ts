@@ -4,7 +4,10 @@
  *  Lower = stricter (blocks more, including some men). Raise it if real men get blocked. */
 export const FEMALE_BLOCK_P = 0.8;
 
+export const UPLOAD_MAX_WIDTH = 900;
+
 export const Q = {
+  facePixelsMin: 160, // Initial threshold for the saved image. Recalibrate on phone photos.
   sizeMin: 0.20,      // face width ÷ shorter image side
   sizeMax: 0.85,
   offMax: 0.22,       // horizontal centre offset ÷ width

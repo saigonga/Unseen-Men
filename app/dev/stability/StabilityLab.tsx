@@ -43,7 +43,7 @@ export default function StabilityLab() {
       for (const v of VARIANTS) {
         const c = variant(img, v.pad, v.scale);
         const d = await detect(c);
-        if (d && checkQuality(c, d).blocking) row.blocked++;
+        if (d && checkQuality(c, d, "upload").blocking) row.blocked++;
         const r = d ? await robustMeasures(c, d) : null;
         const result = r && analyseMeasures(r.m, "none");
         row.primary.push(result?.key ?? "-");

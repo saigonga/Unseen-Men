@@ -55,7 +55,7 @@ export default function CalibrationLab() {
               skipped.push(`${photo.file} · ${image ? "No face found" : "Unreadable image"}`);
               continue;
             }
-            const quality = checkQuality(image, detection);
+            const quality = checkQuality(image, detection, "upload");
             if (quality.blocking) {
               skipped.push(`${photo.file} · ${quality.blocking}`);
               continue;
