@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { detect } from "@/lib/detector";
 import type { Detection } from "@/lib/detector";
 import { checkQuality, MEN_ONLY_MSG } from "@/lib/quality";
+import { UPLOAD_MAX_WIDTH } from "@/lib/capture.config";
 import type { QualityReport } from "@/lib/quality";
 import { drawOverlay } from "@/lib/overlay";
 import { canvasToBlob } from "@/lib/download";
@@ -55,7 +56,7 @@ export default function Capture({
   const [report, setReport] = useState<QualityReport | null>(null);
   const [msg, setMsg] = useState<Msg>(null);
   const [busy, setBusy] = useState(false);
-  const [confirmedGaze, setConfirmedGaze] = useState(false);
+  const [confirmedPhoto, setConfirmedPhoto] = useState(false);
   const [measurements, setMeasurements] = useState<RobustMeasures | null>(null);
   const handedOff = useRef(false);
 
@@ -99,7 +100,7 @@ export default function Capture({
         });
         return;
       }
-      const q = checkQuality(p.img, d);
+      const q = checkQuality(p.img, d, p.source);
       setDet(d);
       setReport(q);
 
@@ -146,7 +147,7 @@ export default function Capture({
     if (pendingRef.current) URL.revokeObjectURL(pendingRef.current.url);
     pendingRef.current = p;
     setPending(p);
-    setConfirmedGaze(false);
+    setConfirmedPhoto(false);
     setDet(null);
     setReport(null);
     setMsg(null);
@@ -163,8 +164,7 @@ export default function Capture({
       const c = document.createElement("canvas");
       const nw = img.naturalWidth || img.width;
       const nh = img.naturalHeight || img.height;
-      const maxW = 900;
-      const scale = nw > maxW ? maxW / nw : 1;
+      const scale = Math.min(1, UPLOAD_MAX_WIDTH / nw);
       c.width = Math.round(nw * scale);
       c.height = Math.round(nh * scale);
       const ctx = c.getContext("2d");
@@ -452,15 +452,15 @@ export default function Capture({
 
             {mode === "preview" && canAnalyse && (
               <label style={{ display: "flex", alignItems: "flex-start", gap: 10, color: "#5C4F47", fontSize: 13 }}>
-                <input type="checkbox" checked={confirmedGaze} onChange={(event) => setConfirmedGaze(event.target.checked)} />
-                My eyes are looking at the camera in this photo.
+                <input type="checkbox" checked={confirmedPhoto} onChange={(event) => setConfirmedPhoto(event.target.checked)} />
+                My eyes are looking at the camera. I can see my full hairline, both temples and chin. If hair or a hat covers my hairline, I’ll retake the photo.
               </label>
             )}
             {mode === "preview" && canAnalyse && (
               <button
                 type="button"
                 className="btn-primary"
-                disabled={!confirmedGaze}
+                disabled={!confirmedPhoto}
                 onClick={() => {
                   handedOff.current = true;
                   onAnalyse({

@@ -338,3 +338,7 @@ Next.js 16 + TypeScript rebuild of `face-scan.html`. Logic check (`npm run test:
 ## Look-at-camera capture guidance
 - Added eye-level and slight closed-mouth smile guidance. Both live-camera and upload captures now show a photo review with an eye-direction confirmation before analysis. Photos with a raised or lowered chin are blocked for a retake.
 - Synthetic native-pose and landmark-fallback checks and the production build pass. Eye gaze is confirmed by the user, not detected automatically; real phone testing and pose-threshold calibration remain necessary.
+
+## Photo intake for Muse lookbooks
+- Camera and upload reviews now require a retake when the face is too small in the saved photo, too close, too dark or tilted. The review asks users to confirm a visible hairline, both temples and chin.
+- Production build, synthetic face analysis and retake tests pass. Check the initial face-width threshold on real phone photos. Existing blocked Muse records still require a recovery workflow.
