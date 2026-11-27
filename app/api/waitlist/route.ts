@@ -5,6 +5,7 @@ import { checkIndianMobile, isEmail } from "@/lib/phone";
 import { SHAPE_ORDER, SHAPES } from "@/lib/content";
 import type { ShapeKey, TraitKey } from "@/lib/content";
 import { saveLookbook } from "@/lib/saveLookbook";
+import { isLookbook } from "@/lib/lookbook";
 
 const ABC = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const CODE_RE = /^UM-[A-HJ-KM-NP-Z2-9]{4}$/;
@@ -162,7 +163,7 @@ export async function POST(req: NextRequest) {
     // 1. Check if contact already exists
     const { data: existing, error: existingErr } = await supabase
       .from("waitlist")
-      .select("id, name, contact, member_number, referral_code, referral_count, created_at")
+      .select("id, name, contact, member_number, referral_code, referral_count, created_at, photo_url")
       .eq("contact", normalizedContact)
       .maybeSingle();
 
@@ -172,9 +173,46 @@ export async function POST(req: NextRequest) {
     }
 
     if (existing) {
-      const lookbook = scanShape && faceData
-        ? await saveLookbook(supabase, existing.id, scanShape, traits, faceData, rawEmail || null, beard)
-        : null;
+      // A completed or partially completed scan belongs to the original submission.
+      // Never replace it with the data or photo from a later submission.
+      const { data: existingScan, error: scanReadError } = await supabase
+        .from("scan_lookbooks")
+        .select("member_id,lookbook,face_data")
+        .eq("member_id", existing.id)
+        .maybeSingle();
+      if (scanReadError) throw scanReadError;
+      const incomplete = Boolean(existingScan) !== Boolean(existing.photo_url);
+      const resuming = Boolean(scanPhoto && existingScan?.face_data?.scanId === scanId && !existing.photo_url);
+      if (incomplete && !resuming) {
+        return NextResponse.json({
+          ok: false,
+          code: "incomplete_original_scan",
+          error: "Your result is ready. If the original scan is still open, tap Retry saving scan there.",
+        }, { status: 409 });
+      }
+      if (existingScan && existing.photo_url) {
+        const { count: priorCount, error: countError } = await supabase
+          .from("waitlist")
+          .select("*", { count: "exact", head: true })
+          .lt("created_at", existing.created_at);
+        if (countError) throw countError;
+        return NextResponse.json({
+          ok: true,
+          alreadyJoined: true,
+          name: existing.name,
+          contact: prettyContact,
+          memberNumber: existing.member_number,
+          waitlistPosition: (priorCount || 0) + 1,
+          referralCode: existing.referral_code,
+          referralCount: existing.referral_count || 0,
+          lookbook: isLookbook(existingScan.lookbook) ? existingScan.lookbook : null,
+        });
+      }
+      const lookbook = resuming
+        ? (isLookbook(existingScan?.lookbook) ? existingScan.lookbook : null)
+        : scanShape && faceData
+          ? await saveLookbook(supabase, existing.id, scanShape, traits, { ...faceData, scanId }, rawEmail || null, beard)
+          : null;
       const photoPath = scanPhoto ? await saveScanPhoto(supabase, existing.id, scanId, scanPhoto) : null;
       const signedPhoto = photoPath && process.env.N8N_WEBHOOK_URL
         ? await supabase.storage.from("face-scan-photos").createSignedUrl(photoPath, 3600)
@@ -341,7 +379,7 @@ export async function POST(req: NextRequest) {
     if (scanShape && faceData) {
       const { data: member, error } = await supabase.from("waitlist").select("id").eq("contact", normalizedContact).single();
       if (error) throw error;
-      lookbook = await saveLookbook(supabase, member.id, scanShape, traits, faceData, rawEmail || null, beard);
+      lookbook = await saveLookbook(supabase, member.id, scanShape, traits, { ...faceData, scanId }, rawEmail || null, beard);
       if (scanPhoto) photoPath = await saveScanPhoto(supabase, member.id, scanId, scanPhoto);
     }
     const signedPhoto = photoPath && process.env.N8N_WEBHOOK_URL

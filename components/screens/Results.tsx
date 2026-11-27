@@ -59,6 +59,7 @@ export default function Results({
   const fullRef = useRef<HTMLDivElement>(null);
   const syncedRef = useRef(false);
   const scanIdRef = useRef<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState("");
   const [saveStatus, setSaveStatus] = useState<"saving" | "saved" | "failed">(userLead ? "saving" : "saved");
 
   const sh = SHAPES[result.key];
@@ -73,6 +74,7 @@ export default function Results({
   const saveScan = useCallback(async () => {
     if (!userLead) return;
     setSaveStatus("saving");
+    setSaveMessage("");
     try {
       scanIdRef.current ??= crypto.randomUUID();
       const photoBase64 = photo.dataUrl || await getPhotoDataUrl(photo);
@@ -105,6 +107,11 @@ export default function Results({
         }),
       });
       const data = await response.json();
+      if (data.code === "incomplete_original_scan") {
+        setSaveMessage("Your result is ready. If the original scan is still open, tap Retry saving scan there.");
+        setSaveStatus("failed");
+        return;
+      }
       if (!response.ok || !data.ok) throw new Error("Scan could not be saved.");
       setUnlocked({
         name: data.name || userLead.name,
@@ -417,8 +424,8 @@ export default function Results({
               {userLead && saveStatus === "saving" && <p role="status">Saving your scan…</p>}
               {saveStatus === "failed" && (
                 <div role="status">
-                  <p>Your scan is ready. We couldn’t save it yet.</p>
-                  <button type="button" className="btn-secondary" onClick={saveScan}>Retry saving scan</button>
+                  <p>{saveMessage || "Your scan is ready. Tap Retry saving scan to finish saving it."}</p>
+                  {!saveMessage && <button type="button" className="btn-secondary" onClick={saveScan}>Retry saving scan</button>}
                 </div>
               )}
               <SkinRead data={null} />

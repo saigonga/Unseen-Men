@@ -22,6 +22,12 @@ export async function saveLookbook(
       const previousFaceData = existing.face_data && typeof existing.face_data === "object" && !Array.isArray(existing.face_data)
         ? existing.face_data as Record<string, unknown>
         : {};
+      if (faceData.scanId) {
+        if (previousFaceData.scanId !== faceData.scanId) {
+          throw new Error("A different scan has already been saved for this member.");
+        }
+        return isLookbook(existing.lookbook) ? existing.lookbook : null;
+      }
       const update = db.from("scan_lookbooks")
         .update({ ...measurements, face_data: { ...previousFaceData, ...faceData } })
         .eq("member_id", memberId)
